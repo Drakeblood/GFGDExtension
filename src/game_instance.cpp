@@ -3,22 +3,17 @@
 
 using namespace godot;
 
-GFSceneTree::GFSceneTree()
+GameInstance::GameInstance()
 {
 	
 }
 
-GFSceneTree::~GFSceneTree()
+GameInstance::~GameInstance()
 {
 	
 }
 
-void godot::GFSceneTree::_initialize()
-{
-    
-}
-
-void GFSceneTree::_bind_methods()
+void GameInstance::_bind_methods()
 {
 
 }

@@ -2,8 +2,7 @@
 #define GF_SCENE_TREE_H
 
 #include <godot_cpp/classes/scene_tree.hpp>
-
-class GameInstance;
+#include "game_instance.h"
 
 namespace godot
 {
@@ -12,7 +11,7 @@ class GFSceneTree : public SceneTree
 	GDCLASS(GFSceneTree, SceneTree)
 
 private:
-	Ref<GameInstance> gameInstance;
+	GameInstance* gameInstance;
 
 public:
 	GFSceneTree();
@@ -20,7 +19,7 @@ public:
 
 	virtual void _initialize() override;
 
-	_FORCE_INLINE_ Ref<GameInstance> GetGameInstance() { return gameInstance; }
+	_FORCE_INLINE_ GameInstance* GetGameInstance() { return gameInstance; }
 protected:
 	static void _bind_methods();
 

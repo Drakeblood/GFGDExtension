@@ -1,5 +1,5 @@
-#ifndef GF_SCENE_TREE_H
-#define GF_SCENE_TREE_H
+#ifndef GAME_INSTANCE_H
+#define GAME_INSTANCE_H
 
 #include <godot_cpp/classes/object.hpp>
 
