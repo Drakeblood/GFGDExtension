@@ -13,9 +13,10 @@ config_version=5
 config/name="GameFramework"
 run/main_scene="res://main.tscn"
 run/main_loop_type="GFSceneTree"
-config/features=PackedStringArray("4.3", "C#", "Forward Plus")
+config/features=PackedStringArray("4.4", "C#")
 config/icon="res://icon.svg"
-game_framework/game_instance_script="res://gi_demo.gd"
+game_framework/game_instance_script="res://DemoGameInstance.cs"
+game_framework/default_game_mode_settings="res://DefaultGameModeSettings.tscn"
 
 [dotnet]
 

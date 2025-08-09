@@ -1,0 +1,6 @@
+[gd_resource type="GameModeSettings" load_steps=2 format=3 uid="uid://dh73ldtbod0hs"]
+
+[ext_resource type="Script" uid="uid://txlowmi84ryk" path="res://DemoGameMode.cs" id="1_n6od5"]
+
+[resource]
+game_mode_script = ExtResource("1_n6od5")
