@@ -83,6 +83,27 @@ void GFGDSceneTree::create_game_mode()
     get_root()->add_child(game_mode);
 }
 
+void GFGDSceneTree::open_level(const String& resource_path)
+{
+    if (level != nullptr)
+    {
+        level->queue_free();
+    }
+
+    Ref<PackedScene> level_packed_scene = ResourceLoader::get_singleton()->load<PackedScene>(resource_path);
+    if (level_packed_scene.is_valid())
+    {
+        Node* level_node = level_packed_scene->instantiate();
+        level = cast_to<Level>(level_node);
+        if (level != nullptr)
+        {
+            create_game_mode();
+            level->init_level(this);
+            get_root()->add_child(level);
+        }
+    }
+}
+
 void GFGDSceneTree::_bind_methods()
 {
     ClassDB::bind_method(D_METHOD("set_game_instance", "instance"), &GFGDSceneTree::set_game_instance);

@@ -37,6 +37,9 @@ public:
 
     void set_level(Level* lvl) { level = lvl; }
     Level* get_level() const { return level; }
+
+    void open_level(const String& resource_path);
+
 protected:
 	static void _bind_methods();
 
