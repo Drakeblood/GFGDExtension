@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="PlayerInput" inherits="Object" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Per-player action state, so two people at one machine can hold different actions.
+	</brief_description>
+	<description>
+		Owned by a [LocalPlayer] and fed raw events by the [InputRouter]. Godot's [Input] singleton merges every device into one state, which is why two players cannot share it; this class keeps a separate state per player, filtered by the device slots that player owns.
+		There are two modes, and the difference matters. While [member device_slots] contains [constant DEVICE_SLOT_ALL] the object is in [i]passthrough[/i]: every query is forwarded straight to [Input], so a project that never assigns device slots behaves exactly as it did before per-player input existed. Give the player a specific slot and it switches to tracking its own state.
+		[b]Actions are shared.[/b] There is one [InputMap] for the whole project; this only tracks which of its actions [i]this player's[/i] devices are holding. You do not duplicate actions per player.
+		[b]There is no frame flush.[/b] [method is_action_just_pressed] compares a stamped frame number against the current one, the same way [Input] does, so the answer is correct no matter how many listeners ask or in what order their [code]_process[/code] runs, and it works from [code]_physics_process[/code] too.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="accepts_device_slot" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="device_slot" type="int" />
+			<description>
+				Always [code]true[/code] in passthrough.
+			</description>
+		</method>
+		<method name="action_press">
+			<return type="void" />
+			<param index="0" name="action_name" type="StringName" />
+			<param index="1" name="strength" type="float" default="1.0" />
+			<description>
+				Synthetic input, the per-player counterpart of [method Input.action_press]. A filtered player does not see the [Input] singleton, so a game that drives actions from script - or a test, or a remapping UI - has to press them here instead.
+			</description>
+		</method>
+		<method name="action_release">
+			<return type="void" />
+			<param index="0" name="action_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="add_device_slot">
+			<return type="void" />
+			<param index="0" name="device_slot" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="device_slot_from_event" qualifiers="static">
+			<return type="int" />
+			<param index="0" name="event" type="InputEvent" />
+			<description>
+				The device slot an event belongs to: the joypad index for [InputEventJoypadButton] and [InputEventJoypadMotion], otherwise [constant DEVICE_SLOT_KEYBOARD_MOUSE].
+				Classification is by event class, not by [member InputEvent.device]. Keyboard and mouse have reserved ids ([constant InputEvent.DEVICE_ID_KEYBOARD] and [constant InputEvent.DEVICE_ID_MOUSE]), but a synthesized [InputEventAction] reports [code]0[/code], which would collide with joypad 0.
+			</description>
+		</method>
+		<method name="feed_input_event">
+			<return type="void" />
+			<param index="0" name="event" type="InputEvent" />
+			<description>
+				Called by the [InputRouter]. Does nothing in passthrough, where the engine already holds the state.
+			</description>
+		</method>
+		<method name="get_action_raw_strength" qualifiers="const">
+			<return type="float" />
+			<param index="0" name="action_name" type="StringName" />
+			<description>
+				The strength before the action's deadzone is applied. Read straight off the joypad axis rather than reconstructed, so it is exact.
+			</description>
+		</method>
+		<method name="get_action_strength" qualifiers="const">
+			<return type="float" />
+			<param index="0" name="action_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="get_axis" qualifiers="const">
+			<return type="float" />
+			<param index="0" name="negative_action" type="StringName" />
+			<param index="1" name="positive_action" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="get_vector" qualifiers="const">
+			<return type="Vector2" />
+			<param index="0" name="negative_x" type="StringName" />
+			<param index="1" name="positive_x" type="StringName" />
+			<param index="2" name="negative_y" type="StringName" />
+			<param index="3" name="positive_y" type="StringName" />
+			<param index="4" name="deadzone" type="float" default="-1.0" />
+			<description>
+				Same contract as [method Input.get_vector], including the circular deadzone. A negative [param deadzone] averages the four actions' own deadzones.
+			</description>
+		</method>
+		<method name="has_device_slot" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="device_slot" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="is_action_just_pressed" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="action_name" type="StringName" />
+			<description>
+				True for exactly one frame after the press. A tap that lands and lifts within one frame reports both this and [method is_action_just_released], matching [Input].
+			</description>
+		</method>
+		<method name="is_action_just_released" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="action_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="is_action_pressed" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="action_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="is_passthrough" qualifiers="const">
+			<return type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="refresh_action_cache">
+			<return type="void" />
+			<description>
+				The [InputMap] action list is snapshotted. Call this after adding or removing actions at runtime.
+			</description>
+		</method>
+		<method name="remove_device_slot">
+			<return type="void" />
+			<param index="0" name="device_slot" type="int" />
+			<description>
+				Drops only what that device was contributing, so letting go of the pad does not clear an action the keyboard is still holding.
+			</description>
+		</method>
+		<method name="reset_action_states">
+			<return type="void" />
+			<description>
+				Releases everything that is held, firing [method is_action_just_released] for it. Called when a pad is unplugged, so no button can stay stuck down with nothing left to release it. Worth calling yourself when the window loses focus.
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="device_slots" type="PackedInt32Array" setter="set_device_slots" getter="get_device_slots" default="PackedInt32Array()">
+			The devices that feed this player. A player may own several - keyboard and mouse [i]and[/i] a pad is the normal setup for player 1 in a co-op game.
+		</member>
+	</members>
+	<constants>
+		<constant name="DEVICE_SLOT_NONE" value="-2" enum="DeviceSlot">
+			No device assigned yet. The player exists but is waiting for a press-to-join.
+		</constant>
+		<constant name="DEVICE_SLOT_ALL" value="-1" enum="DeviceSlot">
+			Every device feeds this player. The default for player 0, and what makes a single player project behave exactly as before.
+		</constant>
+		<constant name="DEVICE_SLOT_KEYBOARD_MOUSE" value="100" enum="DeviceSlot">
+			Keyboard and mouse counted as one device. Joypads use their own index, from [code]0[/code] upwards.
+		</constant>
+	</constants>
+</class>

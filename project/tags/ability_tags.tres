@@ -1,0 +1,6 @@
+[gd_resource type="GameplayTagTable" format=3 uid="uid://ci1662qcum613"]
+
+[resource]
+tags = Dictionary[StringName, String]({
+&"Ability.Test": "Test"
+})

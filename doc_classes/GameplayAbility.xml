@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="GameplayAbility" inherits="Resource" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Resource describing an activatable ability and its tag gating.
+	</brief_description>
+	<description>
+		Identified by its ability name and optionally bound to an input action. Activation is gated by tags: required tags must be present on the owner, blocked tags must be absent, and owned tags are granted for as long as the ability runs.
+		Extend in GDScript and override [code]_on_give_ability[/code], [code]_can_activate_ability[/code], [code]_activate_ability[/code], [code]_end_ability[/code] and the input hooks. These are virtual methods to override, not signals to connect to.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_activate_ability" qualifiers="virtual">
+			<return type="void" />
+			<description>
+			</description>
+		</method>
+		<method name="_can_activate_ability" qualifiers="virtual">
+			<return type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="_end_ability" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="was_canceled" type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="_input_pressed" qualifiers="virtual">
+			<return type="void" />
+			<description>
+			</description>
+		</method>
+		<method name="_input_released" qualifiers="virtual">
+			<return type="void" />
+			<description>
+			</description>
+		</method>
+		<method name="_on_give_ability" qualifiers="virtual">
+			<return type="void" />
+			<description>
+			</description>
+		</method>
+		<method name="activate_ability">
+			<return type="void" />
+			<description>
+			</description>
+		</method>
+		<method name="apply_effect_to_owner">
+			<return type="int" />
+			<param index="0" name="effect" type="GameplayEffect" />
+			<description>
+			</description>
+		</method>
+		<method name="can_activate_ability">
+			<return type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="end_ability">
+			<return type="void" />
+			<param index="0" name="was_canceled" type="bool" default="false" />
+			<description>
+			</description>
+		</method>
+		<method name="get_ability_id" qualifiers="const">
+			<return type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_ability_system_component" qualifiers="const">
+			<return type="AbilitySystemComponent" />
+			<description>
+			</description>
+		</method>
+		<method name="get_id_counter" qualifiers="static">
+			<return type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_is_active" qualifiers="const">
+			<return type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="get_is_input_pressed" qualifiers="const">
+			<return type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="get_source_object" qualifiers="const">
+			<return type="Variant" />
+			<description>
+			</description>
+		</method>
+		<method name="increment_id_counter" qualifiers="static">
+			<return type="void" />
+			<description>
+			</description>
+		</method>
+		<method name="input_pressed">
+			<return type="void" />
+			<description>
+			</description>
+		</method>
+		<method name="input_released">
+			<return type="void" />
+			<description>
+			</description>
+		</method>
+		<method name="on_give_ability">
+			<return type="void" />
+			<description>
+			</description>
+		</method>
+		<method name="set_is_input_pressed">
+			<return type="void" />
+			<param index="0" name="value" type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="setup_ability">
+			<return type="void" />
+			<param index="0" name="ability_system_component" type="AbilitySystemComponent" />
+			<param index="1" name="source_object" type="Variant" default="null" />
+			<description>
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="ability_name" type="StringName" setter="set_ability_name" getter="get_ability_name" default="&amp;&quot;&quot;">
+		</member>
+		<member name="ability_tags" type="GameplayTagContainer" setter="set_ability_tags" getter="get_ability_tags">
+		</member>
+		<member name="activation_blocked_tags" type="GameplayTagContainer" setter="set_activation_blocked_tags" getter="get_activation_blocked_tags">
+		</member>
+		<member name="activation_owned_tags" type="GameplayTagContainer" setter="set_activation_owned_tags" getter="get_activation_owned_tags">
+		</member>
+		<member name="activation_required_tags" type="GameplayTagContainer" setter="set_activation_required_tags" getter="get_activation_required_tags">
+		</member>
+		<member name="block_abilities_with_tag" type="GameplayTagContainer" setter="set_block_abilities_with_tag" getter="get_block_abilities_with_tag">
+		</member>
+		<member name="cancel_abilities_with_tag" type="GameplayTagContainer" setter="set_cancel_abilities_with_tag" getter="get_cancel_abilities_with_tag">
+		</member>
+		<member name="input_action_name" type="StringName" setter="set_input_action_name" getter="get_input_action_name" default="&amp;&quot;&quot;">
+		</member>
+	</members>
+	<signals>
+		<signal name="ability_ended">
+			<param index="0" name="was_canceled" type="bool" />
+			<description>
+			</description>
+		</signal>
+	</signals>
+</class>

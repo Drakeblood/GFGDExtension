@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="GameModeSettings" inherits="Resource" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Resource describing which game mode script, pawn and controller a level uses.
+	</brief_description>
+	<description>
+		A [Level] may carry its own instance to override the project-wide default.
+		The pawn scene must contain a [PawnHandler]: either as its root, or anywhere below it. The first one found in a recursive search is used. Without one the pawn still spawns but cannot be possessed, and the framework warns instead of failing.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="get_pawn_scene_for_player" qualifiers="const">
+			<return type="PackedScene" />
+			<param index="0" name="player_index" type="int" />
+			<description>
+				The entry in [member pawn_scene_overrides] for this player, or [member pawn_scene] when there is none.
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="allow_press_to_join" type="bool" setter="set_allow_press_to_join" getter="get_allow_press_to_join" default="false">
+			When true, a button pressed on a device no player owns logs a new player in, up to [member max_local_players]. Filter which devices are allowed with [method GameMode._can_join].
+		</member>
+		<member name="game_mode_script" type="Script" setter="set_game_mode_script" getter="get_game_mode_script">
+		</member>
+		<member name="game_state_scene" type="PackedScene" setter="set_game_state_scene" getter="get_game_state_scene">
+			Root must be a [GameState]. Left unset, a plain one is created. Use a scene rather than a script when you want to hang a [MultiplayerSpawner] or [MultiplayerSynchronizer] off it.
+		</member>
+		<member name="max_local_players" type="int" setter="set_max_local_players" getter="get_max_local_players" default="1">
+			How many humans may share this machine.
+			[b]Leaving it at 1 is what keeps a single player project unchanged[/b]: player 0 is created holding [constant PlayerInput.DEVICE_SLOT_ALL], so every device drives it exactly as the [Input] singleton always did. Raising it without narrowing player 0 to a specific device slot leaves nothing for anyone else, and the framework warns about that.
+		</member>
+		<member name="pawn_scene" type="PackedScene" setter="set_pawn_scene" getter="get_pawn_scene">
+		</member>
+		<member name="pawn_scene_overrides" type="PackedScene[]" setter="set_pawn_scene_overrides" getter="get_pawn_scene_overrides" default="[]">
+			Indexed by player index, for games where player 2 is a different character. Falls back to [member pawn_scene] where the array is short or the entry is null.
+		</member>
+		<member name="player_controller_scene" type="PackedScene" setter="set_player_controller_scene" getter="get_player_controller_scene">
+		</member>
+		<member name="player_state_scene" type="PackedScene" setter="set_player_state_scene" getter="get_player_state_scene">
+			Root must be a [PlayerState]. Left unset, a plain one is created.
+		</member>
+	</members>
+</class>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="PlayerController" inherits="Controller" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Controller for the local player: possesses a pawn and owns its input.
+	</brief_description>
+	<description>
+		On possession it makes the pawn camera current and calls [code]_setup_input_component[/code] on the [PawnHandler], which is where input actions get bound.
+		It belongs to a level and dies with it. The human behind it is the [LocalPlayer], which the [GameInstance] owns and which survives [method GFGDSceneTree.open_level] - that is where the device assignment and the split screen viewport live. [method get_player_input] is the shortcut to the player own action state; without a [LocalPlayer] it returns [code]null[/code] and the [InputComponent] falls back to the global [Input] singleton.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="get_input_component" qualifiers="const">
+			<return type="InputComponent" />
+			<description>
+			</description>
+		</method>
+		<method name="get_local_player" qualifiers="const">
+			<return type="LocalPlayer" />
+			<description>
+			</description>
+		</method>
+		<method name="get_player_index" qualifiers="const">
+			<return type="int" />
+			<description>
+				[code]-1[/code] when no [LocalPlayer] is assigned.
+			</description>
+		</method>
+		<method name="get_player_input" qualifiers="const">
+			<return type="PlayerInput" />
+			<description>
+			</description>
+		</method>
+		<method name="get_player_state" qualifiers="const">
+			<return type="PlayerState" />
+			<description>
+				Lives under the [GameState], not under this node.
+			</description>
+		</method>
+		<method name="get_player_viewport" qualifiers="const">
+			<return type="Viewport" />
+			<description>
+				[member LocalPlayer.viewport_override] if the player has one, otherwise this node viewport.
+			</description>
+		</method>
+		<method name="is_local_player_controller" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Always true today. The hook exists so code written now stays correct once a client owns only a subset of the world controllers.
+			</description>
+		</method>
+		<method name="register_input_component">
+			<return type="void" />
+			<param index="0" name="input" type="InputComponent" />
+			<description>
+				Adds the component to this controller input stack and points it at this controller, which is how it finds the right [PlayerInput].
+			</description>
+		</method>
+		<method name="set_local_player">
+			<return type="void" />
+			<param index="0" name="value" type="LocalPlayer" />
+			<description>
+			</description>
+		</method>
+		<method name="set_pawn_camera_node_as_current">
+			<return type="void" />
+			<description>
+			</description>
+		</method>
+		<method name="unregister_input_component">
+			<return type="void" />
+			<param index="0" name="input" type="InputComponent" />
+			<description>
+			</description>
+		</method>
+	</methods>
+</class>

@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="AbilitySystemComponent" inherits="Node" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Node that owns a pawn abilities, gameplay tags, effects and attributes.
+	</brief_description>
+	<description>
+		The hub of the ability system. Grants and activates [GameplayAbility] resources, applies [GameplayEffect]s, counts owned gameplay tags and holds an [AttributeSet].
+		The attribute set is duplicated at runtime, so the resource on disk is a template and is never mutated by play.
+		Owned tags are reference counted: the same tag granted by two sources needs both to release it before it is gone. That is why one ability ending does not strip a tag another ability still grants.
+		C# scripts cannot inherit GDExtension classes, so consume this compositionally - place the node, author the resources, call the methods and connect to the signals.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="ability_local_input_pressed">
+			<return type="void" />
+			<param index="0" name="action_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="ability_local_input_released">
+			<return type="void" />
+			<param index="0" name="action_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="apply_gameplay_effect_to_self">
+			<return type="int" />
+			<param index="0" name="effect" type="GameplayEffect" />
+			<description>
+			</description>
+		</method>
+		<method name="cancel_abilities_with_tags">
+			<return type="void" />
+			<param index="0" name="tag_container" type="GameplayTagContainer" />
+			<description>
+			</description>
+		</method>
+		<method name="clear_ability">
+			<return type="void" />
+			<param index="0" name="ability" type="GameplayAbility" />
+			<description>
+			</description>
+		</method>
+		<method name="get_activatable_abilities" qualifiers="const">
+			<return type="Array" />
+			<description>
+			</description>
+		</method>
+		<method name="get_active_effects" qualifiers="const">
+			<return type="Array" />
+			<description>
+			</description>
+		</method>
+		<method name="get_attribute_base_value" qualifiers="const">
+			<return type="float" />
+			<param index="0" name="attribute_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="get_attribute_set" qualifiers="const">
+			<return type="AttributeSet" />
+			<description>
+			</description>
+		</method>
+		<method name="get_attribute_value" qualifiers="const">
+			<return type="float" />
+			<param index="0" name="attribute_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="get_blocked_ability_tags" qualifiers="const">
+			<return type="GameplayTagContainer" />
+			<description>
+			</description>
+		</method>
+		<method name="get_owned_gameplay_tags" qualifiers="const">
+			<return type="GameplayTagContainer" />
+			<description>
+			</description>
+		</method>
+		<method name="give_ability">
+			<return type="void" />
+			<param index="0" name="ability_template" type="GameplayAbility" />
+			<param index="1" name="source_object" type="Variant" default="null" />
+			<description>
+			</description>
+		</method>
+		<method name="register_gameplay_tag_event">
+			<return type="void" />
+			<param index="0" name="tag" type="GameplayTag" />
+			<param index="1" name="tag_delegate" type="Callable" />
+			<description>
+			</description>
+		</method>
+		<method name="remove_active_effects_with_tags">
+			<return type="int" />
+			<param index="0" name="tag_container" type="GameplayTagContainer" />
+			<description>
+			</description>
+		</method>
+		<method name="remove_active_gameplay_effect">
+			<return type="bool" />
+			<param index="0" name="active_id" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="set_attribute_base_value">
+			<return type="void" />
+			<param index="0" name="attribute_name" type="StringName" />
+			<param index="1" name="value" type="float" />
+			<description>
+			</description>
+		</method>
+		<method name="try_activate_ability">
+			<return type="bool" />
+			<param index="0" name="ability_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="update_blocked_ability_tags">
+			<return type="void" />
+			<param index="0" name="tag" type="GameplayTag" />
+			<param index="1" name="count_delta" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="update_tag_map">
+			<return type="void" />
+			<param index="0" name="tag" type="GameplayTag" />
+			<param index="1" name="count_delta" type="int" />
+			<description>
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="attribute_set" type="AttributeSet" setter="set_attribute_set_template" getter="get_attribute_set_template">
+		</member>
+		<member name="startup_abilities" type="Array" setter="set_startup_abilities" getter="get_startup_abilities" default="[]">
+		</member>
+		<member name="startup_effects" type="Array" setter="set_startup_effects" getter="get_startup_effects" default="[]">
+		</member>
+	</members>
+	<signals>
+		<signal name="ability_activated">
+			<param index="0" name="ability" type="GameplayAbility" />
+			<description>
+			</description>
+		</signal>
+		<signal name="ability_ended">
+			<param index="0" name="ability" type="GameplayAbility" />
+			<param index="1" name="was_canceled" type="bool" />
+			<description>
+			</description>
+		</signal>
+		<signal name="attribute_changed">
+			<param index="0" name="attribute_name" type="StringName" />
+			<param index="1" name="old_value" type="float" />
+			<param index="2" name="new_value" type="float" />
+			<description>
+			</description>
+		</signal>
+		<signal name="gameplay_effect_applied">
+			<param index="0" name="effect" type="GameplayEffect" />
+			<param index="1" name="active_id" type="int" />
+			<description>
+			</description>
+		</signal>
+		<signal name="gameplay_effect_removed">
+			<param index="0" name="effect" type="GameplayEffect" />
+			<param index="1" name="active_id" type="int" />
+			<description>
+			</description>
+		</signal>
+		<signal name="owned_tag_changed">
+			<param index="0" name="tag_name" type="StringName" />
+			<param index="1" name="new_count" type="int" />
+			<description>
+			</description>
+		</signal>
+	</signals>
+</class>

@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://bgt4e44svq5co"]
+
+[ext_resource type="Script" uid="uid://bu0uisg2i8tq6" path="res://scripts/demo_pawn_handler.gd" id="1_ph"]
+[ext_resource type="AttributeSet" uid="uid://b813xtrmo2duf" path="res://resources/demo_attributes.tres" id="2_attrs"]
+[ext_resource type="GameplayAbility" uid="uid://smjy818n4l0" path="res://resources/test_ability.tres" id="3_ability"]
+
+[sub_resource type="GameplayTag" id="GameplayTag_hwd6g"]
+tag_name = &"Ability"
+
+[node name="PlayerPawn" type="Node3D" unique_id=1379836536]
+
+[node name="PawnHandler" type="PawnHandler" parent="." unique_id=320541336]
+camera_path = NodePath("../Camera")
+script = ExtResource("1_ph")
+tag = SubResource("GameplayTag_hwd6g")
+
+[node name="Camera" type="Camera3D" parent="." unique_id=1565701393]
+
+[node name="AbilitySystemComponent" type="AbilitySystemComponent" parent="." unique_id=1305715285]
+startup_abilities = [ExtResource("3_ability")]
+attribute_set = ExtResource("2_attrs")

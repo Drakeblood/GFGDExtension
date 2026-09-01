@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="AssertionException" inherits="RefCounted" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Exception type raised by [Assert].
+	</brief_description>
+	<description>
+		Carries the message of the failed assertion.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="get_message" qualifiers="const">
+			<return type="String" />
+			<description>
+			</description>
+		</method>
+	</methods>
+</class>

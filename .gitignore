@@ -1,0 +1,63 @@
+# Godot auto generated files
+*.gen.*
+.godot/
+
+# Ignore compiled libraries in the root bin/, keep the folder structure
+/bin/**
+!/bin/**/
+!/bin/**/.gitkeep
+
+# Ignore the built libraries inside the addon, keep the platform folders. The
+# .gdextension manifest and the README sit above bin/ and stay tracked.
+project/addons/gfgdextension/bin/**
+!project/addons/gfgdextension/bin/**/
+!project/addons/gfgdextension/bin/**/.gitkeep
+.sconsign*.dblite
+
+# Ignore custom.py
+custom.py
+
+# Ignore generated compile_commands.json
+compile_commands.json
+
+# Ignore files generated for documentation
+/src/gen
+
+# Binaries
+*.o
+*.os
+*.so
+*.obj
+*.dll
+*.dylib
+*.bc
+*.pyc
+*.dblite
+*.pdb
+*.lib
+*.config
+*.creator
+*.creator.user
+*.files
+*.includes
+*.idb
+*.exp
+
+# Other stuff
+*.log
+
+# VSCode
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+
+# Jetbrains
+.idea/
+
+# Visual Studio
+.vs/
+
+# Cmake
+cmake-build*
+CMakeUserPresets.json
+/build/

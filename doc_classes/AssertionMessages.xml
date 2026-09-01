@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="AssertionMessages" inherits="Object" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Message formatting used by [Assert].
+	</brief_description>
+	<description>
+		Builds the human-readable text for a failed assertion.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="boolean_failure_message" qualifiers="static">
+			<return type="String" />
+			<param index="0" name="expected" type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="get_equality_message" qualifiers="static">
+			<return type="String" />
+			<param index="0" name="actual" type="Variant" />
+			<param index="1" name="expected" type="Variant" />
+			<param index="2" name="expect_equal" type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="get_message" qualifiers="static">
+			<return type="String" />
+			<param index="0" name="failure_message" type="String" />
+			<description>
+			</description>
+		</method>
+		<method name="get_message_with_expected" qualifiers="static">
+			<return type="String" />
+			<param index="0" name="failure_message" type="String" />
+			<param index="1" name="expected" type="String" />
+			<description>
+			</description>
+		</method>
+		<method name="null_failure_message" qualifiers="static">
+			<return type="String" />
+			<param index="0" name="value" type="Variant" />
+			<param index="1" name="expect_null" type="bool" />
+			<description>
+			</description>
+		</method>
+	</methods>
+</class>

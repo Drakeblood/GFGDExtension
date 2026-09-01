@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="GameplayTagCountContainer" inherits="Object" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Reference-counted set of tags, used for the tags an actor currently owns.
+	</brief_description>
+	<description>
+		Backs the owned tags of [AbilitySystemComponent]. Adding the same tag twice increments its count, and it stops being owned only when the count returns to zero.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="get_explicit_tags" qualifiers="const">
+			<return type="GameplayTagContainer" />
+			<description>
+			</description>
+		</method>
+		<method name="get_tag_count" qualifiers="const">
+			<return type="int" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="register_gameplay_tag_event">
+			<return type="void" />
+			<param index="0" name="tag" type="GameplayTag" />
+			<param index="1" name="tag_delegate" type="Callable" />
+			<description>
+			</description>
+		</method>
+		<method name="update_tag_count">
+			<return type="bool" />
+			<param index="0" name="tag" type="GameplayTag" />
+			<param index="1" name="count_delta" type="int" />
+			<description>
+			</description>
+		</method>
+	</methods>
+</class>

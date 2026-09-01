@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="SaveGame" inherits="Resource" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Resource holding serializable save state.
+	</brief_description>
+	<description>
+		Written and read by [ProjectStatics]. Every script variable is serialized to JSON by default; override [code]_to_json[/code] and [code]_from_json[/code] for a custom format.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_from_json" qualifiers="virtual">
+			<return type="int" />
+			<param index="0" name="data" type="Variant" />
+			<description>
+			</description>
+		</method>
+		<method name="_to_json" qualifiers="virtual">
+			<return type="String" />
+			<description>
+			</description>
+		</method>
+		<method name="from_json">
+			<return type="int" enum="Error" />
+			<param index="0" name="data" type="Variant" />
+			<description>
+			</description>
+		</method>
+		<method name="to_json">
+			<return type="String" />
+			<description>
+			</description>
+		</method>
+	</methods>
+</class>

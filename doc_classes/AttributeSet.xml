@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="AttributeSet" inherits="Resource" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Resource holding named numeric attributes and their derived current values.
+	</brief_description>
+	<description>
+		Base values are authored in the editor as a name to value dictionary; current values are derived at runtime from the base plus every active modifier.
+		The formula is [code](base + sum of ADD) * product of MULTIPLY[/code], and a single [code]OVERRIDE[/code] wins over all of it.
+		Override [code]_pre_attribute_change[/code] to clamp a value before it is written, and [code]_post_attribute_change[/code] to react after it is. From C#, connect to the signals instead - C# cannot inherit GDExtension classes.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_post_attribute_change" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="attribute_name" type="StringName" />
+			<param index="1" name="old_value" type="float" />
+			<param index="2" name="new_value" type="float" />
+			<description>
+			</description>
+		</method>
+		<method name="_pre_attribute_change" qualifiers="virtual">
+			<return type="float" />
+			<param index="0" name="attribute_name" type="StringName" />
+			<param index="1" name="new_value" type="float" />
+			<description>
+			</description>
+		</method>
+		<method name="define_attribute">
+			<return type="void" />
+			<param index="0" name="attribute_name" type="StringName" />
+			<param index="1" name="base_value" type="float" />
+			<description>
+			</description>
+		</method>
+		<method name="get_attribute_names" qualifiers="const">
+			<return type="PackedStringArray" />
+			<description>
+			</description>
+		</method>
+		<method name="get_base_value" qualifiers="const">
+			<return type="float" />
+			<param index="0" name="attribute_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="get_current_value" qualifiers="const">
+			<return type="float" />
+			<param index="0" name="attribute_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="has_attribute" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="attribute_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="init_current_from_base">
+			<return type="void" />
+			<description>
+			</description>
+		</method>
+		<method name="set_base_value">
+			<return type="void" />
+			<param index="0" name="attribute_name" type="StringName" />
+			<param index="1" name="value" type="float" />
+			<description>
+			</description>
+		</method>
+		<method name="set_current_value">
+			<return type="void" />
+			<param index="0" name="attribute_name" type="StringName" />
+			<param index="1" name="value" type="float" />
+			<description>
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="attributes" type="Dictionary[StringName, float]" setter="set_attributes" getter="get_attributes" default="{}">
+		</member>
+	</members>
+	<signals>
+		<signal name="attribute_changed">
+			<param index="0" name="attribute_name" type="StringName" />
+			<param index="1" name="old_value" type="float" />
+			<param index="2" name="new_value" type="float" />
+			<description>
+			</description>
+		</signal>
+		<signal name="base_value_changed">
+			<param index="0" name="attribute_name" type="StringName" />
+			<param index="1" name="old_value" type="float" />
+			<param index="2" name="new_value" type="float" />
+			<description>
+			</description>
+		</signal>
+	</signals>
+</class>

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="LocalPlayer" inherits="Object" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		One human sitting at this machine. Survives a level change.
+	</brief_description>
+	<description>
+		The seat, not the character. A [PlayerController] belongs to a level and dies with it; a [LocalPlayer] is owned by the [GameInstance] and outlives every [method GFGDSceneTree.open_level], carrying the player's device assignment and split screen viewport across.
+		Create them with [method GFGDSceneTree.create_local_player] or let press-to-join do it (see [member GameModeSettings.allow_press_to_join]). The [GameMode] then logs each one in and gives it a controller.
+		[b]It is not a node.[/b] It is not in the scene tree and has no name path; hold a reference or ask the [GameInstance] for it by index.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="add_device_slot">
+			<return type="void" />
+			<param index="0" name="device_slot" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="adopt_camera">
+			<return type="void" />
+			<param index="0" name="camera" type="Node" />
+			<description>
+				Moves a camera into this player's [member viewport_override] and makes it current there. Needed for split screen because [Camera3D] has no custom viewport - [method Camera3D.make_current] acts on the camera's nearest ancestor [Viewport], so the camera has to physically live inside the [SubViewport].
+				Reparenting detaches the camera from the pawn, so drive it with a [RemoteTransform3D] on the pawn afterwards. A [Camera2D] does not need this: [PlayerController] points its [member Camera2D.custom_viewport] at the right viewport by itself.
+			</description>
+		</method>
+		<method name="get_device_slots" qualifiers="const">
+			<return type="PackedInt32Array" />
+			<description>
+			</description>
+		</method>
+		<method name="get_player_input" qualifiers="const">
+			<return type="PlayerInput" />
+			<description>
+				This player's own action state. Never null.
+			</description>
+		</method>
+		<method name="has_device_slot" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="device_slot" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="remove_device_slot">
+			<return type="void" />
+			<param index="0" name="device_slot" type="int" />
+			<description>
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="device_slots" type="PackedInt32Array" setter="set_device_slots" getter="get_device_slots" default="PackedInt32Array()">
+			See [member PlayerInput.device_slots]. To go local co-op, narrow player 0 off [constant PlayerInput.DEVICE_SLOT_ALL] first, or it will swallow every other device's input.
+		</member>
+		<member name="player_index" type="int" setter="set_player_index" getter="get_player_index" default="0">
+			Position in the [GameInstance]'s list. Kept dense when a player leaves.
+		</member>
+		<member name="viewport_override" type="Viewport" setter="set_viewport_override" getter="get_viewport_override">
+			The [SubViewport] this player renders into, or [code]null[/code] for the shared main viewport, which is the default. The framework does not build the split screen layout - you do - it only records which viewport belongs to whom. Cleared on a level change, because the old level's viewport dies with it.
+		</member>
+	</members>
+</class>

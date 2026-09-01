@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="GameplayTagsManager" inherits="Object" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Singleton that merges every [GameplayTagTable] into one lookup and owns the canonical tag instances.
+	</brief_description>
+	<description>
+		Built by [GFGDSceneTree] before the game instance is created, so tag tables are always loaded before anything can reference a tag.
+		Tables are merged in the order they are listed in the project setting and the first declaration of a name wins; a duplicate declaration warns and is ignored.
+		Every registered tag has a source, reported by [method get_tag_source_kind]: [code]TAG_SOURCE_TABLE[/code] for a declared tag, [code]TAG_SOURCE_IMPLICIT[/code] for a parent implied by a longer one, and [code]TAG_SOURCE_RUNTIME[/code] for a name nothing declared.
+		That last case is the one to watch. [method request_tag] never fails on a well-formed name - it registers the tag and warns rather than returning null - so a typo, or a name left behind by a deleted table entry, becomes a real and usable tag. Absence of an error does not mean the tag was spelled correctly.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="destroy_singleton" qualifiers="static">
+			<return type="void" />
+			<description>
+			</description>
+		</method>
+		<method name="get_all_tag_names" qualifiers="const">
+			<return type="PackedStringArray" />
+			<description>
+			</description>
+		</method>
+		<method name="get_loaded_table_paths" qualifiers="const">
+			<return type="PackedStringArray" />
+			<description>
+			</description>
+		</method>
+		<method name="get_separated_tag">
+			<return type="GameplayTag[]" />
+			<param index="0" name="tag" type="GameplayTag" />
+			<description>
+			</description>
+		</method>
+		<method name="get_singleton" qualifiers="static">
+			<return type="GameplayTagsManager" />
+			<description>
+			</description>
+		</method>
+		<method name="get_tag" qualifiers="const">
+			<return type="GameplayTag" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="get_tag_description" qualifiers="const">
+			<return type="String" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="get_tag_source_kind" qualifiers="const">
+			<return type="int" enum="GameplayTagsManager.TagSourceKind" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="get_tag_source_path" qualifiers="const">
+			<return type="String" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="has_tag" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="initialize_tags">
+			<return type="void" />
+			<description>
+			</description>
+		</method>
+		<method name="is_valid_tag_name" qualifiers="static">
+			<return type="bool" />
+			<param index="0" name="tag_name" type="String" />
+			<description>
+			</description>
+		</method>
+		<method name="request_tag">
+			<return type="GameplayTag" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+	</methods>
+	<constants>
+		<constant name="TAG_SOURCE_TABLE" value="0" enum="TagSourceKind">
+		</constant>
+		<constant name="TAG_SOURCE_IMPLICIT" value="1" enum="TagSourceKind">
+		</constant>
+		<constant name="TAG_SOURCE_RUNTIME" value="2" enum="TagSourceKind">
+		</constant>
+	</constants>
+</class>

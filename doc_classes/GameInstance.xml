@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="GameInstance" inherits="Object" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Application-lifetime object, created once at startup and never reloaded.
+	</brief_description>
+	<description>
+		Outlives levels and game modes, so it is where state that must survive a level change belongs. Created from the [code]application/game_framework/game_instance_script[/code] project setting.
+		Extend it in GDScript and override [code]_on_init[/code] and [code]_on_shutdown[/code]. If the setting is unset the framework warns and continues without a game instance.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_on_init" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="scene_tree" type="GFGDSceneTree" />
+			<description>
+			</description>
+		</method>
+		<method name="_on_shutdown" qualifiers="virtual">
+			<return type="void" />
+			<description>
+			</description>
+		</method>
+		<method name="create_local_player">
+			<return type="LocalPlayer" />
+			<param index="0" name="device_slot" type="int" />
+			<description>
+				Adds a human at this machine. See [enum PlayerInput.DeviceSlot] for [param device_slot]; pass [constant PlayerInput.DEVICE_SLOT_NONE] for a player that will pick up a device by pressing a button later.
+				Local players are owned here rather than by the [GameMode], so they survive [method GFGDSceneTree.open_level].
+			</description>
+		</method>
+		<method name="create_local_player_with_slots">
+			<return type="LocalPlayer" />
+			<param index="0" name="device_slots" type="PackedInt32Array" />
+			<description>
+				For a player who owns more than one device, such as keyboard and mouse plus a pad.
+			</description>
+		</method>
+		<method name="find_local_player_for_device_slot" qualifiers="const">
+			<return type="LocalPlayer" />
+			<param index="0" name="device_slot" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_local_player" qualifiers="const">
+			<return type="LocalPlayer" />
+			<param index="0" name="index" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_local_player_count" qualifiers="const">
+			<return type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_local_players" qualifiers="const">
+			<return type="Array" />
+			<description>
+			</description>
+		</method>
+		<method name="get_scene_tree" qualifiers="const">
+			<return type="GFGDSceneTree" />
+			<description>
+			</description>
+		</method>
+		<method name="remove_local_player">
+			<return type="void" />
+			<param index="0" name="local_player" type="LocalPlayer" />
+			<description>
+				Frees the player. Remaining indices are kept dense, so player 1 becomes player 0 when player 0 leaves.
+			</description>
+		</method>
+	</methods>
+	<signals>
+		<signal name="local_player_added">
+			<param index="0" name="local_player" type="LocalPlayer" />
+			<description>
+			</description>
+		</signal>
+		<signal name="local_player_removed">
+			<param index="0" name="local_player" type="LocalPlayer" />
+			<description>
+			</description>
+		</signal>
+	</signals>
+</class>

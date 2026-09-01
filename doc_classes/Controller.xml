@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="Controller" inherits="Node" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Base class for anything that can possess a [PawnHandler].
+	</brief_description>
+	<description>
+		Holds the possession relationship. See [PlayerController] for the player-facing subclass.
+		Controllers add themselves to [method GFGDSceneTree.get_controllers] from [code]_enter_tree[/code] and take themselves out again in [code]_exit_tree[/code], so the world list also picks up AI controllers and controllers a designer placed in a level by hand, and can never hold a freed one.
+		[b]A subclass that overrides [code]_enter_tree[/code] or [code]_exit_tree[/code] must call the base implementation[/b], or it will never be registered - Godot binds only the most derived override.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_on_possess" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="pawn_handler" type="Node" />
+			<description>
+			</description>
+		</method>
+		<method name="_on_unpossess" qualifiers="virtual">
+			<return type="void" />
+			<description>
+			</description>
+		</method>
+		<method name="get_pawn_handler" qualifiers="const">
+			<return type="PawnHandler" />
+			<description>
+			</description>
+		</method>
+		<method name="possess">
+			<return type="void" />
+			<param index="0" name="pawn_handler" type="PawnHandler" />
+			<description>
+			</description>
+		</method>
+		<method name="unpossess">
+			<return type="void" />
+			<description>
+			</description>
+		</method>
+	</methods>
+	<signals>
+		<signal name="pawn_changed">
+			<param index="0" name="pawn_handler" type="Object" />
+			<description>
+			</description>
+		</signal>
+	</signals>
+</class>

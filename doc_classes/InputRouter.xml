@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="InputRouter" inherits="Node" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Sends each raw input event to the player who owns the device it came from.
+	</brief_description>
+	<description>
+		Created by [GFGDSceneTree] as [code]/root/InputRouter[/code], once, and never freed with a level. You do not add it yourself.
+		It is one central node rather than an [code]_input[/code] override on each [PlayerController], for three reasons. A node only receives [code]_input[/code] for its own nearest ancestor [Viewport], so a router at the root sees every event exactly once no matter how many [SubViewport]s a split screen layout adds - per-controller handling would see each event zero or N times. An event from a device nobody owns has no controller to catch it, and press-to-join needs somewhere central to happen. And controllers are recreated per level, which would leave gaps in device assignment.
+		It listens on [code]_input[/code], not [code]_unhandled_input[/code], on purpose: [PlayerInput] is a state machine, and if a [Control] swallowed a press but not the release the action would stay held forever. The router never marks input handled, so the GUI and every [code]_unhandled_input[/code] in the project still see events exactly as before. To stop gameplay input while a menu is open, disable the [InputComponent] instead.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="get_gfgd_scene_tree" qualifiers="const">
+			<return type="GFGDSceneTree" />
+			<description>
+			</description>
+		</method>
+	</methods>
+	<signals>
+		<signal name="joypad_connected">
+			<param index="0" name="device" type="int" />
+			<param index="1" name="local_player" type="LocalPlayer" />
+			<description>
+				[param local_player] is the player that already owned this device slot, or [code]null[/code] for a pad nobody has claimed.
+			</description>
+		</signal>
+		<signal name="joypad_disconnected">
+			<param index="0" name="device" type="int" />
+			<param index="1" name="local_player" type="LocalPlayer" />
+			<description>
+				The slot is released and everything it was holding is dropped, because nothing is ever going to deliver those releases. The [LocalPlayer] itself is kept, so plugging the pad back in and pressing a button resumes the same player rather than making a new one.
+			</description>
+		</signal>
+		<signal name="unassigned_device_input">
+			<param index="0" name="device_slot" type="int" />
+			<param index="1" name="event" type="InputEvent" />
+			<description>
+				A button was pressed on a device no player owns. Emitted before [method GameMode.try_join] is offered the slot, so this is the hook for a "press A to join" prompt.
+			</description>
+		</signal>
+	</signals>
+</class>

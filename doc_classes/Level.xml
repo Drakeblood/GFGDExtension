@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="Level" inherits="Node" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Root node of a playable scene, optionally overriding the game mode.
+	</brief_description>
+	<description>
+		The main scene root must be a [Level] for the framework to find it. Give it its own [GameModeSettings] to run this level under different rules from the project default. A node named [code]PlayerStart[/code] anywhere below it positions the spawned pawn.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_init_level" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="scene_tree" type="GFGDSceneTree" />
+			<description>
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="game_mode_settings_override" type="GameModeSettings" setter="set_game_mode_settings_override" getter="get_game_mode_settings_override">
+		</member>
+	</members>
+</class>

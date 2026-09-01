@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="ProjectStatics" inherits="Object" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Static helpers, currently save game loading and storing.
+	</brief_description>
+	<description>
+		Writes a [SaveGame] to [code]user://saves/[/code], optionally encrypted.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="get_game_instance" qualifiers="static">
+			<return type="GameInstance" />
+			<param index="0" name="scene_tree" type="GFGDSceneTree" />
+			<description>
+			</description>
+		</method>
+		<method name="get_game_mode" qualifiers="static">
+			<return type="GameMode" />
+			<param index="0" name="scene_tree" type="GFGDSceneTree" />
+			<description>
+			</description>
+		</method>
+		<method name="get_level" qualifiers="static">
+			<return type="Level" />
+			<param index="0" name="scene_tree" type="GFGDSceneTree" />
+			<description>
+			</description>
+		</method>
+		<method name="load_game" qualifiers="static">
+			<return type="SaveGame" />
+			<param index="0" name="slot_name" type="String" />
+			<param index="1" name="encrypt" type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="open_level" qualifiers="static">
+			<return type="void" />
+			<param index="0" name="scene_tree" type="GFGDSceneTree" />
+			<param index="1" name="resource_path" type="String" />
+			<description>
+			</description>
+		</method>
+		<method name="save_game" qualifiers="static">
+			<return type="void" />
+			<param index="0" name="slot_name" type="String" />
+			<param index="1" name="data" type="SaveGame" />
+			<param index="2" name="encrypt" type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="get_game_state" qualifiers="static">
+			<return type="GameState" />
+			<param index="0" name="scene_tree" type="GFGDSceneTree" />
+			<description>
+			</description>
+		</method>
+		<method name="get_first_player_controller" qualifiers="static">
+			<return type="PlayerController" />
+			<param index="0" name="scene_tree" type="GFGDSceneTree" />
+			<description>
+			</description>
+		</method>
+		<method name="get_local_player" qualifiers="static">
+			<return type="LocalPlayer" />
+			<param index="0" name="scene_tree" type="GFGDSceneTree" />
+			<param index="1" name="index" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_local_player_count" qualifiers="static">
+			<return type="int" />
+			<param index="0" name="scene_tree" type="GFGDSceneTree" />
+			<description>
+			</description>
+		</method>
+		<method name="get_player_controller" qualifiers="static">
+			<return type="PlayerController" />
+			<param index="0" name="scene_tree" type="GFGDSceneTree" />
+			<param index="1" name="index" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_player_controller_count" qualifiers="static">
+			<return type="int" />
+			<param index="0" name="scene_tree" type="GFGDSceneTree" />
+			<description>
+			</description>
+		</method>
+	</methods>
+</class>

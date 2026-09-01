@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="GameplayTag" inherits="Resource" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		A single hierarchical tag, owned and handed out by [GameplayTagsManager].
+	</brief_description>
+	<description>
+		Tags are dotted names forming a hierarchy: [code]A.B.C[/code] matches the parent query [code]A.B[/code], but not [code]A.B.C.D[/code].
+		Do not author these inline in a resource or construct them by hand. There is exactly one canonical instance per name, owned by the manager; any other instance compares equal by name but is not the same object. Ask for one with [method GameplayTagsManager.request_tag].
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="matches_tag" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="tag_to_check" type="GameplayTag" />
+			<description>
+			</description>
+		</method>
+		<method name="matches_tag_exact" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="tag_to_check" type="GameplayTag" />
+			<description>
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="tag_name" type="StringName" setter="set_tag_name" getter="get_tag_name" default="&amp;&quot;&quot;">
+		</member>
+	</members>
+</class>

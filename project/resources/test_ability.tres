@@ -1,0 +1,27 @@
+[gd_resource type="GameplayAbility" format=3 uid="uid://smjy818n4l0"]
+
+[ext_resource type="Script" uid="uid://couvkvdo4fhos" path="res://scripts/demo_ability.gd" id="1_demo"]
+
+[sub_resource type="GameplayTagContainer" id="GameplayTagContainer_q2uiv"]
+
+[sub_resource type="GameplayTagContainer" id="GameplayTagContainer_h0lu0"]
+
+[sub_resource type="GameplayTagContainer" id="GameplayTagContainer_owned"]
+tags = PackedStringArray("Ability.Test")
+
+[sub_resource type="GameplayTagContainer" id="GameplayTagContainer_e7lre"]
+
+[sub_resource type="GameplayTagContainer" id="GameplayTagContainer_64bdr"]
+
+[sub_resource type="GameplayTagContainer" id="GameplayTagContainer_yagbt"]
+
+[resource]
+ability_name = &"TestAbility"
+ability_tags = SubResource("GameplayTagContainer_q2uiv")
+cancel_abilities_with_tag = SubResource("GameplayTagContainer_yagbt")
+block_abilities_with_tag = SubResource("GameplayTagContainer_64bdr")
+activation_owned_tags = SubResource("GameplayTagContainer_owned")
+activation_required_tags = SubResource("GameplayTagContainer_e7lre")
+activation_blocked_tags = SubResource("GameplayTagContainer_h0lu0")
+input_action_name = &"activate_test"
+script = ExtResource("1_demo")

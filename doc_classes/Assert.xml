@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="Assert" inherits="Object" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Assertion helpers that raise [AssertionException].
+	</brief_description>
+	<description>
+		Development aid. See [AssertionMessages] for the message formatting used.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="are_equal" qualifiers="static">
+			<return type="void" />
+			<param index="0" name="expected" type="Variant" />
+			<param index="1" name="actual" type="Variant" />
+			<param index="2" name="message" type="String" />
+			<description>
+			</description>
+		</method>
+		<method name="are_not_equal" qualifiers="static">
+			<return type="void" />
+			<param index="0" name="expected" type="Variant" />
+			<param index="1" name="actual" type="Variant" />
+			<param index="2" name="message" type="String" />
+			<description>
+			</description>
+		</method>
+		<method name="is_false" qualifiers="static">
+			<return type="void" />
+			<param index="0" name="condition" type="bool" />
+			<param index="1" name="message" type="String" />
+			<description>
+			</description>
+		</method>
+		<method name="is_not_null" qualifiers="static">
+			<return type="void" />
+			<param index="0" name="value" type="Variant" />
+			<param index="1" name="message" type="String" />
+			<description>
+			</description>
+		</method>
+		<method name="is_null" qualifiers="static">
+			<return type="void" />
+			<param index="0" name="value" type="Variant" />
+			<param index="1" name="message" type="String" />
+			<description>
+			</description>
+		</method>
+		<method name="is_true" qualifiers="static">
+			<return type="void" />
+			<param index="0" name="condition" type="bool" />
+			<param index="1" name="message" type="String" />
+			<description>
+			</description>
+		</method>
+	</methods>
+</class>

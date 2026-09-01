@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="ActiveGameplayEffect" inherits="RefCounted" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Runtime instance of a duration-based [GameplayEffect] applied to a target.
+	</brief_description>
+	<description>
+		Created by [AbilitySystemComponent] when a non-instant effect is applied, and tracks remaining duration and periodic ticks. Not something you author by hand.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="get_active_id" qualifiers="const">
+			<return type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_effect" qualifiers="const">
+			<return type="GameplayEffect" />
+			<description>
+			</description>
+		</method>
+		<method name="get_remaining_time" qualifiers="const">
+			<return type="float" />
+			<description>
+			</description>
+		</method>
+	</methods>
+</class>

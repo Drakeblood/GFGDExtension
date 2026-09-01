@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="GameplayTagContainer" inherits="Resource" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		An ordered set of gameplay tags, serialized as plain names.
+	</brief_description>
+	<description>
+		Serializes as a [PackedStringArray] of tag names and resolves each name through [GameplayTagsManager] on load. That is deliberate: assets reference tags by name, so a tag can move between tables, or a table can be split, without touching anything that uses it.
+		[method has_tag] honours the hierarchy - a container holding [code]A.B.C[/code] answers yes to [code]A.B[/code]. The exact variants do not.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="add_tag">
+			<return type="void" />
+			<param index="0" name="tag" type="GameplayTag" />
+			<description>
+			</description>
+		</method>
+		<method name="add_tag_by_name">
+			<return type="void" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="get_length" qualifiers="const">
+			<return type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_tag" qualifiers="const">
+			<return type="GameplayTag" />
+			<param index="0" name="index" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="has_all" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="tag_container" type="GameplayTagContainer" />
+			<description>
+			</description>
+		</method>
+		<method name="has_all_exact" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="tag_container" type="GameplayTagContainer" />
+			<description>
+			</description>
+		</method>
+		<method name="has_any" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="tag_container" type="GameplayTagContainer" />
+			<description>
+			</description>
+		</method>
+		<method name="has_tag" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="tag_to_check" type="GameplayTag" />
+			<description>
+			</description>
+		</method>
+		<method name="has_tag_exact" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="tag_to_check" type="GameplayTag" />
+			<description>
+			</description>
+		</method>
+		<method name="remove_tag">
+			<return type="void" />
+			<param index="0" name="tag" type="GameplayTag" />
+			<description>
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="tags" type="PackedStringArray" setter="set_tags" getter="get_tags" default="PackedStringArray()">
+		</member>
+	</members>
+</class>

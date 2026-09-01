@@ -1,0 +1,7 @@
+[gd_resource type="GameplayTagTable" format=3 uid="uid://d1ebqe1fjdoa7"]
+
+[resource]
+tags = Dictionary[StringName, String]({
+&"Status.Damaged": "Example status tag",
+&"Status.Test": "Example 2"
+})

@@ -1,0 +1,7 @@
+[gd_resource type="AttributeSet" format=3 uid="uid://b813xtrmo2duf"]
+
+[resource]
+attributes = {
+&"health": 100.0,
+&"mana": 50.0
+}

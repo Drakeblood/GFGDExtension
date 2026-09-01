@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="GameplayTagTable" inherits="Resource" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Resource declaring gameplay tags: the authoring source of the tag hierarchy.
+	</brief_description>
+	<description>
+		A tag name to description dictionary. List each table in the [code]application/game_framework/gameplay_tag_tables[/code] project setting; several tables are merged, so a project can split them per feature or ship one inside an addon.
+		Only declared names are keys. Declaring [code]Ability.Combat.Melee[/code] also registers [code]Ability[/code] and [code]Ability.Combat[/code] as usable tags, but they carry no description of their own until some table declares them explicitly.
+		Selecting a table in the FileSystem dock opens a tree editor for it: double-click a row to edit a name or a description, and renaming a tag rewrites its whole subtree as a single undo step.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="get_description" qualifiers="const">
+			<return type="String" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="get_tag_names" qualifiers="const">
+			<return type="PackedStringArray" />
+			<description>
+			</description>
+		</method>
+		<method name="has_tag" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="tags" type="Dictionary[StringName, String]" setter="set_tags" getter="get_tags" default="{}">
+		</member>
+	</members>
+</class>

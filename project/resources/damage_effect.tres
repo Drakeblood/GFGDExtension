@@ -1,0 +1,24 @@
+[gd_resource type="GameplayEffect" format=3 uid="uid://dm16meb5n1i81"]
+
+[sub_resource type="GameplayTagContainer" id="GameplayTagContainer_ln75j"]
+
+[sub_resource type="GameplayTagContainer" id="GameplayTagContainer_mt6ux"]
+
+[sub_resource type="GameplayTagContainer" id="GameplayTagContainer_yxs1f"]
+tags = PackedStringArray("Ability.Test", "Status.Damaged")
+
+[sub_resource type="GameplayTagContainer" id="GameplayTagContainer_4qo7s"]
+
+[sub_resource type="AttributeModifier" id="AttributeModifier_dmg"]
+attribute = &"health"
+magnitude = -10.0
+
+[sub_resource type="GameplayTagContainer" id="GameplayTagContainer_5tvh6"]
+
+[resource]
+modifiers = Array[AttributeModifier]([SubResource("AttributeModifier_dmg")])
+effect_tags = SubResource("GameplayTagContainer_yxs1f")
+granted_tags = SubResource("GameplayTagContainer_4qo7s")
+application_required_tags = SubResource("GameplayTagContainer_mt6ux")
+application_blocked_tags = SubResource("GameplayTagContainer_ln75j")
+remove_effects_with_tags = SubResource("GameplayTagContainer_5tvh6")

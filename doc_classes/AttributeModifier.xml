@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="AttributeModifier" inherits="Resource" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		One attribute change carried by a [GameplayEffect].
+	</brief_description>
+	<description>
+		Applies [code]ADD[/code], [code]MULTIPLY[/code] or [code]OVERRIDE[/code] to a named attribute. See [AttributeSet] for how the operations combine.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="apply" qualifiers="const">
+			<return type="float" />
+			<param index="0" name="input_value" type="float" />
+			<description>
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="attribute" type="StringName" setter="set_attribute" getter="get_attribute" default="&amp;&quot;&quot;">
+		</member>
+		<member name="magnitude" type="float" setter="set_magnitude" getter="get_magnitude" default="0.0">
+		</member>
+		<member name="operation" type="int" setter="set_operation" getter="get_operation" enum="AttributeModifier.Operation" default="0">
+		</member>
+	</members>
+	<constants>
+		<constant name="ADD" value="0" enum="Operation">
+		</constant>
+		<constant name="MULTIPLY" value="1" enum="Operation">
+		</constant>
+		<constant name="OVERRIDE" value="2" enum="Operation">
+		</constant>
+	</constants>
+</class>

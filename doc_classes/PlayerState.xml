@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="PlayerState" inherits="Node" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Per-player data everyone is meant to see: name, index, score.
+	</brief_description>
+	<description>
+		A child of the [GameState], not of the [PlayerController], and that is the whole point of the class. A [PlayerController] exists only on the server and on its owning client; a [PlayerState] has to be visible to every peer, so it lives on the node that exists everywhere.
+		Created by [method GameMode.login], from [member GameModeSettings.player_state_scene] if one is set. Extend it in GDScript for anything the scoreboard needs. Every field is a property, so a [MultiplayerSynchronizer] added to [member GameModeSettings.player_state_scene] can replicate it once there is networking - keep your own additions properties too.
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="local" type="bool" setter="set_local" getter="is_local" default="true">
+			Whether this player is at this machine. Always [code]true[/code] without networking.
+		</member>
+		<member name="ping" type="float" setter="set_ping" getter="get_ping" default="0.0">
+			Always [code]0[/code] without networking. The field exists so UI written today keeps working once replication fills it in.
+		</member>
+		<member name="player_index" type="int" setter="set_player_index" getter="get_player_index" default="0">
+			Matches [member LocalPlayer.player_index] for a local player.
+		</member>
+		<member name="player_name" type="String" setter="set_player_name" getter="get_player_name" default="&quot;&quot;">
+			Defaults to [code]Player 1[/code], [code]Player 2[/code] and so on.
+		</member>
+		<member name="unique_id" type="int" setter="set_unique_id" getter="get_unique_id" default="1">
+			The multiplayer peer id once there is networking. [code]1[/code] is the server, which is also what a purely local game reports.
+		</member>
+	</members>
+	<signals>
+		<signal name="player_name_changed">
+			<param index="0" name="player_name" type="String" />
+			<description>
+			</description>
+		</signal>
+	</signals>
+</class>

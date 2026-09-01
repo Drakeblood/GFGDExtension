@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="InputComponent" inherits="Node" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Binds input actions to callables for a possessed pawn.
+	</brief_description>
+	<description>
+		Handed to [code]PawnHandler._setup_input_component[/code]. Bindings live as long as the possession does.
+		Every query goes through the owning [PlayerController] [PlayerInput], so a pawn only ever sees its own player devices. Reading [Input] directly from a pawn script would move every pawn at once - that is the problem [PlayerInput] exists to solve. When the component has no owning controller, or that controller has no [LocalPlayer], it falls back to the global [Input] singleton, which is what this class did before per-player input existed.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="bind_action">
+			<return type="void" />
+			<param index="0" name="action_name" type="StringName" />
+			<param index="1" name="trigger_event" type="int" enum="InputComponent.TriggerEvent" />
+			<param index="2" name="action" type="Callable" />
+			<description>
+			</description>
+		</method>
+		<method name="get_action_strength" qualifiers="const">
+			<return type="float" />
+			<param index="0" name="action_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="get_axis" qualifiers="const">
+			<return type="float" />
+			<param index="0" name="negative_action" type="StringName" />
+			<param index="1" name="positive_action" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="get_owning_controller" qualifiers="const">
+			<return type="PlayerController" />
+			<description>
+			</description>
+		</method>
+		<method name="get_player_input" qualifiers="const">
+			<return type="PlayerInput" />
+			<description>
+				Null when unregistered or when the owning controller has no [LocalPlayer].
+			</description>
+		</method>
+		<method name="get_vector" qualifiers="const">
+			<return type="Vector2" />
+			<param index="0" name="negative_x" type="StringName" />
+			<param index="1" name="positive_x" type="StringName" />
+			<param index="2" name="negative_y" type="StringName" />
+			<param index="3" name="positive_y" type="StringName" />
+			<param index="4" name="deadzone" type="float" default="-1.0" />
+			<description>
+				The per-player counterpart of [method Input.get_vector]. This is how a pawn reads its own stick.
+			</description>
+		</method>
+		<method name="is_action_just_pressed" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="action_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="is_action_just_released" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="action_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="is_action_pressed" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="action_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="remove_all_bindings">
+			<return type="void" />
+			<description>
+			</description>
+		</method>
+		<method name="remove_binding">
+			<return type="void" />
+			<param index="0" name="action_name" type="StringName" />
+			<param index="1" name="trigger_event" type="int" enum="InputComponent.TriggerEvent" />
+			<param index="2" name="action" type="Callable" />
+			<description>
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="enabled" type="bool" setter="set_enabled" getter="get_enabled" default="true">
+		</member>
+	</members>
+	<constants>
+		<constant name="TRIGGERED" value="0" enum="TriggerEvent">
+		</constant>
+		<constant name="STARTED" value="1" enum="TriggerEvent">
+		</constant>
+		<constant name="COMPLETED" value="2" enum="TriggerEvent">
+		</constant>
+	</constants>
+</class>

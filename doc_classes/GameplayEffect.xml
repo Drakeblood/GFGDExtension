@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="GameplayEffect" inherits="Resource" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Resource that changes attributes and grants tags, instantly or over time.
+	</brief_description>
+	<description>
+		[code]INSTANT[/code] mutates base values permanently. [code]HAS_DURATION[/code] and [code]INFINITE[/code] aggregate onto current values, grant their tags while active, and can tick periodically.
+		Carries [AttributeModifier]s plus tag requirements that decide whether the effect may apply at all.
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="application_blocked_tags" type="GameplayTagContainer" setter="set_application_blocked_tags" getter="get_application_blocked_tags">
+		</member>
+		<member name="application_required_tags" type="GameplayTagContainer" setter="set_application_required_tags" getter="get_application_required_tags">
+		</member>
+		<member name="duration" type="float" setter="set_duration" getter="get_duration" default="0.0">
+		</member>
+		<member name="duration_policy" type="int" setter="set_duration_policy" getter="get_duration_policy" enum="GameplayEffect.DurationPolicy" default="0">
+		</member>
+		<member name="effect_tags" type="GameplayTagContainer" setter="set_effect_tags" getter="get_effect_tags">
+		</member>
+		<member name="granted_tags" type="GameplayTagContainer" setter="set_granted_tags" getter="get_granted_tags">
+		</member>
+		<member name="modifiers" type="AttributeModifier[]" setter="set_modifiers" getter="get_modifiers" default="[]">
+		</member>
+		<member name="period" type="float" setter="set_period" getter="get_period" default="0.0">
+		</member>
+		<member name="remove_effects_with_tags" type="GameplayTagContainer" setter="set_remove_effects_with_tags" getter="get_remove_effects_with_tags">
+		</member>
+	</members>
+	<constants>
+		<constant name="INSTANT" value="0" enum="DurationPolicy">
+		</constant>
+		<constant name="INFINITE" value="1" enum="DurationPolicy">
+		</constant>
+		<constant name="HAS_DURATION" value="2" enum="DurationPolicy">
+		</constant>
+	</constants>
+</class>
