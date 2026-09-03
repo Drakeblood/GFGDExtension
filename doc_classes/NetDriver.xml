@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="NetDriver" inherits="Node" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Connections, travel, and the mirroring of everything the server creates.
+	</brief_description>
+	<description>
+		It sits at [code]/root/NetDriver[/code] on every peer and is never freed with a level, which is what lets it be the address remote calls are sent to: a call only arrives if the node holding it is at the same path on both sides.
+		Spawning goes through here rather than through a [MultiplayerSpawner] because a client is only sent what it can receive: a peer counts as ready once it has reported the current level up, and until then nothing is sent to it. That is also what makes a late join and a level change the same case - the peer is handed the whole world once, in one place.
+		Projects rarely call it directly; [method World.server_travel] and the game mode's login path drive it. [method is_peer_ready] is the useful one, and it is what the framework's synchronizers filter their visibility on.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="client_create_player_controller">
+			<return type="void" />
+			<param index="0" name="data" type="Dictionary" />
+			<description>
+			</description>
+		</method>
+		<method name="client_despawn_pawn">
+			<return type="void" />
+			<param index="0" name="player_id" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="client_despawn_player_state">
+			<return type="void" />
+			<param index="0" name="player_id" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="client_destroy_player_controller">
+			<return type="void" />
+			<param index="0" name="player_id" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="client_spawn_pawn">
+			<return type="void" />
+			<param index="0" name="data" type="Dictionary" />
+			<description>
+			</description>
+		</method>
+		<method name="client_spawn_player_state">
+			<return type="void" />
+			<param index="0" name="data" type="Dictionary" />
+			<description>
+			</description>
+		</method>
+		<method name="client_travel_to_level">
+			<return type="void" />
+			<param index="0" name="level_path" type="String" />
+			<description>
+			</description>
+		</method>
+		<method name="get_ready_peers" qualifiers="const">
+			<return type="PackedInt32Array" />
+			<description>
+			</description>
+		</method>
+		<method name="get_world" qualifiers="const">
+			<return type="World" />
+			<description>
+			</description>
+		</method>
+		<method name="is_peer_ready" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="peer_id" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="server_notify_level_loaded">
+			<return type="void" />
+			<description>
+			</description>
+		</method>
+	</methods>
+</class>

@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="GameModeBase" inherits="Node" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		The rules of a level, and the scenes everything else is built from.
+	</brief_description>
+	<description>
+		It exists on the server only: it decides who may join, where they spawn and when the match is over. The list of players everyone is allowed to see lives on the [GameStateBase] instead.
+		A game mode is a scene whose root is a [GameModeBase], pointed at by [member Level.game_mode_override] or by the [code]application/game_framework/default_game_mode[/code] project setting. Its default scenes - [member game_state_scene], [member player_state_scene], [member player_controller_scene], [member default_pawn_scene] - are read on a client too, without the game mode ever being part of that client's world: both sides have to build the same things for a player.
+		Override [code]_init_game[/code] to set the level up (return [code]true[/code] to take spawning over completely), [code]_pre_login[/code] to refuse a connecting peer, [code]_on_post_login[/code] and [code]_on_logout[/code] to follow players in and out, and [code]_get_pawn_scene_for[/code] to choose a pawn per player.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_can_join" qualifiers="virtual">
+			<return type="bool" />
+			<param index="0" name="device_slot" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="_choose_player_start" qualifiers="virtual">
+			<return type="Node" />
+			<param index="0" name="controller" type="Controller" />
+			<description>
+			</description>
+		</method>
+		<method name="_get_pawn_scene_for" qualifiers="virtual">
+			<return type="PackedScene" />
+			<param index="0" name="controller" type="Controller" />
+			<description>
+			</description>
+		</method>
+		<method name="_init_game" qualifiers="virtual">
+			<return type="bool" />
+			<param index="0" name="world" type="World" />
+			<description>
+			</description>
+		</method>
+		<method name="_init_game_state" qualifiers="virtual">
+			<return type="void" />
+			<description>
+			</description>
+		</method>
+		<method name="_on_logout" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="player_controller" type="PlayerController" />
+			<description>
+			</description>
+		</method>
+		<method name="_on_post_login" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="player_controller" type="PlayerController" />
+			<description>
+			</description>
+		</method>
+		<method name="_pre_login" qualifiers="virtual">
+			<return type="String" />
+			<param index="0" name="peer_id" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="choose_player_start">
+			<return type="Node" />
+			<param index="0" name="controller" type="Controller" />
+			<description>
+			</description>
+		</method>
+		<method name="find_player_start" qualifiers="const">
+			<return type="Node" />
+			<param index="0" name="player_start_tag" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="get_num_players" qualifiers="const">
+			<return type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_pawn_scene_for">
+			<return type="PackedScene" />
+			<param index="0" name="controller" type="Controller" />
+			<description>
+			</description>
+		</method>
+		<method name="get_pawn_scene_for_player" qualifiers="const">
+			<return type="PackedScene" />
+			<param index="0" name="player_index" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_player_controller_at" qualifiers="const">
+			<return type="PlayerController" />
+			<param index="0" name="index" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_player_controllers" qualifiers="const">
+			<return type="Array" />
+			<description>
+			</description>
+		</method>
+		<method name="get_world" qualifiers="const">
+			<return type="World" />
+			<description>
+			</description>
+		</method>
+		<method name="login_local_player">
+			<return type="PlayerController" />
+			<param index="0" name="local_player" type="LocalPlayer" />
+			<description>
+			</description>
+		</method>
+		<method name="login_peer">
+			<return type="PlayerController" />
+			<param index="0" name="peer_id" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="logout">
+			<return type="void" />
+			<param index="0" name="player_controller" type="PlayerController" />
+			<description>
+			</description>
+		</method>
+		<method name="logout_peer">
+			<return type="void" />
+			<param index="0" name="peer_id" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="restart_all_players">
+			<return type="void" />
+			<description>
+			</description>
+		</method>
+		<method name="restart_player">
+			<return type="void" />
+			<param index="0" name="controller" type="Controller" />
+			<description>
+			</description>
+		</method>
+		<method name="restart_player_at">
+			<return type="void" />
+			<param index="0" name="controller" type="Controller" />
+			<param index="1" name="start_spot" type="Node" />
+			<description>
+			</description>
+		</method>
+		<method name="spawn_default_player">
+			<return type="PlayerController" />
+			<description>
+			</description>
+		</method>
+		<method name="start_play">
+			<return type="void" />
+			<description>
+			</description>
+		</method>
+		<method name="try_join">
+			<return type="bool" />
+			<param index="0" name="device_slot" type="int" />
+			<description>
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="allow_press_to_join" type="bool" setter="set_allow_press_to_join" getter="get_allow_press_to_join" default="false">
+		</member>
+		<member name="default_pawn_scene" type="PackedScene" setter="set_default_pawn_scene" getter="get_default_pawn_scene">
+		</member>
+		<member name="game_state_scene" type="PackedScene" setter="set_game_state_scene" getter="get_game_state_scene">
+		</member>
+		<member name="max_local_players" type="int" setter="set_max_local_players" getter="get_max_local_players" default="1">
+		</member>
+		<member name="max_players" type="int" setter="set_max_players" getter="get_max_players" default="8">
+		</member>
+		<member name="pawn_scene_overrides" type="PackedScene[]" setter="set_pawn_scene_overrides" getter="get_pawn_scene_overrides" default="[]">
+		</member>
+		<member name="player_controller_scene" type="PackedScene" setter="set_player_controller_scene" getter="get_player_controller_scene">
+		</member>
+		<member name="player_state_scene" type="PackedScene" setter="set_player_state_scene" getter="get_player_state_scene">
+		</member>
+	</members>
+	<signals>
+		<signal name="login_refused">
+			<param index="0" name="peer_id" type="int" />
+			<param index="1" name="reason" type="String" />
+			<description>
+			</description>
+		</signal>
+		<signal name="play_started">
+			<description>
+			</description>
+		</signal>
+		<signal name="player_logged_in">
+			<param index="0" name="player_controller" type="Object" />
+			<description>
+			</description>
+		</signal>
+		<signal name="player_logged_out">
+			<param index="0" name="player_controller" type="Object" />
+			<description>
+			</description>
+		</signal>
+		<signal name="player_restarted">
+			<param index="0" name="player_controller" type="Object" />
+			<param index="1" name="pawn" type="Object" />
+			<description>
+			</description>
+		</signal>
+	</signals>
+</class>

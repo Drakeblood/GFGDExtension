@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="NodePool" inherits="Node" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Recycles nodes instead of instantiating them, for anything spawned by the hundred.
+	</brief_description>
+	<description>
+		Bullets, debris, enemies - anything whose cost is dominated by [method PackedScene.instantiate] rather than by what it does once it exists.
+		[b]Pooling here means taking the node out of the tree, not disabling it.[/b] A node outside the tree does not exist for the physics server: it cannot collide, it costs no broadphase budget, and a "dead" body cannot be hit by accident. The alternative - freezing the body and disabling its processing - leaves it in the world and is a reliable source of bugs that are very hard to find.
+		Give the pool either a [member scene] or a [member factory], then take nodes with [method acquire] and hand them back with [method release]:
+		[codeblock]
+		var bullet: Node = $BulletPool.acquire()
+		bullet.global_position = muzzle.global_position
+		[/codeblock]
+		A pooled node keeps its state between uses, so it has to be reset on the way out and cleaned up on the way in. Give it [code]_on_acquired()[/code] and [code]_on_released()[/code] and the pool calls them; both are optional, and they are looked up by name because a pooled node is a [RigidBody2D] one moment and an [Area2D] the next, with no shared base class to declare them on.
+		[codeblock]
+		func _on_acquired() -&gt; void:
+		    visible = true
+
+		func _on_released() -&gt; void:
+		    visible = false
+		    linear_velocity = Vector2.ZERO
+		[/codeblock]
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="acquire">
+			<return type="Node" />
+			<description>
+				Hands out a free node, creating one if the pool is empty, and parents it under [member container]. Returns [code]null[/code] only when the pool can create nothing: neither [member scene] nor [member factory] is set, or the factory did not return a [Node].
+			</description>
+		</method>
+		<method name="clear">
+			<return type="void" />
+			<description>
+				Frees every node the pool owns, in use or not. Called automatically when the pool leaves the tree, because a node waiting in the free list has no parent and nobody else would ever free it.
+			</description>
+		</method>
+		<method name="detach_deferred">
+			<return type="void" />
+			<param index="0" name="instance_id" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_active" qualifiers="const">
+			<return type="Node[]" />
+			<description>
+				Every node currently handed out. Built fresh on each call - keep your own list if you need it every frame.
+			</description>
+		</method>
+		<method name="get_active_count" qualifiers="const">
+			<return type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_total_created" qualifiers="const">
+			<return type="int" />
+			<description>
+				How many nodes the pool has ever created. Watch it during play: if it climbs well past [member prewarm], the prewarm is too low for the real peak.
+			</description>
+		</method>
+		<method name="release">
+			<return type="void" />
+			<param index="0" name="node" type="Node" />
+			<description>
+				Returns a node to the pool. Safe from inside a physics callback or a signal: the node is marked free at once, but leaving the tree is deferred to the end of the frame, because removing a body mid-step is a hard engine error.
+				That deferral means a released node is still parented and still reachable for the rest of the frame. Releasing it twice is a no-op rather than a double free.
+			</description>
+		</method>
+		<method name="release_all">
+			<return type="void" />
+			<description>
+				Returns everything currently in the tree. This is how a round restarts without reloading the scene.
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="container" type="NodePath" setter="set_container" getter="get_container" default="NodePath(&quot;&quot;)">
+			Where acquired nodes are parented. Empty means the pool itself. Point it at the level's actor root when pooled nodes should sit beside everything else rather than under a bookkeeping node.
+		</member>
+		<member name="factory" type="Callable" setter="set_factory" getter="get_factory">
+			Called with no arguments and must return a [Node]. Takes precedence over [member scene]; use it when a pooled node needs constructor arguments or a script attached from code.
+		</member>
+		<member name="prewarm" type="int" setter="set_prewarm" getter="get_prewarm" default="0">
+			How many nodes to create on [code]_ready[/code], so the first shot of the game does not pay for an instantiate.
+		</member>
+		<member name="scene" type="PackedScene" setter="set_scene" getter="get_scene">
+			Instantiated whenever the pool needs a new node and no [member factory] is set.
+		</member>
+	</members>
+	<signals>
+		<signal name="node_acquired">
+			<param index="0" name="node" type="Object" />
+			<description>
+			</description>
+		</signal>
+		<signal name="node_released">
+			<param index="0" name="node" type="Object" />
+			<description>
+			</description>
+		</signal>
+	</signals>
+</class>

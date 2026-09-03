@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="PlayerStart2D" inherits="Marker2D" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Where a player may appear in a 2D level.
+	</brief_description>
+	<description>
+		The game mode hands one out per spawn and does not hand the same one out twice while it is claimed. [member player_start_tag] lets a level keep separate sets - one per team, or one for the start of a round - which [method GameModeBase.find_player_start] looks up by name.
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="player_start_tag" type="StringName" setter="set_player_start_tag" getter="get_player_start_tag" default="&amp;&quot;&quot;">
+		</member>
+	</members>
+</class>

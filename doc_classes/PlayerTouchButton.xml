@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="PlayerTouchButton" inherits="Control" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		On-screen button that holds an action on one player's own [PlayerInput].
+	</brief_description>
+	<description>
+		[b]Godot's [TouchScreenButton] covers the single-player case and covers it well.[/b] This differs in two ways: it writes to a [PlayerInput] rather than to the global [Input] singleton, so with two people on one machine it acts for one of them; and it is a [Control], so it anchors alongside the rest of the HUD instead of sitting in world space as a [Node2D].
+		It tracks its finger by index for the same reason [PlayerVirtualJoystick] does, and never marks events handled.
+		Hiding the node releases the action, so a button hidden while held cannot leave it stuck down.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="is_pressed" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Whether a finger is currently on the button.
+			</description>
+		</method>
+		<method name="reset">
+			<return type="void" />
+			<description>
+				Drops the finger and releases the action. Hiding the node does this for you.
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="action" type="StringName" setter="set_action" getter="get_action" default="&amp;&quot;&quot;">
+			The action held for as long as a finger is on the button.
+		</member>
+		<member name="draw_default" type="bool" setter="set_draw_default" getter="get_draw_default" default="true">
+			Draws a plain filled outline in the chosen [member shape]. Ignored when [member texture_normal] is set; turn it off to draw the button yourself.
+		</member>
+		<member name="player_index" type="int" setter="set_player_index" getter="get_player_index" default="0">
+			Which [LocalPlayer] this button belongs to. With no local player yet, it writes to the global [Input] singleton instead.
+		</member>
+		<member name="shape" type="int" setter="set_shape" getter="get_shape" enum="PlayerTouchButton.Shape" default="0">
+			The hit area, tested against this control rect.
+		</member>
+		<member name="texture_normal" type="Texture2D" setter="set_texture_normal" getter="get_texture_normal">
+			Drawn stretched over the control rect instead of the default shape.
+		</member>
+		<member name="texture_pressed" type="Texture2D" setter="set_texture_pressed" getter="get_texture_pressed">
+			Replaces [member texture_normal] while held.
+		</member>
+	</members>
+	<signals>
+		<signal name="pressed">
+			<description>
+				A finger landed on the button.
+			</description>
+		</signal>
+		<signal name="released">
+			<description>
+				The finger lifted, or the button was reset or hidden.
+			</description>
+		</signal>
+	</signals>
+	<constants>
+		<constant name="CIRCLE" value="0" enum="Shape">
+			Hit-tested against a circle inscribed in this control. A round button under a thumb should not react to the corners of its bounding box.
+		</constant>
+		<constant name="RECTANGLE" value="1" enum="Shape">
+			Hit-tested against the whole control rect.
+		</constant>
+	</constants>
+</class>

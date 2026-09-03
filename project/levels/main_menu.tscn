@@ -1,11 +1,11 @@
 [gd_scene load_steps=3 format=3]
 
-[ext_resource type="GameModeSettings" path="res://resources/main_menu_game_mode_settings.tres" id="1_menu_gms"]
+[ext_resource type="PackedScene" path="res://game_modes/main_menu_game_mode.tscn" id="1_menu_gm"]
 [ext_resource type="Script" path="res://scripts/demo_level.gd" id="2_level"]
 
 [node name="MainMenu" type="Level"]
 script = ExtResource("2_level")
-game_mode_settings_override = ExtResource("1_menu_gms")
+game_mode_override = ExtResource("1_menu_gm")
 
 [node name="Menu" type="CenterContainer" parent="."]
 anchors_preset = 15
@@ -15,9 +15,9 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Buttons" type="VBoxContainer" parent="Menu"]
-custom_minimum_size = Vector2(220, 0)
+custom_minimum_size = Vector2(260, 0)
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 10
 
 [node name="Title" type="Label" parent="Menu/Buttons"]
 layout_mode = 2
@@ -31,6 +31,23 @@ text = "New Game"
 [node name="CoopButton" type="Button" parent="Menu/Buttons"]
 layout_mode = 2
 text = "Local Co-op"
+
+[node name="HostButton" type="Button" parent="Menu/Buttons"]
+layout_mode = 2
+text = "Host"
+
+[node name="Address" type="LineEdit" parent="Menu/Buttons"]
+layout_mode = 2
+text = "127.0.0.1:7777"
+placeholder_text = "address:port"
+
+[node name="JoinButton" type="Button" parent="Menu/Buttons"]
+layout_mode = 2
+text = "Join"
+
+[node name="Status" type="Label" parent="Menu/Buttons"]
+layout_mode = 2
+horizontal_alignment = 1
 
 [node name="QuitButton" type="Button" parent="Menu/Buttons"]
 layout_mode = 2

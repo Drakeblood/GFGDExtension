@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/online_game_mode.gd" id="1_gm"]
+[ext_resource type="PackedScene" path="res://scenes/online_player_pawn.tscn" id="2_pawn"]
+
+[node name="OnlineGameMode" type="GameModeBase"]
+script = ExtResource("1_gm")
+default_pawn_scene = ExtResource("2_pawn")
+max_players = 8

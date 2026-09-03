@@ -16,11 +16,11 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 config/name="GFGD Demo"
 run/main_scene="res://levels/main_menu.tscn"
-run/main_loop_type="GFGDSceneTree"
+run/main_loop_type="World"
 config/features=PackedStringArray("4.7")
 config/icon="res://icon.svg"
 game_framework/game_instance_script="res://scripts/demo_game_instance.gd"
-game_framework/default_game_mode_settings="res://resources/demo_game_mode_settings.tres"
+game_framework/default_game_mode="res://game_modes/demo_game_mode.tscn"
 game_framework/gameplay_tag_tables=PackedStringArray("res://tags/core_tags.tres", "res://tags/ability_tags.tres", "res://tags/stress_tags.tres")
 
 [dotnet]

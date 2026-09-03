@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="PlayerVirtualJoystick" inherits="Control" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		On-screen thumbstick that drives one player's own [PlayerInput].
+	</brief_description>
+	<description>
+		A pawn reads it through its [InputComponent] like any other action, and never has to know whether the machine has a touchscreen.
+		[b]Godot ships its own [VirtualJoystick], and for a single-player game that one is the better choice[/b] - it is themed, and a [PlayerInput] in passthrough forwards to [Input] anyway. This class exists for the two things the engine's cannot do.
+		The first is ownership. The engine's stick writes to the global [Input] singleton, which merges every device, so with two people on one machine it moves both pawns. This one writes to the [PlayerInput] of the [LocalPlayer] at [member player_index] - which is the whole reason [PlayerInput] exists.
+		The second is [member press_action]: an action held for as long as a finger is on the stick. That lets one gesture mean both "move" and "hold", which four axes alone cannot express.
+		[codeblock]
+		# Drag to fly, and the tether is live for as long as the finger is down.
+		$Joystick.action_left = &amp;"move_left"
+		$Joystick.action_right = &amp;"move_right"
+		$Joystick.action_up = &amp;"move_up"
+		$Joystick.action_down = &amp;"move_down"
+		$Joystick.press_action = &amp;"grab"
+		[/codeblock]
+		Touches are tracked by finger index in [code]_input[/code] rather than through GUI routing, because GUI routing hands a second finger to the same [Control] and one of the two is lost. Events are never marked handled, so buttons above keep working - the stick ignores anything outside its own rect, which is also how a HUD strip is kept clear: give the stick a rect that does not cover it.
+		Hiding the node releases everything it holds, so a stick hidden mid-drag cannot leave a pawn flying.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="get_value" qualifiers="const">
+			<return type="Vector2" />
+			<description>
+				The current stick offset, at most one unit long. Reading the actions through an [InputComponent] is usually better - this is for the rare caller that wants the raw stick rather than the actions it drives.
+			</description>
+		</method>
+		<method name="is_active" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Whether a finger is currently on the stick.
+			</description>
+		</method>
+		<method name="reset">
+			<return type="void" />
+			<description>
+				Drops the finger and releases every action the stick is holding. Call it when gameplay input is taken away - a pause, a cutscene, a menu - or the actions stay pressed through it. Hiding the node does this for you.
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="action_down" type="StringName" setter="set_action_down" getter="get_action_down" default="&amp;&quot;&quot;">
+			The action pressed with a strength proportional to how far the stick is pushed down. Same for the other three axes. Leave one empty to ignore that direction.
+		</member>
+		<member name="action_left" type="StringName" setter="set_action_left" getter="get_action_left" default="&amp;&quot;&quot;">
+		</member>
+		<member name="action_right" type="StringName" setter="set_action_right" getter="get_action_right" default="&amp;&quot;&quot;">
+		</member>
+		<member name="action_up" type="StringName" setter="set_action_up" getter="get_action_up" default="&amp;&quot;&quot;">
+		</member>
+		<member name="deadzone" type="float" setter="set_deadzone" getter="get_deadzone" default="0.12">
+			How far the stick must move, as a fraction of [member max_distance], before it reports anything at all.
+		</member>
+		<member name="draw_default" type="bool" setter="set_draw_default" getter="get_draw_default" default="true">
+			Draws a plain ring and knob while a finger is down. Turn it off to draw the stick yourself, or to show nothing at all.
+		</member>
+		<member name="max_distance" type="float" setter="set_max_distance" getter="get_max_distance" default="90.0">
+			How far from its centre the stick can be pushed, in pixels. Full deflection at this distance.
+		</member>
+		<member name="mode" type="int" setter="set_mode" getter="get_mode" enum="PlayerVirtualJoystick.Mode" default="0">
+			Whether the stick appears under the finger or sits at the centre of this control.
+		</member>
+		<member name="player_index" type="int" setter="set_player_index" getter="get_player_index" default="0">
+			Which [LocalPlayer] this stick belongs to. With no local player yet, it writes to the global [Input] singleton instead - the same fallback [InputComponent] makes.
+		</member>
+		<member name="press_action" type="StringName" setter="set_press_action" getter="get_press_action" default="&amp;&quot;&quot;">
+			An action held for as long as a finger is on the stick. Leave it empty for a stick that only moves.
+		</member>
+		<member name="recenter_on_overshoot" type="bool" setter="set_recenter_on_overshoot" getter="get_recenter_on_overshoot" default="true">
+			Drags the centre along behind the finger once it passes [member max_distance]. Without it a long swipe pins the stick and the player loses the sense of which way is which.
+		</member>
+	</members>
+	<signals>
+		<signal name="drag_ended">
+			<description>
+				The finger lifted, or the stick was reset or hidden.
+			</description>
+		</signal>
+		<signal name="drag_started">
+			<description>
+				A finger landed on the stick.
+			</description>
+		</signal>
+	</signals>
+	<constants>
+		<constant name="DYNAMIC" value="0" enum="Mode">
+			The stick appears wherever the finger lands. This is the one-thumb layout: no fixed corner to reach for, so it works one-handed.
+		</constant>
+		<constant name="FIXED" value="1" enum="Mode">
+			The stick sits at the centre of this control and stays there.
+		</constant>
+	</constants>
+</class>

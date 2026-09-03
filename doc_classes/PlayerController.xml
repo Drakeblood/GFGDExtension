@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <class name="PlayerController" inherits="Controller" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
 	<brief_description>
-		Controller for the local player: possesses a pawn and owns its input.
+		A human's controller: it possesses a pawn and owns that player's input.
 	</brief_description>
 	<description>
-		On possession it makes the pawn camera current and calls [code]_setup_input_component[/code] on the [PawnHandler], which is where input actions get bound.
-		It belongs to a level and dies with it. The human behind it is the [LocalPlayer], which the [GameInstance] owns and which survives [method GFGDSceneTree.open_level] - that is where the device assignment and the split screen viewport live. [method get_player_input] is the shortcut to the player own action state; without a [LocalPlayer] it returns [code]null[/code] and the [InputComponent] falls back to the global [Input] singleton.
+		It exists on the server for every player and on each client for that client's own player, and nowhere else - which is what makes it the right place to send a player's input from, and the wrong place to keep anything everyone has to see.
+		On possession it calls [code]_setup_input_component[/code] on the [Pawn], which is where input actions get bound, and makes the pawn camera current where the player is actually sitting.
+		It belongs to a level and dies with it. The human behind it is the [LocalPlayer], which the [GameInstance] owns and which survives [method World.load_level] - that is where the device assignment and the split screen viewport live.
+		In a networked game the owning client sends what its player is holding and the server applies it to this controller's [PlayerInput], so the input component and the pawn run the same code in every net mode. Input from any peer other than [method Controller.get_owner_peer_id] is dropped.
 	</description>
 	<tutorials>
 	</tutorials>
@@ -31,12 +33,6 @@
 			<description>
 			</description>
 		</method>
-		<method name="get_player_state" qualifiers="const">
-			<return type="PlayerState" />
-			<description>
-				Lives under the [GameState], not under this node.
-			</description>
-		</method>
 		<method name="get_player_viewport" qualifiers="const">
 			<return type="Viewport" />
 			<description>
@@ -56,9 +52,23 @@
 				Adds the component to this controller input stack and points it at this controller, which is how it finds the right [PlayerInput].
 			</description>
 		</method>
+		<method name="server_receive_input">
+			<return type="void" />
+			<param index="0" name="action_names" type="PackedStringArray" />
+			<param index="1" name="pressed" type="PackedByteArray" />
+			<param index="2" name="strengths" type="PackedFloat32Array" />
+			<description>
+			</description>
+		</method>
 		<method name="set_local_player">
 			<return type="void" />
 			<param index="0" name="value" type="LocalPlayer" />
+			<description>
+			</description>
+		</method>
+		<method name="set_owner_peer_id">
+			<return type="void" />
+			<param index="0" name="value" type="int" />
 			<description>
 			</description>
 		</method>
@@ -74,4 +84,15 @@
 			</description>
 		</method>
 	</methods>
+	<members>
+		<member name="replicated_actions" type="PackedStringArray" setter="set_replicated_actions" getter="get_replicated_actions" default="PackedStringArray()">
+		</member>
+	</members>
+	<signals>
+		<signal name="local_player_changed">
+			<param index="0" name="local_player" type="Object" />
+			<description>
+			</description>
+		</signal>
+	</signals>
 </class>

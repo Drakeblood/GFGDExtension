@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="Pawn" inherits="Node" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Makes its parent possessable: the framework's half of a playable thing.
+	</brief_description>
+	<description>
+		Add it as a child of the node a player drives. It is a child rather than the root because the root is whatever the game needs - a [CharacterBody3D], an [Area2D], a [RigidBody3D] - and that choice belongs to the game; everything here works on [method get_pawn_root].
+		Override [code]_setup_input_component[/code] to bind actions, [code]_possessed[/code] and [code]_unpossessed[/code] to react to a controller taking it over. [method add_movement_input] and [method consume_movement_input_vector] keep "what the player asked for" separate from how the pawn moves.
+		In a networked game the server drives the pawn and [member replicate_transform] mirrors where it ended up; guard movement with [method has_authority] so the same script is correct in every net mode. [method get_local_role] says what this copy is: [constant World.ROLE_AUTHORITY], [constant World.ROLE_AUTONOMOUS_PROXY] for the player driving it, or [constant World.ROLE_SIMULATED_PROXY] for everyone else.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_get_replicated_properties" qualifiers="virtual">
+			<return type="PackedStringArray" />
+			<description>
+			</description>
+		</method>
+		<method name="_possessed" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="controller" type="Controller" />
+			<description>
+			</description>
+		</method>
+		<method name="_setup_input_component" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="input_component" type="InputComponent" />
+			<description>
+			</description>
+		</method>
+		<method name="_unpossessed" qualifiers="virtual">
+			<return type="void" />
+			<description>
+			</description>
+		</method>
+		<method name="add_movement_input">
+			<return type="void" />
+			<param index="0" name="world_direction" type="Vector3" />
+			<param index="1" name="scale" type="float" default="1.0" />
+			<description>
+			</description>
+		</method>
+		<method name="consume_movement_input_vector">
+			<return type="Vector3" />
+			<description>
+			</description>
+		</method>
+		<method name="get_controller" qualifiers="const">
+			<return type="Controller" />
+			<description>
+			</description>
+		</method>
+		<method name="get_local_role" qualifiers="const">
+			<return type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_owner_peer_id" qualifiers="const">
+			<return type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_pawn_root" qualifiers="const">
+			<return type="Node" />
+			<description>
+			</description>
+		</method>
+		<method name="get_pending_movement_input_vector" qualifiers="const">
+			<return type="Vector3" />
+			<description>
+			</description>
+		</method>
+		<method name="get_player_state" qualifiers="const">
+			<return type="PlayerState" />
+			<description>
+			</description>
+		</method>
+		<method name="get_remote_role" qualifiers="const">
+			<return type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_world" qualifiers="const">
+			<return type="World" />
+			<description>
+			</description>
+		</method>
+		<method name="has_authority" qualifiers="const">
+			<return type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="is_bot_controlled" qualifiers="const">
+			<return type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="is_locally_controlled" qualifiers="const">
+			<return type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="is_player_controlled" qualifiers="const">
+			<return type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="setup_input_component">
+			<return type="void" />
+			<param index="0" name="input_component" type="InputComponent" />
+			<description>
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="auto_manage_camera" type="bool" setter="set_auto_manage_camera" getter="get_auto_manage_camera" default="true">
+		</member>
+		<member name="auto_possess_player" type="int" setter="set_auto_possess_player" getter="get_auto_possess_player" default="-1">
+		</member>
+		<member name="camera_path" type="NodePath" setter="set_camera_path" getter="get_camera_path" default="NodePath(&quot;&quot;)">
+		</member>
+		<member name="player_id" type="int" setter="set_player_id" getter="get_player_id">
+		</member>
+		<member name="replicate_transform" type="bool" setter="set_replicate_transform" getter="get_replicate_transform" default="true">
+		</member>
+	</members>
+	<signals>
+		<signal name="possessed">
+			<param index="0" name="controller" type="Object" />
+			<description>
+			</description>
+		</signal>
+		<signal name="unpossessed">
+			<description>
+			</description>
+		</signal>
+	</signals>
+	<constants>
+		<constant name="AUTO_POSSESS_DISABLED" value="-1">
+		</constant>
+	</constants>
+</class>

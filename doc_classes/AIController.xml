@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="AIController" inherits="Controller" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		A controller with nobody behind it.
+	</brief_description>
+	<description>
+		It exists only where the rules are decided - on the server - so a pawn it possesses is driven there and mirrored to everyone else like any other pawn. It has no [LocalPlayer] and no [InputComponent]: nothing about it reads input.
+		Add one to a level and call [method possess_pawn_root] with the node the pawn scene is rooted at, or [method Controller.possess] with the [Pawn] itself.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="possess_pawn_root">
+			<return type="bool" />
+			<param index="0" name="pawn_root" type="Node" />
+			<description>
+			</description>
+		</method>
+	</methods>
+</class>

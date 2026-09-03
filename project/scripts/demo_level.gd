@@ -1,6 +1,6 @@
 extends Level
-## Demo Level: prints its own lifecycle so the startup order is readable in the
-## Output panel. Attached to both MainMenu and TestLevel.
+## Prints its own lifecycle so the startup order is readable in the Output panel.
+## Attached to the menu, the test level and the co-op level.
 
 
 func _enter_tree() -> void:
@@ -11,5 +11,5 @@ func _ready() -> void:
 	print("GFGD demo:      [%s] _ready" % name)
 
 
-func _init_level(_scene_tree: GFGDSceneTree) -> void:
+func _init_level(_world: World) -> void:
 	print("GFGD demo: >> %s._init_level" % name)

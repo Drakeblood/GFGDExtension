@@ -36,7 +36,22 @@ Run the following command to download godot-cpp:
     git submodule update --init --recursive""")
     sys.exit(1)
 
+# godot-cpp no longer ships a default API file and refuses to build unless it is
+# told which Godot API to generate bindings from. Passing api_version= on the
+# command line still wins over this default.
+env["api_version"] = "4.7"
+
 env = SConscript("godot-cpp/SConstruct", {"env": env, "customs": customs})
+
+# godot-cpp keys object files by platform, target and architecture through
+# OBJSUFFIX, but the suffix for objects going into a shared library is a
+# separate variable, and only MSVC derives it from OBJSUFFIX. Under any GCC-like
+# toolchain - MinGW here, and the Android NDK - every target would otherwise
+# write to the same "world.o", so building the editor after a template silently
+# invalidates all objects and recompiles the whole extension.
+shared_object_suffix = env.subst("$SHOBJSUFFIX")
+if not shared_object_suffix.startswith(env["suffix"]):
+    env["SHOBJSUFFIX"] = env["suffix"] + shared_object_suffix
 
 env.Append(CPPPATH=["src/"])
 # Sources are grouped into per-domain folders under src/, so collect them
@@ -52,6 +67,13 @@ if env["target"] in ["editor", "template_debug"]:
         sources.append(doc_data)
     except AttributeError:
         print("Not including class reference as we're targeting a pre-4.3 baseline.")
+
+# SCons takes SHLIBPREFIX from the HOST platform, so cross-compiling from Windows
+# drops the "lib" that Android, Linux, macOS and web all expect - and that the
+# paths in gfgd.gdextension name. Android is the one that bites: its exporter
+# packages a zero-byte entry for a library it cannot find and reports nothing,
+# so the APK installs and then fails to load the extension at runtime.
+env["SHLIBPREFIX"] = "" if env["platform"] == "windows" else "lib"
 
 # .dev doesn't inhibit compatibility, so we don't need to key it.
 # .universal just means "compatible with all relevant arches" so we don't need to key it.

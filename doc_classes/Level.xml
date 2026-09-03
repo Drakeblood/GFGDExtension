@@ -4,20 +4,21 @@
 		Root node of a playable scene, optionally overriding the game mode.
 	</brief_description>
 	<description>
-		The main scene root must be a [Level] for the framework to find it. Give it its own [GameModeSettings] to run this level under different rules from the project default. A node named [code]PlayerStart[/code] anywhere below it positions the spawned pawn.
+		The main scene root must be a [Level] for the framework to find it, and so must anything opened with [method World.open_level] or [method World.server_travel]. Set [member game_mode_override] to run this level under different rules from the project default.
+		Pawns are placed at a [PlayerStart2D] or [PlayerStart3D] anywhere below it. They are parented to [code]/root/Pawns[/code] rather than to the level, so that their path is the same on every peer no matter what the level scene is called.
 	</description>
 	<tutorials>
 	</tutorials>
 	<methods>
 		<method name="_init_level" qualifiers="virtual">
 			<return type="void" />
-			<param index="0" name="scene_tree" type="GFGDSceneTree" />
+			<param index="0" name="world" type="World" />
 			<description>
 			</description>
 		</method>
 	</methods>
 	<members>
-		<member name="game_mode_settings_override" type="GameModeSettings" setter="set_game_mode_settings_override" getter="get_game_mode_settings_override">
+		<member name="game_mode_override" type="PackedScene" setter="set_game_mode_override" getter="get_game_mode_override">
 		</member>
 	</members>
 </class>

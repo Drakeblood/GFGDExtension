@@ -1,7 +1,7 @@
 #include "framework/game_instance.h"
 #include <godot_cpp/core/class_db.hpp>
 
-#include "framework/gfgd_scene_tree.h"
+#include "framework/world.h"
 #include "framework/local_player.h"
 
 using namespace godot;
@@ -10,7 +10,7 @@ namespace GFGD
 {
 GameInstance::GameInstance()
 {
-	scene_tree = nullptr;
+	world = nullptr;
 }
 
 GameInstance::~GameInstance()
@@ -18,10 +18,10 @@ GameInstance::~GameInstance()
 
 }
 
-void GameInstance::init(GFGDSceneTree* in_scene_tree)
+void GameInstance::init(World* in_world)
 {
-	scene_tree = in_scene_tree;
-	GDVIRTUAL_CALL(_on_init, in_scene_tree);
+	world = in_world;
+	GDVIRTUAL_CALL(_on_init, in_world);
 }
 
 void GameInstance::shutdown()
@@ -106,7 +106,7 @@ LocalPlayer* GameInstance::find_local_player_for_device_slot(int device_slot) co
 
 void GameInstance::_bind_methods()
 {
-	ClassDB::bind_method(D_METHOD("get_scene_tree"), &GameInstance::get_scene_tree);
+	ClassDB::bind_method(D_METHOD("get_world"), &GameInstance::get_world);
 
 	ClassDB::bind_method(D_METHOD("create_local_player", "device_slot"), &GameInstance::create_local_player);
 	ClassDB::bind_method(D_METHOD("create_local_player_with_slots", "device_slots"), &GameInstance::create_local_player_with_slots);
@@ -116,7 +116,7 @@ void GameInstance::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_local_players"), &GameInstance::get_local_players);
 	ClassDB::bind_method(D_METHOD("get_local_player_count"), &GameInstance::get_local_player_count);
 
-	GDVIRTUAL_BIND(_on_init, "scene_tree");
+	GDVIRTUAL_BIND(_on_init, "world");
 	GDVIRTUAL_BIND(_on_shutdown);
 
 	ADD_SIGNAL(MethodInfo("local_player_added", PropertyInfo(Variant::OBJECT, "local_player", PROPERTY_HINT_RESOURCE_TYPE, "LocalPlayer")));

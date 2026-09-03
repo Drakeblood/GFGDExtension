@@ -9,34 +9,75 @@
 	<tutorials>
 	</tutorials>
 	<methods>
+		<method name="get_first_player_controller" qualifiers="static">
+			<return type="PlayerController" />
+			<param index="0" name="world" type="World" />
+			<description>
+			</description>
+		</method>
 		<method name="get_game_instance" qualifiers="static">
 			<return type="GameInstance" />
-			<param index="0" name="scene_tree" type="GFGDSceneTree" />
+			<param index="0" name="world" type="World" />
 			<description>
 			</description>
 		</method>
 		<method name="get_game_mode" qualifiers="static">
-			<return type="GameMode" />
-			<param index="0" name="scene_tree" type="GFGDSceneTree" />
+			<return type="GameModeBase" />
+			<param index="0" name="world" type="World" />
+			<description>
+			</description>
+		</method>
+		<method name="get_game_state" qualifiers="static">
+			<return type="GameStateBase" />
+			<param index="0" name="world" type="World" />
 			<description>
 			</description>
 		</method>
 		<method name="get_level" qualifiers="static">
 			<return type="Level" />
-			<param index="0" name="scene_tree" type="GFGDSceneTree" />
+			<param index="0" name="world" type="World" />
+			<description>
+			</description>
+		</method>
+		<method name="get_local_player" qualifiers="static">
+			<return type="LocalPlayer" />
+			<param index="0" name="world" type="World" />
+			<param index="1" name="index" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_local_player_count" qualifiers="static">
+			<return type="int" />
+			<param index="0" name="world" type="World" />
+			<description>
+			</description>
+		</method>
+		<method name="get_player_controller" qualifiers="static">
+			<return type="PlayerController" />
+			<param index="0" name="world" type="World" />
+			<param index="1" name="index" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_player_controller_count" qualifiers="static">
+			<return type="int" />
+			<param index="0" name="world" type="World" />
 			<description>
 			</description>
 		</method>
 		<method name="load_game" qualifiers="static">
 			<return type="SaveGame" />
 			<param index="0" name="slot_name" type="String" />
-			<param index="1" name="encrypt" type="bool" />
+			<param index="1" name="encrypt" type="bool" default="true" />
+			<param index="2" name="save_game_script" type="Script" default="null" />
 			<description>
+				Reads back what [method save_game] wrote. Returns [code]null[/code] when the slot does not exist, cannot be decrypted, or does not name a script the project still has - never an error, so a corrupt or outdated save starts a fresh profile instead of failing to boot.
+				[param encrypt] must match what the file was written with.
 			</description>
 		</method>
 		<method name="open_level" qualifiers="static">
 			<return type="void" />
-			<param index="0" name="scene_tree" type="GFGDSceneTree" />
+			<param index="0" name="world" type="World" />
 			<param index="1" name="resource_path" type="String" />
 			<description>
 			</description>
@@ -45,46 +86,10 @@
 			<return type="void" />
 			<param index="0" name="slot_name" type="String" />
 			<param index="1" name="data" type="SaveGame" />
-			<param index="2" name="encrypt" type="bool" />
+			<param index="2" name="encrypt" type="bool" default="true" />
 			<description>
-			</description>
-		</method>
-		<method name="get_game_state" qualifiers="static">
-			<return type="GameState" />
-			<param index="0" name="scene_tree" type="GFGDSceneTree" />
-			<description>
-			</description>
-		</method>
-		<method name="get_first_player_controller" qualifiers="static">
-			<return type="PlayerController" />
-			<param index="0" name="scene_tree" type="GFGDSceneTree" />
-			<description>
-			</description>
-		</method>
-		<method name="get_local_player" qualifiers="static">
-			<return type="LocalPlayer" />
-			<param index="0" name="scene_tree" type="GFGDSceneTree" />
-			<param index="1" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="get_local_player_count" qualifiers="static">
-			<return type="int" />
-			<param index="0" name="scene_tree" type="GFGDSceneTree" />
-			<description>
-			</description>
-		</method>
-		<method name="get_player_controller" qualifiers="static">
-			<return type="PlayerController" />
-			<param index="0" name="scene_tree" type="GFGDSceneTree" />
-			<param index="1" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="get_player_controller_count" qualifiers="static">
-			<return type="int" />
-			<param index="0" name="scene_tree" type="GFGDSceneTree" />
-			<description>
+				Serializes [param data] to [code]user://saves/&lt;slot_name&gt;.sav[/code]. When [param encrypt] is true the file is written with the key in [code]application/game_framework/save_encryption_key[/code].
+				[b]That setting defaults to a key that ships with this extension source[/b], so a released game should replace it. The default is kept as it is because changing it makes existing save files unreadable; the framework warns once per run while it is still in use.
 			</description>
 		</method>
 	</methods>

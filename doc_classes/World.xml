@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="World" inherits="SceneTree" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		The world: the main loop, the level that is running and everything in it.
+	</brief_description>
+	<description>
+		Set [code]application/run/main_loop_type[/code] to [code]World[/code] to turn the framework on. It owns what belongs to a level - the game mode, the game state and the list of controllers - while the [GameInstance] it holds owns what outlives one, which is the local players.
+		It is also where the session lives: [method host_game], [method create_dedicated_server] and [method join_game] decide the [enum NetMode], and [method server_travel] moves the server and every client to a new level together. [method has_authority] is true in a game with no peer at all, which is what makes a rule written for a server also correct offline.
+		The nodes it builds sit at fixed paths - [code]/root/NetDriver[/code], [code]/root/GameState[/code], [code]/root/Players[/code] and [code]/root/Pawns[/code] - because that is the address every peer refers to them by.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="create_dedicated_server">
+			<return type="int" enum="Error" />
+			<param index="0" name="port" type="int" />
+			<param index="1" name="max_players" type="int" default="32" />
+			<description>
+			</description>
+		</method>
+		<method name="create_default_local_player">
+			<return type="LocalPlayer" />
+			<description>
+			</description>
+		</method>
+		<method name="create_local_player">
+			<return type="LocalPlayer" />
+			<param index="0" name="device_slot" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="disconnect_from_network">
+			<return type="void" />
+			<description>
+			</description>
+		</method>
+		<method name="find_level">
+			<return type="Level" />
+			<description>
+			</description>
+		</method>
+		<method name="find_player_controller_by_player_id" qualifiers="const">
+			<return type="PlayerController" />
+			<param index="0" name="player_id" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_controllers" qualifiers="const">
+			<return type="Array" />
+			<description>
+			</description>
+		</method>
+		<method name="get_first_player_controller" qualifiers="const">
+			<return type="PlayerController" />
+			<description>
+			</description>
+		</method>
+		<method name="get_game_instance" qualifiers="const">
+			<return type="GameInstance" />
+			<description>
+			</description>
+		</method>
+		<method name="get_game_mode" qualifiers="const">
+			<return type="GameModeBase" />
+			<description>
+			</description>
+		</method>
+		<method name="get_game_mode_defaults" qualifiers="const">
+			<return type="GameModeBase" />
+			<description>
+			</description>
+		</method>
+		<method name="get_game_state" qualifiers="const">
+			<return type="GameStateBase" />
+			<description>
+			</description>
+		</method>
+		<method name="get_input_router" qualifiers="const">
+			<return type="InputRouter" />
+			<description>
+			</description>
+		</method>
+		<method name="get_level" qualifiers="const">
+			<return type="Level" />
+			<description>
+			</description>
+		</method>
+		<method name="get_local_peer_id" qualifiers="const">
+			<return type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_local_player" qualifiers="const">
+			<return type="LocalPlayer" />
+			<param index="0" name="index" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_local_player_count" qualifiers="const">
+			<return type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_local_role_for" qualifiers="const">
+			<return type="int" enum="World.NetRole" />
+			<param index="0" name="node" type="Node" />
+			<description>
+			</description>
+		</method>
+		<method name="get_net_driver" qualifiers="const">
+			<return type="NetDriver" />
+			<description>
+			</description>
+		</method>
+		<method name="get_net_mode" qualifiers="const">
+			<return type="int" enum="World.NetMode" />
+			<description>
+			</description>
+		</method>
+		<method name="get_net_owner_peer" qualifiers="const">
+			<return type="int" />
+			<param index="0" name="node" type="Node" />
+			<description>
+			</description>
+		</method>
+		<method name="get_pawn_container" qualifiers="const">
+			<return type="Node" />
+			<description>
+			</description>
+		</method>
+		<method name="get_player_controller_at" qualifiers="const">
+			<return type="PlayerController" />
+			<param index="0" name="index" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_player_controller_count" qualifiers="const">
+			<return type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_player_controllers" qualifiers="const">
+			<return type="Array" />
+			<description>
+			</description>
+		</method>
+		<method name="get_players_container" qualifiers="const">
+			<return type="Node" />
+			<description>
+			</description>
+		</method>
+		<method name="get_remote_role_for" qualifiers="const">
+			<return type="int" enum="World.NetRole" />
+			<param index="0" name="node" type="Node" />
+			<description>
+			</description>
+		</method>
+		<method name="has_authority" qualifiers="const">
+			<return type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="host_game">
+			<return type="int" enum="Error" />
+			<param index="0" name="port" type="int" />
+			<param index="1" name="max_players" type="int" default="32" />
+			<description>
+			</description>
+		</method>
+		<method name="is_client" qualifiers="const">
+			<return type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="is_dedicated_server" qualifiers="const">
+			<return type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="is_listen_server" qualifiers="const">
+			<return type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="is_networked" qualifiers="const">
+			<return type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="join_game">
+			<return type="int" enum="Error" />
+			<param index="0" name="address" type="String" />
+			<param index="1" name="port" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="load_level">
+			<return type="void" />
+			<param index="0" name="resource_path" type="String" />
+			<description>
+			</description>
+		</method>
+		<method name="open_level">
+			<return type="void" />
+			<param index="0" name="resource_path" type="String" />
+			<description>
+			</description>
+		</method>
+		<method name="register_controller">
+			<return type="void" />
+			<param index="0" name="controller" type="Controller" />
+			<description>
+			</description>
+		</method>
+		<method name="server_travel">
+			<return type="void" />
+			<param index="0" name="resource_path" type="String" />
+			<description>
+			</description>
+		</method>
+		<method name="unregister_controller">
+			<return type="void" />
+			<param index="0" name="controller" type="Controller" />
+			<description>
+			</description>
+		</method>
+	</methods>
+	<signals>
+		<signal name="connected_to_server">
+			<description>
+			</description>
+		</signal>
+		<signal name="connection_failed">
+			<description>
+			</description>
+		</signal>
+		<signal name="level_loaded">
+			<param index="0" name="level" type="Object" />
+			<description>
+			</description>
+		</signal>
+		<signal name="net_mode_changed">
+			<param index="0" name="net_mode" type="int" />
+			<description>
+			</description>
+		</signal>
+		<signal name="peer_connected">
+			<param index="0" name="peer_id" type="int" />
+			<description>
+			</description>
+		</signal>
+		<signal name="peer_disconnected">
+			<param index="0" name="peer_id" type="int" />
+			<description>
+			</description>
+		</signal>
+		<signal name="server_disconnected">
+			<description>
+			</description>
+		</signal>
+	</signals>
+	<constants>
+		<constant name="NET_MODE_STANDALONE" value="0" enum="NetMode">
+		</constant>
+		<constant name="NET_MODE_DEDICATED_SERVER" value="1" enum="NetMode">
+		</constant>
+		<constant name="NET_MODE_LISTEN_SERVER" value="2" enum="NetMode">
+		</constant>
+		<constant name="NET_MODE_CLIENT" value="3" enum="NetMode">
+		</constant>
+		<constant name="ROLE_NONE" value="0" enum="NetRole">
+		</constant>
+		<constant name="ROLE_SIMULATED_PROXY" value="1" enum="NetRole">
+		</constant>
+		<constant name="ROLE_AUTONOMOUS_PROXY" value="2" enum="NetRole">
+		</constant>
+		<constant name="ROLE_AUTHORITY" value="3" enum="NetRole">
+		</constant>
+		<constant name="SERVER_PEER_ID" value="1">
+		</constant>
+	</constants>
+</class>

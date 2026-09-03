@@ -1,6 +1,6 @@
 [gd_scene load_steps=6 format=3]
 
-[ext_resource type="Script" path="res://scripts/coop_pawn_handler.gd" id="1_ph"]
+[ext_resource type="Script" path="res://scripts/coop_pawn.gd" id="1_pawn"]
 [ext_resource type="AttributeSet" uid="uid://b813xtrmo2duf" path="res://resources/demo_attributes.tres" id="2_attrs"]
 [ext_resource type="GameplayAbility" uid="uid://smjy818n4l0" path="res://resources/test_ability.tres" id="3_ability"]
 
@@ -12,9 +12,9 @@ albedo_color = Color(0.35, 0.6, 0.9, 1)
 
 [node name="CoopPlayerPawn" type="Node3D"]
 
-[node name="PawnHandler" type="PawnHandler" parent="."]
+[node name="Pawn" type="Pawn" parent="."]
 camera_path = NodePath("../Camera")
-script = ExtResource("1_ph")
+script = ExtResource("1_pawn")
 
 [node name="Mesh" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)

@@ -1,0 +1,199 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/cmake-build-${presetName}"
+    },
+
+    {
+      "name": "t-editor",
+      "hidden": true,
+      "cacheVariables": {
+        "GODOTCPP_TARGET": "editor",
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "t-template_debug",
+      "hidden": true,
+      "cacheVariables": {
+        "GODOTCPP_TARGET": "template_debug",
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "t-template_release",
+      "hidden": true,
+      "cacheVariables": {
+        "GODOTCPP_TARGET": "template_release",
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+
+    {
+      "name": "p-windows",
+      "hidden": true,
+      "inherits": "base",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "p-linux",
+      "hidden": true,
+      "inherits": "base",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "p-macos",
+      "hidden": true,
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_OSX_ARCHITECTURES": "x86_64;arm64"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
+    },
+    {
+      "name": "p-android-arm64",
+      "hidden": true,
+      "inherits": "base",
+      "toolchainFile": "$env{NDK_ROOT}/build/cmake/android.toolchain.cmake",
+      "cacheVariables": {
+        "ANDROID_ABI": "arm64-v8a",
+        "ANDROID_PLATFORM": "android-24"
+      },
+      "condition": {
+        "type": "notEquals",
+        "lhs": "$env{NDK_ROOT}",
+        "rhs": ""
+      }
+    },
+    {
+      "name": "p-android-x86_64",
+      "hidden": true,
+      "inherits": "p-android-arm64",
+      "cacheVariables": {
+        "ANDROID_ABI": "x86_64",
+        "ANDROID_PLATFORM": "android-24"
+      }
+    },
+
+    {
+      "name": "windows-editor",
+      "inherits": ["p-windows", "t-editor"],
+      "displayName": "windows / editor",
+      "description": "What the Godot editor loads on Windows. Includes class docs."
+    },
+    {
+      "name": "windows-template_debug",
+      "inherits": ["p-windows", "t-template_debug"],
+      "displayName": "windows / template_debug",
+      "description": "Windows debug export template."
+    },
+    {
+      "name": "windows-template_release",
+      "inherits": ["p-windows", "t-template_release"],
+      "displayName": "windows / template_release",
+      "description": "Windows release export template."
+    },
+
+    {
+      "name": "linux-editor",
+      "inherits": ["p-linux", "t-editor"],
+      "displayName": "linux / editor",
+      "description": "Native Linux editor build. Requires a Linux host."
+    },
+    {
+      "name": "linux-template_debug",
+      "inherits": ["p-linux", "t-template_debug"],
+      "displayName": "linux / template_debug",
+      "description": "Native Linux debug export template. Requires a Linux host."
+    },
+    {
+      "name": "linux-template_release",
+      "inherits": ["p-linux", "t-template_release"],
+      "displayName": "linux / template_release",
+      "description": "Native Linux release export template. Requires a Linux host."
+    },
+
+    {
+      "name": "macos-editor",
+      "inherits": ["p-macos", "t-editor"],
+      "displayName": "macos / editor",
+      "description": "Universal (x86_64 + arm64) editor build. Requires a macOS host."
+    },
+    {
+      "name": "macos-template_debug",
+      "inherits": ["p-macos", "t-template_debug"],
+      "displayName": "macos / template_debug",
+      "description": "Universal debug export template. Requires a macOS host."
+    },
+    {
+      "name": "macos-template_release",
+      "inherits": ["p-macos", "t-template_release"],
+      "displayName": "macos / template_release",
+      "description": "Universal release export template. Requires a macOS host."
+    },
+
+    {
+      "name": "android-arm64-template_debug",
+      "inherits": ["p-android-arm64", "t-template_debug"],
+      "displayName": "android arm64 / template_debug",
+      "description": "Android arm64-v8a debug template. Needs NDK_ROOT."
+    },
+    {
+      "name": "android-arm64-template_release",
+      "inherits": ["p-android-arm64", "t-template_release"],
+      "displayName": "android arm64 / template_release",
+      "description": "Android arm64-v8a release template. Needs NDK_ROOT."
+    },
+    {
+      "name": "android-x86_64-template_debug",
+      "inherits": ["p-android-x86_64", "t-template_debug"],
+      "displayName": "android x86_64 / template_debug",
+      "description": "Android x86_64 debug template, for the emulator. Needs NDK_ROOT."
+    },
+    {
+      "name": "android-x86_64-template_release",
+      "inherits": ["p-android-x86_64", "t-template_release"],
+      "displayName": "android x86_64 / template_release",
+      "description": "Android x86_64 release template, for the emulator. Needs NDK_ROOT."
+    }
+  ],
+  "buildPresets": [
+    { "name": "windows-editor", "configurePreset": "windows-editor" },
+    { "name": "windows-template_debug", "configurePreset": "windows-template_debug" },
+    { "name": "windows-template_release", "configurePreset": "windows-template_release" },
+
+    { "name": "linux-editor", "configurePreset": "linux-editor" },
+    { "name": "linux-template_debug", "configurePreset": "linux-template_debug" },
+    { "name": "linux-template_release", "configurePreset": "linux-template_release" },
+
+    { "name": "macos-editor", "configurePreset": "macos-editor" },
+    { "name": "macos-template_debug", "configurePreset": "macos-template_debug" },
+    { "name": "macos-template_release", "configurePreset": "macos-template_release" },
+
+    { "name": "android-arm64-template_debug", "configurePreset": "android-arm64-template_debug" },
+    { "name": "android-arm64-template_release", "configurePreset": "android-arm64-template_release" },
+    { "name": "android-x86_64-template_debug", "configurePreset": "android-x86_64-template_debug" },
+    { "name": "android-x86_64-template_release", "configurePreset": "android-x86_64-template_release" }
+  ]
+}

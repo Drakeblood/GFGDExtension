@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <class name="LocalPlayer" inherits="Object" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
 	<brief_description>
-		One human sitting at this machine. Survives a level change.
+		One human sitting at this machine.
 	</brief_description>
 	<description>
-		The seat, not the character. A [PlayerController] belongs to a level and dies with it; a [LocalPlayer] is owned by the [GameInstance] and outlives every [method GFGDSceneTree.open_level], carrying the player's device assignment and split screen viewport across.
-		Create them with [method GFGDSceneTree.create_local_player] or let press-to-join do it (see [member GameModeSettings.allow_press_to_join]). The [GameMode] then logs each one in and gives it a controller.
-		[b]It is not a node.[/b] It is not in the scene tree and has no name path; hold a reference or ask the [GameInstance] for it by index.
+		Owned by the [GameInstance] rather than by the game mode, so it survives a level change: the [PlayerController] dies with the old level, this does not. It holds that human's own [PlayerInput] and, for split screen, their viewport.
+		Create them with [method World.create_local_player] or let press-to-join do it (see [member GameModeBase.allow_press_to_join]). The [GameModeBase] then logs each one in and gives it a controller.
 	</description>
 	<tutorials>
 	</tutorials>
@@ -25,8 +24,8 @@
 				Reparenting detaches the camera from the pawn, so drive it with a [RemoteTransform3D] on the pawn afterwards. A [Camera2D] does not need this: [PlayerController] points its [member Camera2D.custom_viewport] at the right viewport by itself.
 			</description>
 		</method>
-		<method name="get_device_slots" qualifiers="const">
-			<return type="PackedInt32Array" />
+		<method name="get_player_controller" qualifiers="const">
+			<return type="PlayerController" />
 			<description>
 			</description>
 		</method>
@@ -45,6 +44,12 @@
 		<method name="remove_device_slot">
 			<return type="void" />
 			<param index="0" name="device_slot" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="set_player_controller">
+			<return type="void" />
+			<param index="0" name="value" type="PlayerController" />
 			<description>
 			</description>
 		</method>

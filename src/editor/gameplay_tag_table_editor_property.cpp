@@ -80,7 +80,7 @@ GameplayTagTableEditorProperty::GameplayTagTableEditorProperty()
 
 void GameplayTagTableEditorProperty::_update_property()
 {
-	tags = get_edited_object()->get(get_edited_property());
+	tags = TypedDictionary<StringName, String>(get_edited_object()->get(get_edited_property()));
 	rebuild();
 }
 

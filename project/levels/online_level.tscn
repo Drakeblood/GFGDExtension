@@ -1,0 +1,46 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="PackedScene" path="res://game_modes/online_game_mode.tscn" id="1_online_gm"]
+[ext_resource type="Script" path="res://scripts/online_level.gd" id="2_level"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_ground"]
+size = Vector2(32, 32)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ground"]
+albedo_color = Color(0.14, 0.18, 0.16, 1)
+
+[sub_resource type="Environment" id="Environment_online"]
+ambient_light_source = 2
+ambient_light_color = Color(0.72, 0.75, 0.8, 1)
+ambient_light_energy = 1.2
+
+[node name="OnlineLevel" type="Level"]
+script = ExtResource("2_level")
+game_mode_override = ExtResource("1_online_gm")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_online")
+
+[node name="Ground" type="MeshInstance3D" parent="."]
+mesh = SubResource("PlaneMesh_ground")
+surface_material_override/0 = SubResource("StandardMaterial3D_ground")
+
+[node name="PlayerStart" type="PlayerStart3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, -6)
+
+[node name="PlayerStart2" type="PlayerStart3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, -6)
+
+[node name="PlayerStart3" type="PlayerStart3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, 6)
+
+[node name="PlayerStart4" type="PlayerStart3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, 6)
+
+[node name="HUD" type="Label" parent="."]
+offset_left = 16.0
+offset_top = 12.0
+offset_right = 720.0
+offset_bottom = 60.0
+text = "Online level - WASD moves your capsule.
+The server owns every pawn; this window is shown where they went."

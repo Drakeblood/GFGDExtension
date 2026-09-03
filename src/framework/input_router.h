@@ -9,7 +9,7 @@ using namespace godot;
 
 namespace GFGD
 {
-class GFGDSceneTree;
+class World;
 
 // Sends every raw InputEvent to the PlayerInput of whichever local player owns
 // the device it came from.
@@ -32,7 +32,7 @@ class InputRouter : public Node
 	GDCLASS(InputRouter, Node)
 
 private:
-	GFGDSceneTree* scene_tree;
+	World* world;
 
 public:
 	InputRouter();
@@ -42,8 +42,8 @@ public:
 	virtual void _exit_tree() override;
 	virtual void _input(const Ref<InputEvent>& event) override;
 
-	void set_gfgd_scene_tree(GFGDSceneTree* value) { scene_tree = value; }
-	GFGDSceneTree* get_gfgd_scene_tree() const { return scene_tree; }
+	void set_world(World* value) { world = value; }
+	World* get_world() const { return world; }
 
 protected:
 	static void _bind_methods();

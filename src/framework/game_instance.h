@@ -6,7 +6,7 @@
 #include <godot_cpp/core/gdvirtual.gen.inc>
 #include <godot_cpp/variant/packed_int32_array.hpp>
 
-#include "framework/gfgd_scene_tree.h"
+#include "framework/world.h"
 
 using namespace godot;
 
@@ -19,7 +19,7 @@ class GameInstance : public Object
 	GDCLASS(GameInstance, Object)
 
 private:
-	GFGDSceneTree* scene_tree;
+	World* world;
 
 	// The humans at this machine. Owned here rather than by the game mode so they
 	// outlive a level change.
@@ -29,10 +29,10 @@ public:
 	GameInstance();
 	~GameInstance();
 
-	void init(GFGDSceneTree* scene_tree);
+	void init(World* world);
 	void shutdown();
 
-	GFGDSceneTree* get_scene_tree() const { return scene_tree; }
+	World* get_world() const { return world; }
 
 	// device_slot is a PlayerInput.DeviceSlot value: a joypad index, KEYBOARD_MOUSE,
 	// ALL for "every device", or NONE to wait for a press-to-join.
@@ -45,7 +45,7 @@ public:
 	Array get_local_players() const { return local_players; }
 	int get_local_player_count() const { return local_players.size(); }
 
-	GDVIRTUAL1(_on_init, GFGDSceneTree*)
+	GDVIRTUAL1(_on_init, World*)
 	GDVIRTUAL0(_on_shutdown)
 
 protected:

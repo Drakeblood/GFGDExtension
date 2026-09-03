@@ -5,8 +5,8 @@
 #include <godot_cpp/core/class_db.hpp>
 
 #include "framework/game_instance.h"
-#include "framework/game_mode.h"
-#include "framework/gfgd_scene_tree.h"
+#include "framework/game_mode_base.h"
+#include "framework/world.h"
 #include "framework/local_player.h"
 #include "framework/player_input.h"
 
@@ -16,7 +16,7 @@ namespace GFGD
 {
 InputRouter::InputRouter()
 {
-	scene_tree = nullptr;
+	world = nullptr;
 }
 
 InputRouter::~InputRouter()
@@ -49,19 +49,19 @@ void InputRouter::_exit_tree()
 
 	// The root may be torn down before MainLoop::finalize, so hand the scene tree
 	// back a null router rather than letting it hold a pointer to a dead node.
-	if (scene_tree != nullptr)
+	if (world != nullptr)
 	{
-		scene_tree->set_input_router(nullptr);
-		scene_tree = nullptr;
+		world->set_input_router(nullptr);
+		world = nullptr;
 	}
 }
 
 void InputRouter::_input(const Ref<InputEvent>& event)
 {
 	if (Engine::get_singleton()->is_editor_hint()) { return; }
-	if (scene_tree == nullptr || event.is_null()) { return; }
+	if (world == nullptr || event.is_null()) { return; }
 
-	GameInstance* game_instance = scene_tree->get_game_instance();
+	GameInstance* game_instance = world->get_game_instance();
 	if (game_instance == nullptr) { return; }
 
 	const int device_slot = PlayerInput::device_slot_from_event(event);
@@ -88,7 +88,7 @@ void InputRouter::_input(const Ref<InputEvent>& event)
 
 	emit_signal("unassigned_device_input", device_slot, event);
 
-	if (GameMode* game_mode = scene_tree->get_game_mode())
+	if (GameModeBase* game_mode = world->get_game_mode())
 	{
 		game_mode->try_join(device_slot);
 	}
@@ -107,9 +107,9 @@ bool InputRouter::is_join_worthy(const Ref<InputEvent>& event) const
 
 void InputRouter::on_joy_connection_changed(int32_t device, bool connected)
 {
-	if (scene_tree == nullptr) { return; }
+	if (world == nullptr) { return; }
 
-	GameInstance* game_instance = scene_tree->get_game_instance();
+	GameInstance* game_instance = world->get_game_instance();
 	if (game_instance == nullptr) { return; }
 
 	LocalPlayer* local_player = game_instance->find_local_player_for_device_slot(device);
@@ -133,7 +133,7 @@ void InputRouter::on_joy_connection_changed(int32_t device, bool connected)
 
 void InputRouter::_bind_methods()
 {
-	ClassDB::bind_method(D_METHOD("get_gfgd_scene_tree"), &InputRouter::get_gfgd_scene_tree);
+	ClassDB::bind_method(D_METHOD("get_world"), &InputRouter::get_world);
 
 	ADD_SIGNAL(MethodInfo("unassigned_device_input",
 			PropertyInfo(Variant::INT, "device_slot"),

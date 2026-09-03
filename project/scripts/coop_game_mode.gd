@@ -1,41 +1,37 @@
-extends GameMode
-## Demo GameMode for local co-op: two players, two pads, one keyboard ignored.
+extends GameModeBase
+## Rules for local co-op: two players, two pads, one keyboard ignored.
 ##
 ## The framework starts every project with one LocalPlayer holding
 ## PlayerInput.DEVICE_SLOT_ALL, which is what makes a single player project
-## behave exactly as it always did - every device drives the one player. For
-## local co-op that wildcard has to go first, or player 0 would swallow the
-## events the second pad needs to join with.
-##
-## Everything below happens in _init_game, before the level enters the tree, so
-## both players are logged in and possessed by the time any level node runs
-## _ready - the same contract the single player demo relies on.
+## behave as it always did - every device drives the one player. For local co-op
+## that wildcard has to go first, or player 0 would swallow the events the second
+## pad needs to join with.
 
 const MAX_PLAYERS := 2
 
 
-func _init_game(scene_tree: GFGDSceneTree) -> bool:
+func _init_game(world: World) -> bool:
 	var pads: Array = Input.get_connected_joypads()
 	print("GFGD demo: >> CoopGameMode._init_game | connected pads = %s" % [pads])
 
-	_assign_first_player(scene_tree, pads)
+	_assign_first_player(world, pads)
 
 	# A second pad that is already plugged in joins straight away. Anything else
 	# waits for press-to-join, which the InputRouter offers to try_join().
-	if pads.size() > 1 and scene_tree.get_local_player_count() < MAX_PLAYERS:
-		scene_tree.create_local_player(pads[1])
+	if pads.size() > 1 and world.get_local_player_count() < MAX_PLAYERS:
+		world.create_local_player(pads[1])
 
-	var router: InputRouter = scene_tree.get_input_router()
+	var router: InputRouter = world.get_input_router()
 	router.unassigned_device_input.connect(_on_unassigned_device_input)
 	router.joypad_disconnected.connect(_on_joypad_disconnected)
 
 	return false    # false = the framework logs in every local player and spawns them
 
 
-func _assign_first_player(scene_tree: GFGDSceneTree, pads: Array) -> void:
-	var first: LocalPlayer = scene_tree.get_local_player(0)
+func _assign_first_player(world: World, pads: Array) -> void:
+	var first: LocalPlayer = world.get_local_player(0)
 	if first == null:
-		first = scene_tree.create_default_local_player()
+		first = world.create_default_local_player()
 
 	if pads.size() > 0:
 		# Two pads and a keyboard, playing on the two pads: player 0 takes the
@@ -58,7 +54,8 @@ func _can_join(device_slot: int) -> bool:
 func _on_post_login(player_controller: PlayerController) -> void:
 	var player_state: PlayerState = player_controller.get_player_state()
 	var slots: PackedInt32Array = player_controller.get_local_player().device_slots
-	print("GFGD demo: >> %s logged in | index=%d devices=%s" % [player_state.player_name, player_state.player_index, slots])
+	print("GFGD demo: >> %s logged in | id=%d index=%d devices=%s" % [
+		player_state.player_name, player_state.player_id, player_state.player_index, slots])
 
 
 func _on_unassigned_device_input(device_slot: int, _event: InputEvent) -> void:
@@ -73,5 +70,6 @@ func _on_joypad_disconnected(device: int, local_player: LocalPlayer) -> void:
 
 
 func _ready() -> void:
-	var game_state: GameState = get_gfgd_scene_tree().get_game_state()
-	print("GFGD demo: >> CoopGameMode._ready | players=%d controllers=%d" % [game_state.get_player_count(), get_player_controllers().size()])
+	var game_state: GameStateBase = get_world().get_game_state()
+	print("GFGD demo: >> CoopGameMode._ready | players=%d controllers=%d" % [
+		game_state.get_player_count(), get_player_controllers().size()])

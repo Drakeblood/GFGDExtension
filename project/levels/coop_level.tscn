@@ -1,6 +1,6 @@
 [gd_scene load_steps=6 format=3]
 
-[ext_resource type="GameModeSettings" path="res://resources/coop_game_mode_settings.tres" id="1_coop_gms"]
+[ext_resource type="PackedScene" path="res://game_modes/coop_game_mode.tscn" id="1_coop_gm"]
 [ext_resource type="Script" path="res://scripts/demo_level.gd" id="2_level"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_ground"]
@@ -16,7 +16,7 @@ ambient_light_energy = 1.2
 
 [node name="CoopLevel" type="Level"]
 script = ExtResource("2_level")
-game_mode_settings_override = ExtResource("1_coop_gms")
+game_mode_override = ExtResource("1_coop_gm")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_coop")
@@ -25,10 +25,10 @@ environment = SubResource("Environment_coop")
 mesh = SubResource("PlaneMesh_ground")
 surface_material_override/0 = SubResource("StandardMaterial3D_ground")
 
-[node name="PlayerStart" type="Node3D" parent="."]
+[node name="PlayerStart" type="PlayerStart3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0, 0)
 
-[node name="PlayerStart2" type="Node3D" parent="."]
+[node name="PlayerStart2" type="PlayerStart3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, 0)
 
 [node name="HUD" type="Label" parent="."]

@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="GameStateBase" inherits="Node" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		What everyone is allowed to know about the match.
+	</brief_description>
+	<description>
+		Created by the [World] rather than by the game mode, because the game mode is the server's alone while this has to exist on clients too - that split is the whole reason the class is separate. It holds the [PlayerState] of every player, on every peer.
+		[method get_server_world_time_seconds] gives the server's clock as this peer best knows it, so a timer started on the server reads the same everywhere. Extend it in GDScript for anything the whole match shares - the score, the round number, the objective - and return those property names from [code]_get_replicated_properties[/code] to have the framework keep them in step.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_get_replicated_properties" qualifiers="virtual">
+			<return type="PackedStringArray" />
+			<description>
+			</description>
+		</method>
+		<method name="_init_game_state" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="world" type="World" />
+			<description>
+			</description>
+		</method>
+		<method name="add_player_state">
+			<return type="void" />
+			<param index="0" name="player_state" type="PlayerState" />
+			<description>
+			</description>
+		</method>
+		<method name="get_player_array" qualifiers="const">
+			<return type="Array" />
+			<description>
+			</description>
+		</method>
+		<method name="get_player_count" qualifiers="const">
+			<return type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_player_state_by_index" qualifiers="const">
+			<return type="PlayerState" />
+			<param index="0" name="player_index" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_player_state_by_player_id" qualifiers="const">
+			<return type="PlayerState" />
+			<param index="0" name="player_id" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_player_state_by_unique_id" qualifiers="const">
+			<return type="PlayerState" />
+			<param index="0" name="unique_id" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_server_world_time_seconds" qualifiers="const">
+			<return type="float" />
+			<description>
+			</description>
+		</method>
+		<method name="get_world" qualifiers="const">
+			<return type="World" />
+			<description>
+			</description>
+		</method>
+		<method name="handle_begin_play">
+			<return type="void" />
+			<description>
+			</description>
+		</method>
+		<method name="has_authority" qualifiers="const">
+			<return type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="remove_player_state">
+			<return type="void" />
+			<param index="0" name="player_state" type="PlayerState" />
+			<description>
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="has_begun_play" type="bool" setter="set_has_begun_play" getter="get_has_begun_play" default="false">
+		</member>
+		<member name="server_world_time" type="float" setter="set_server_world_time" getter="get_server_world_time" default="0.0">
+		</member>
+	</members>
+	<signals>
+		<signal name="begun_play">
+			<description>
+			</description>
+		</signal>
+		<signal name="player_state_added">
+			<param index="0" name="player_state" type="Object" />
+			<description>
+			</description>
+		</signal>
+		<signal name="player_state_removed">
+			<param index="0" name="player_state" type="Object" />
+			<description>
+			</description>
+		</signal>
+	</signals>
+</class>

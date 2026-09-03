@@ -12,7 +12,7 @@
 	<methods>
 		<method name="_on_init" qualifiers="virtual">
 			<return type="void" />
-			<param index="0" name="scene_tree" type="GFGDSceneTree" />
+			<param index="0" name="world" type="World" />
 			<description>
 			</description>
 		</method>
@@ -26,7 +26,7 @@
 			<param index="0" name="device_slot" type="int" />
 			<description>
 				Adds a human at this machine. See [enum PlayerInput.DeviceSlot] for [param device_slot]; pass [constant PlayerInput.DEVICE_SLOT_NONE] for a player that will pick up a device by pressing a button later.
-				Local players are owned here rather than by the [GameMode], so they survive [method GFGDSceneTree.open_level].
+				Local players are owned here rather than by the [GameModeBase], so they survive [method World.open_level].
 			</description>
 		</method>
 		<method name="create_local_player_with_slots">
@@ -58,8 +58,8 @@
 			<description>
 			</description>
 		</method>
-		<method name="get_scene_tree" qualifiers="const">
-			<return type="GFGDSceneTree" />
+		<method name="get_world" qualifiers="const">
+			<return type="World" />
 			<description>
 			</description>
 		</method>

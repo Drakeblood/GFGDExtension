@@ -61,7 +61,7 @@ void InputComponent::remove_all_bindings()
 PlayerInput* InputComponent::get_player_input() const
 {
 	// Resolved on every query rather than cached: the PlayerController builds its
-	// InputComponent in its constructor, long before the GameMode hands it a
+	// InputComponent in its constructor, long before the game mode hands it a
 	// LocalPlayer, so there is no single point at which a cache could be filled.
 	if (owning_controller == nullptr) { return nullptr; }
 

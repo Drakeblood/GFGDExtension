@@ -30,7 +30,12 @@ String SaveGame::to_json()
 	{
 		Dictionary property = properties[i];
 		int usage = property["usage"];
-		if ((usage & PROPERTY_USAGE_SCRIPT_VARIABLE) && (usage & PROPERTY_USAGE_STORAGE))
+
+		// PROPERTY_USAGE_SCRIPT_VARIABLE alone, on purpose. A plain GDScript
+		// member variable does not carry PROPERTY_USAGE_STORAGE - only an
+		// @export one does - so also requiring STORAGE silently serialized an
+		// empty object for every save class written in GDScript.
+		if (usage & PROPERTY_USAGE_SCRIPT_VARIABLE)
 		{
 			String property_name = property["name"];
 			data[property_name] = get(property_name);

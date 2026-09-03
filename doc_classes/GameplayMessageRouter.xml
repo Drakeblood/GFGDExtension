@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="GameplayMessageRouter" inherits="Object" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Fire-and-forget message bus keyed by gameplay tag name.
+	</brief_description>
+	<description>
+		For the announcements that have no natural owner: a hit landed, a wave started, the run ended. Wiring those as signals means every listener has to reach the emitter first, and for UI built before the level exists that is a lifetime problem rather than a design one. A channel name is reachable from anywhere and costs nothing to hold.
+		[codeblock]
+		func _ready() -&gt; void:
+		    GameplayMessageRouter.get_singleton().register_listener(&amp;"Fx.Impact", _on_impact)
+
+		func _on_impact(_channel: StringName, payload: Variant) -&gt; void:
+		    burst(payload.position, payload.strength)
+		[/codeblock]
+		Channels are tag names, so the hierarchy comes for free: a listener on [code]Fx[/code] registered with [constant MATCH_PARTIAL] hears [code]Fx.Impact[/code] and [code]Fx.Text[/code] alike. Channel names are [b]not[/b] resolved through [GameplayTagsManager] - broadcasting must never register a tag as a side effect - but declaring them in a [GameplayTagTable] anyway documents the channels a project uses and puts them in the tag picker.
+		This is a bus, not a contract. Nothing guarantees anyone is listening, nothing is queued for a listener that registers later, and delivery is synchronous: [method broadcast] returns after the last listener has run.
+		Prefer a signal whenever the emitter and the listener can see each other. The router earns its place when they cannot.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="broadcast">
+			<return type="void" />
+			<param index="0" name="channel" type="StringName" />
+			<param index="1" name="payload" type="Variant" default="null" />
+			<description>
+				Calls every matching listener as [code]callback(channel, payload)[/code], in an unspecified order. The channel is passed because a [constant MATCH_PARTIAL] listener cannot otherwise tell what it heard.
+				Listeners are collected before any of them runs, so a listener may broadcast again, register, or unregister itself without disturbing the delivery in progress.
+			</description>
+		</method>
+		<method name="clear">
+			<return type="void" />
+			<description>
+				Drops every listener. Rarely needed - a listener whose object has been freed is removed on the next broadcast anyway.
+			</description>
+		</method>
+		<method name="get_singleton" qualifiers="static">
+			<return type="GameplayMessageRouter" />
+			<description>
+			</description>
+		</method>
+		<method name="has_listeners" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="channel" type="StringName" />
+			<description>
+				Whether a [method broadcast] on this channel would reach anyone. Worth checking before building an expensive payload.
+			</description>
+		</method>
+		<method name="register_listener">
+			<return type="int" />
+			<param index="0" name="channel" type="StringName" />
+			<param index="1" name="callback" type="Callable" />
+			<param index="2" name="match" type="int" enum="GameplayMessageRouter.MatchType" default="0" />
+			<description>
+				Returns a handle for [method unregister_listener], or [code]0[/code] if the channel is empty or the callable is invalid.
+				A listener whose object is freed is dropped on the next broadcast, so unregistering is good manners rather than a requirement - which is what makes this usable from nodes that come and go with a level.
+			</description>
+		</method>
+		<method name="unregister_listener">
+			<return type="void" />
+			<param index="0" name="handle" type="int" />
+			<description>
+				A no-op for a handle that was never registered or is already gone.
+			</description>
+		</method>
+	</methods>
+	<constants>
+		<constant name="MATCH_EXACT" value="0" enum="MatchType">
+			Only messages broadcast on exactly this channel.
+		</constant>
+		<constant name="MATCH_PARTIAL" value="1" enum="MatchType">
+			This channel and everything below it: a listener on [code]Fx[/code] hears [code]Fx.Impact[/code].
+		</constant>
+	</constants>
+</class>

@@ -4,7 +4,7 @@
 		Singleton that merges every [GameplayTagTable] into one lookup and owns the canonical tag instances.
 	</brief_description>
 	<description>
-		Built by [GFGDSceneTree] before the game instance is created, so tag tables are always loaded before anything can reference a tag.
+		Built by [World] before the game instance is created, so tag tables are always loaded before anything can reference a tag.
 		Tables are merged in the order they are listed in the project setting and the first declaration of a name wins; a duplicate declaration warns and is ignored.
 		Every registered tag has a source, reported by [method get_tag_source_kind]: [code]TAG_SOURCE_TABLE[/code] for a declared tag, [code]TAG_SOURCE_IMPLICIT[/code] for a parent implied by a longer one, and [code]TAG_SOURCE_RUNTIME[/code] for a name nothing declared.
 		That last case is the one to watch. [method request_tag] never fails on a well-formed name - it registers the tag and warns rather than returning null - so a typo, or a name left behind by a deleted table entry, becomes a real and usable tag. Absence of an error does not mean the tag was spelled correctly.

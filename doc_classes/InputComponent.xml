@@ -4,7 +4,7 @@
 		Binds input actions to callables for a possessed pawn.
 	</brief_description>
 	<description>
-		Handed to [code]PawnHandler._setup_input_component[/code]. Bindings live as long as the possession does.
+		Handed to [code]Pawn._setup_input_component[/code]. Bindings live as long as the possession does.
 		Every query goes through the owning [PlayerController] [PlayerInput], so a pawn only ever sees its own player devices. Reading [Input] directly from a pawn script would move every pawn at once - that is the problem [PlayerInput] exists to solve. When the component has no owning controller, or that controller has no [LocalPlayer], it falls back to the global [Input] singleton, which is what this class did before per-player input existed.
 	</description>
 	<tutorials>
@@ -81,6 +81,12 @@
 			<param index="0" name="action_name" type="StringName" />
 			<param index="1" name="trigger_event" type="int" enum="InputComponent.TriggerEvent" />
 			<param index="2" name="action" type="Callable" />
+			<description>
+			</description>
+		</method>
+		<method name="set_owning_controller">
+			<return type="void" />
+			<param index="0" name="value" type="PlayerController" />
 			<description>
 			</description>
 		</method>

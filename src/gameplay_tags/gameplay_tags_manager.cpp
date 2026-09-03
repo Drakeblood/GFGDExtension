@@ -141,7 +141,8 @@ void GameplayTagsManager::initialize_tags()
 {
 	// Keep the outgoing entries so tags that survive the rebuild reuse their
 	// instance; refs already handed out stay the canonical ones.
-	const HashMap<StringName, TagEntry> previous_tags = tags;
+	HashMap<StringName, TagEntry> previous_tags;
+	previous_tags = tags;
 	tags.clear();
 	loaded_table_paths.clear();
 

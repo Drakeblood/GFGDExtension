@@ -1,8 +1,0 @@
-[gd_resource type="GameModeSettings" load_steps=3 format=3]
-
-[ext_resource type="Script" path="res://scripts/demo_game_mode.gd" id="1_gm"]
-[ext_resource type="PackedScene" path="res://scenes/player_pawn.tscn" id="2_pawn"]
-
-[resource]
-game_mode_script = ExtResource("1_gm")
-pawn_scene = ExtResource("2_pawn")

@@ -6,19 +6,26 @@
 #include <godot_cpp/godot.hpp>
 #include <godot_cpp/classes/project_settings.hpp>
 
-#include "framework/gfgd_scene_tree.h"
+#include "framework/world.h"
 #include "framework/game_instance.h"
 #include "framework/player_input.h"
 #include "framework/local_player.h"
 #include "framework/input_router.h"
-#include "framework/game_state.h"
+#include "framework/game_state_base.h"
 #include "framework/player_state.h"
-#include "framework/game_mode.h"
-#include "framework/game_mode_settings.h"
+#include "framework/game_mode_base.h"
 #include "framework/level.h"
 #include "framework/controller.h"
-#include "framework/pawn_handler.h"
+#include "framework/pawn.h"
+#include "framework/ai_controller.h"
+#include "framework/net_driver.h"
+#include "framework/player_start_2d.h"
+#include "framework/player_start_3d.h"
 #include "framework/input_component.h"
+#include "framework/node_pool.h"
+#include "framework/player_virtual_joystick.h"
+#include "framework/player_touch_button.h"
+#include "framework/gameplay_message_router.h"
 #include "framework/player_controller.h"
 #include "framework/save_game.h"
 #include "core/assert.h"
@@ -71,7 +78,14 @@ static void register_gfgd_setting(const String& name, const Variant& default_val
 static void register_gfgd_settings()
 {
 	register_gfgd_setting("application/game_framework/game_instance_script", String(), Variant::STRING, PROPERTY_HINT_FILE, "*.gd,*.cs");
-	register_gfgd_setting("application/game_framework/default_game_mode_settings", String(), Variant::STRING, PROPERTY_HINT_FILE, "*.tres,*.res");
+	// A scene whose root is a GameModeBase. It is a scene rather than a script
+	// because the default scenes a game mode declares are set on it in the
+	// inspector, and only a scene keeps those.
+	register_gfgd_setting("application/game_framework/default_game_mode", String(), Variant::STRING, PROPERTY_HINT_FILE, "*.tscn,*.scn");
+	register_gfgd_setting("application/game_framework/default_port", 7777, Variant::INT);
+	// Encrypts user://saves/*.sav. The default is the one compiled into the
+	// extension, so a shipped game should replace it with its own.
+	register_gfgd_setting("application/game_framework/save_encryption_key", String("super_secret_password"), Variant::STRING);
 	// Every element is a path to a GameplayTagTable; the order is the merge
 	// order, and on a duplicate tag the table listed first wins.
 	register_gfgd_setting("application/game_framework/gameplay_tag_tables", PackedStringArray(), Variant::PACKED_STRING_ARRAY,
@@ -100,20 +114,27 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level)
 
 	register_gfgd_settings();
 
-	GDREGISTER_CLASS(GFGDSceneTree);
+	GDREGISTER_CLASS(World);
+	GDREGISTER_CLASS(NetDriver);
 	GDREGISTER_CLASS(PlayerInput);
 	GDREGISTER_CLASS(LocalPlayer);
 	GDREGISTER_CLASS(InputRouter);
 	GDREGISTER_CLASS(GameInstance);
-	GDREGISTER_CLASS(GameModeSettings);
-	GDREGISTER_CLASS(GameMode);
+	GDREGISTER_CLASS(GameModeBase);
 	GDREGISTER_CLASS(Level);
 	GDREGISTER_CLASS(PlayerState);
-	GDREGISTER_CLASS(GameState);
+	GDREGISTER_CLASS(GameStateBase);
 	GDREGISTER_CLASS(Controller);
 	GDREGISTER_CLASS(PlayerController);
-	GDREGISTER_CLASS(PawnHandler);
+	GDREGISTER_CLASS(AIController);
+	GDREGISTER_CLASS(Pawn);
+	GDREGISTER_CLASS(PlayerStart2D);
+	GDREGISTER_CLASS(PlayerStart3D);
 	GDREGISTER_CLASS(InputComponent);
+	GDREGISTER_CLASS(NodePool);
+	GDREGISTER_CLASS(PlayerVirtualJoystick);
+	GDREGISTER_CLASS(PlayerTouchButton);
+	GDREGISTER_CLASS(GameplayMessageRouter);
 	GDREGISTER_CLASS(SaveGame);
 	GDREGISTER_CLASS(Assert);
 	GDREGISTER_CLASS(AssertionException);
@@ -143,6 +164,7 @@ void uninitialize_gdextension_types(ModuleInitializationLevel p_level) {
 	if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
 		return;
 	}
+	GameplayMessageRouter::destroy_singleton();
 	GameplayTagsManager::destroy_singleton();
 }
 

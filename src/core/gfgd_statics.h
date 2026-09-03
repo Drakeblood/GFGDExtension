@@ -9,6 +9,10 @@ using namespace godot;
 
 namespace GFGD
 {
+// Returns an unreferenced raw pointer, so T must NOT be RefCounted: a Variant
+// holding a RefCounted owns a reference, and the pointer would dangle as soon as
+// the temporary below died. Intended for GameInstance (Object) and GameMode
+// (Node); a Resource needs its own Ref-taking path.
 template <typename T>
 T* try_create_instance_from(const Ref<Script>& script)
 {

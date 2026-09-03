@@ -1,0 +1,10 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/coop_game_mode.gd" id="1_gm"]
+[ext_resource type="PackedScene" path="res://scenes/coop_player_pawn.tscn" id="2_pawn"]
+
+[node name="CoopGameMode" type="GameModeBase"]
+script = ExtResource("1_gm")
+default_pawn_scene = ExtResource("2_pawn")
+max_local_players = 2
+allow_press_to_join = true

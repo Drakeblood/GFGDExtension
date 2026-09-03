@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <class name="Controller" inherits="Node" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
 	<brief_description>
-		Base class for anything that can possess a [PawnHandler].
+		Base class for anything that can possess a [Pawn].
 	</brief_description>
 	<description>
 		Holds the possession relationship. See [PlayerController] for the player-facing subclass.
-		Controllers add themselves to [method GFGDSceneTree.get_controllers] from [code]_enter_tree[/code] and take themselves out again in [code]_exit_tree[/code], so the world list also picks up AI controllers and controllers a designer placed in a level by hand, and can never hold a freed one.
+		Controllers add themselves to [method World.get_controllers] from [code]_enter_tree[/code] and take themselves out again in [code]_exit_tree[/code], so the world list also picks up AI controllers and controllers a designer placed in a level by hand, and can never hold a freed one.
 		[b]A subclass that overrides [code]_enter_tree[/code] or [code]_exit_tree[/code] must call the base implementation[/b], or it will never be registered - Godot binds only the most derived override.
 	</description>
 	<tutorials>
@@ -13,7 +13,7 @@
 	<methods>
 		<method name="_on_possess" qualifiers="virtual">
 			<return type="void" />
-			<param index="0" name="pawn_handler" type="Node" />
+			<param index="0" name="pawn" type="Node" />
 			<description>
 			</description>
 		</method>
@@ -22,14 +22,76 @@
 			<description>
 			</description>
 		</method>
-		<method name="get_pawn_handler" qualifiers="const">
-			<return type="PawnHandler" />
+		<method name="get_local_role" qualifiers="const">
+			<return type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_owner_peer_id" qualifiers="const">
+			<return type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_pawn" qualifiers="const">
+			<return type="Pawn" />
+			<description>
+			</description>
+		</method>
+		<method name="get_pawn_root" qualifiers="const">
+			<return type="Node" />
+			<description>
+			</description>
+		</method>
+		<method name="get_player_id" qualifiers="const">
+			<return type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_player_state" qualifiers="const">
+			<return type="PlayerState" />
+			<description>
+			</description>
+		</method>
+		<method name="get_remote_role" qualifiers="const">
+			<return type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_world" qualifiers="const">
+			<return type="World" />
+			<description>
+			</description>
+		</method>
+		<method name="has_authority" qualifiers="const">
+			<return type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="is_local_controller" qualifiers="const">
+			<return type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="is_player_controller" qualifiers="const">
+			<return type="bool" />
 			<description>
 			</description>
 		</method>
 		<method name="possess">
 			<return type="void" />
-			<param index="0" name="pawn_handler" type="PawnHandler" />
+			<param index="0" name="pawn" type="Pawn" />
+			<description>
+			</description>
+		</method>
+		<method name="set_player_id">
+			<return type="void" />
+			<param index="0" name="value" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="set_player_state">
+			<return type="void" />
+			<param index="0" name="value" type="PlayerState" />
 			<description>
 			</description>
 		</method>
@@ -41,7 +103,12 @@
 	</methods>
 	<signals>
 		<signal name="pawn_changed">
-			<param index="0" name="pawn_handler" type="Object" />
+			<param index="0" name="pawn" type="Object" />
+			<description>
+			</description>
+		</signal>
+		<signal name="player_state_changed">
+			<param index="0" name="player_state" type="Object" />
 			<description>
 			</description>
 		</signal>

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/main_menu_game_mode.gd" id="1_gm"]
+
+[node name="MainMenuGameMode" type="GameModeBase"]
+script = ExtResource("1_gm")
