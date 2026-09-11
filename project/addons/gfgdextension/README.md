@@ -2,11 +2,17 @@
 
 A game framework for **Godot 4.6+**, built as a GDExtension: game modes, controllers, possession, per-player input, networking, and a lightweight gameplay ability system — tags, abilities, effects, attributes.
 
-This file is the orientation document: what the pieces are, how they fit, and the contracts that are not visible from the API. Per-class reference lives in Godot's own help — press <kbd>F1</kbd> and search for any class below, or <kbd>Ctrl</kbd>+click a class name in the script editor.
+`VERSION.txt` next to this file says which build you have: the GFGD commit, the godot-cpp it was built against, the API version and the minimum Godot version.
+
+This file is the orientation document: what the pieces are, how they fit, and the contracts that are not visible from the API. Per-class reference lives in Godot's own help — press <kbd>F1</kbd> and search for any class below, or <kbd>Ctrl</kbd>+click a class name in the script editor. The same reference ships as XML in `doc_classes/`, which is the fast way to look a signature up from outside the editor.
 
 ## Install
 
 Copy this `gfgdextension` folder into your project's `addons/` directory and restart Godot. There is no plugin to enable in Project Settings and no `plugin.cfg`: `gfgd.gdextension` is picked up wherever it sits, and the editor integration registers itself from the extension.
+
+To confirm it actually loaded, `.godot/extension_list.cfg` should name it and `ClassDB.class_exists("World")` should be true. An empty `extension_list.cfg` means the editor has not rescanned, or there is no binary for this platform and target slot.
+
+**A project that already has C# classes of its own named `GameInstance`, `GameMode`, `Controller`, `PlayerController`, `Level`, `LocalPlayer`, `InputComponent`, `SaveGame`, `ProjectStatics`, `GameplayTag*` or `Assert*` and marked `[GlobalClass]` will collide with these on ClassDB names.** One of the two has to go — they cannot both be registered.
 
 Then, in Project Settings → Application → Game Framework:
 
@@ -39,6 +45,10 @@ The extension registers all of these on load, so they appear in the editor UI. G
 | `PlayerInput` | That human's own action state, filtered by the devices they own. |
 | `InputRouter` | Sends each raw event to the player who owns the device it came from. |
 | `InputComponent` | Binds input actions to callables, reading the owning player's `PlayerInput`. |
+| `CharacterMovementComponent` | Walking, falling and jumping for a 3D pawn. Unreal's property names, metric values. |
+| `MovementMode` | One way of moving, as a `Resource`. `WalkingMode`, `FallingMode`, or your own in GDScript. |
+| `MovementState` / `MovementInput` / `ProposedMove` | The simulation state, the input for one tick, and what a mode asks for. |
+| `MovementBackend` | Decides when the simulation runs and how often. The seam client prediction would plug into. |
 | `AbilitySystemComponent` | Abilities, owned tags, effects, attributes. The ability hub. |
 | `GameplayAbility` / `GameplayEffect` | Authorable ability and effect resources. |
 | `AttributeSet` / `AttributeModifier` | Named numeric attributes and the changes applied to them. |
@@ -99,12 +109,16 @@ A client never runs a game mode, but it does read these: both sides have to buil
 ## Startup ordering
 
 ```
-[Level] _enter_tree / _ready          <- the level is up first
+[Level] _enter_tree / _ready          <- the level AND EVERYTHING IN IT is up first
 GameState created and added
 GameMode._init_game                   <- prepare; spawns and possesses the players
 GameMode._ready                       <- everything live
-Level._init_level
+Level._init_level                     <- the first hook that can see all of it
 ```
+
+Read the first line carefully, because it is the single most expensive thing in this document. **Everything sitting in the level scene — a HUD, a camera, a spawner, a warning overlay, a touch control — has its `_ready` run before there is a game mode to ask, before a pawn exists, and before any controller has possessed anything.** `World.get_game_mode()` returns null there, the usual `if x != null` guard swallows it, and the node simply never finds what it was looking for, for the whole session, in silence.
+
+Either hand the references out from `Level._init_level`, which runs after everything is built, or — usually better — have each node resolve what it needs the first time it needs it, which also survives the pawn being respawned mid-level.
 
 Two hooks, one rule: **prepare in `_init_game`, play in `_ready`.** The framework logs the local players in and possesses their pawns on its own; your game mode overrides `_init_game` only if it needs to prepare something first, and reads the player off the world from `_ready`. Returning `true` from `_init_game` suppresses the spawn entirely — that is how a menu level runs with no player at all rather than with an empty one.
 
@@ -152,6 +166,31 @@ func _process(delta: float) -> void:
 	add_movement_input(Vector3(move.x, 0.0, move.y))
 	get_pawn_root().position += consume_movement_input_vector() * SPEED * delta
 ```
+
+## Character movement
+
+`CharacterMovementComponent` gives a pawn walking, falling and jumping. Attach it beside the `Pawn`, on a root that is a `PhysicsBody3D` with a capsule shape:
+
+```
+CharacterBody3D
+ ├─ CollisionShape3D      # a CapsuleShape3D
+ ├─ Pawn
+ └─ CharacterMovementComponent
+```
+
+`updated_body_path` defaults to the parent and the walking and falling modes register themselves, so nothing else is required. Feed it with the `add_movement_input` the pawn already had — guarded by `has_authority()` — and **stop moving the root yourself**: the component writes the transform once per tick and would overwrite you.
+
+Property names follow Unreal's `CharacterMovementComponent`, but **the values are metric**. Godot works in metres where Unreal works in centimetres, so `max_walk_speed` defaults to `6.0`, not `600`. Divide anything lifted from an Unreal project by 100.
+
+`ground_friction` and `braking_deceleration_walking` are not the same knob and should not be tuned as one: friction is how sharply the character can **change direction** while being pushed, braking is how hard it **stops** when input ends.
+
+How a character moves is a named `MovementMode` in a dictionary rather than a value in an enum, so a project can add one — a `Resource`, subclassable in GDScript — without this extension changing. Each mode proposes motion in `_generate_move` and carries it out in `_simulation_tick`; the split is what will let a dash be layered on a walk without the walking code knowing about dashes.
+
+Movement runs on the authority, as everything else does. There is still no client prediction; `MovementBackend` is the seam it would plug into, and it exists now because it cannot be added afterwards.
+
+What a client receives is the transform plus **`movement_mode`** — a position says where a pawn is, not whether it is walking or falling, and the second is what animation needs. `movement_mode_changed` fires on every peer; set `replicate_movement_mode = false` for a pawn whose mode nothing outside the simulation cares about.
+
+Not in yet: step-up (`max_step_height` is carried but not acted on), crouching, swimming, flying, moving platforms, root motion, layered moves, and 2D.
 
 ## Networking
 
@@ -307,6 +346,40 @@ func _on_impact(_channel: StringName, payload: Variant) -> void:
 	burst(payload.position, payload.strength)
 ```
 
+## Porting an existing project onto GFGD
+
+The framework has replacements for most of what a hand-rolled one does, so the bulk of a port is
+deletion:
+
+| What you have | What replaces it |
+|---|---|
+| Autoload holding cross-level state | `GameInstance` — created from a project setting, outside the tree |
+| Autoload or level script spawning the player | `GameModeBase`, which spawns and possesses on its own |
+| Hard-coded `Marker2D` spawn point | `PlayerStart2D` / `PlayerStart3D` |
+| A settings `Resource` naming the pawn and controller scenes | The game mode **scene**'s own inspector properties |
+| Static event bus with string channels | `GameplayMessageRouter`, channels keyed by tag name |
+| Hand-rolled object pool | `NodePool` |
+| `Input.is_action_pressed` in the player script | `InputComponent`, bound in `_setup_input_component` |
+| Own touch joystick `Control` | `PlayerVirtualJoystick` / `PlayerTouchButton` |
+| JSON save helper | `SaveGame` + `ProjectStatics.save_game` / `load_game` |
+| Tag list in an `.ini` | `GameplayTagTable` resources in `gameplay_tag_tables` |
+
+Three things worth knowing before you start:
+
+- **From C#, the port cannot be gradual.** C# cannot inherit a GDExtension class, so every class
+  that exists to override something has to become GDScript; and a C# framework of your own whose
+  `[GlobalClass]` names match GFGD's cannot be installed alongside it. Decide up front how far the
+  port goes.
+- **Get the project *booting* before porting any gameplay.** Switch `main_loop_type`, write the game
+  instance, one game mode scene, one level and the tag table, and replace everything else with
+  three-line stubs at the paths the scenes already reference. A stub for a `Resource` must repeat the
+  same `@export` names, or its `.tres` loses every value on the next save.
+- **A parse check proves nothing.** The mistakes this framework makes possible — a `_ready` that runs
+  too early, a pawn drawing behind the level, a `.tres` that loaded without its script — all produce
+  a running game with clean output. Boot after every step and check the actual numbers.
+
+`skills/gfgd/references/migrating-from-csharp.md` has the long version, written from a real port.
+
 ## Gotchas — what the API does not tell you
 
 Signatures are introspectable (`ClassDB.class_get_method_list()`, or <kbd>F1</kbd>). These are the contracts that are not, and each one is a mistake that is easy to make.
@@ -336,8 +409,13 @@ Signatures are introspectable (`ClassDB.class_get_method_list()`, or <kbd>F1</kb
 - **A pooled node is reset by name, not by interface.** `NodePool` calls `_on_acquired()` and `_on_released()` if the node defines them, because a pooled node is a `RigidBody2D` one moment and an `Area2D` the next and there is no shared base to declare them on. A typo in either name is silent.
 - **`NodePool` frees everything when it leaves the tree.** Nodes waiting in the free list have no parent, so nobody else ever would. That also means a pool moved to another parent comes back empty.
 - **A message router listener does not have to be unregistered.** One whose object has been freed is dropped on the next broadcast. Delivery is synchronous and the payload is passed as `callback(channel, payload)` — two arguments, always, because a `MATCH_PARTIAL` listener cannot otherwise tell what it heard. It is local to one peer.
+- **Message router listeners on one channel run in reverse registration order — last registered, first called.** The router walks its listener list backwards so it can drop freed listeners while iterating. Never encode a dependency in registration order; if one listener needs what another produced, the producer should broadcast a second channel once the result exists.
 - **Possession makes the pawn camera current, where the player is sitting.** For a game filmed by a camera the level owns, set `Pawn.auto_manage_camera = false`, or the pawn quietly steals the view — and without a camera on the pawn you pay for a recursive search that finds nothing.
 - **The default save encryption key is in this repository.** `application/game_framework/save_encryption_key` defaults to it so existing saves keep working; changing it makes them unreadable, so change it before your first release rather than after.
+- **`ProjectStatics.load_game` returns null for four different reasons** — file missing, decryption failed, `_from_json` rejected it, wrong script — and only the first means "no save yet". Ask `get_last_load_result()` rather than inferring a first run from the null; `has_save_game(slot)` answers "is there a file" without reading it. After any failure but `LOAD_NOT_FOUND` the framework refuses `save_game` on that slot and returns `ERR_LOCKED`, so the classic "null means first run, save over it" no longer destroys a profile — it fails loudly on the write. `clear_load_failure(slot)` lifts the block once the player has chosen to start over.
+- **A `.tres` whose script extends a native GFGD type must name that type in its header** — `[gd_resource type="AttributeSet" script_class="MyAttributes" …]`, not `type="Resource"`. Godot refuses to attach a script whose base is a GDExtension class to a resource declared as something else; the file then loads with no script and every value at its default. The editor writes the right header itself, so this only bites a hand-written or hand-edited file.
+- **A level's children are ready before the game mode exists.** See *Startup ordering* above. Anything in the level scene that reaches for the game mode, a pawn or a controller from `_ready` gets null. Within a single scene, Godot's own rule that a child's `_ready` runs before its parent's has the same shape: a child reading an attribute its parent defines in `_ready` gets `0.0`, so read attributes at the point of use and pick a fallback that means "not configured" rather than one that means "do nothing".
+- **In 2D, a pawn draws behind the level.** `Pawns` is built before any level is loaded, so it sits earlier in root's child list, and root's 2D children draw in tree order — the level's background paints straight over the pawn, which is then invisible with nothing in the Output to explain it. Give the pawn scene root a `z_index` above what the level draws.
 - **The editor binary loads the `.editor` library even when running a game.** `godot --path <project>` from an editor build matches `windows.x86_64.single.debug.editor` in the manifest, not `template_debug`. Rebuilding only the template target and testing that way will appear to change nothing — a real template build needs an export.
 
 ## Layout
@@ -346,15 +424,39 @@ Signatures are introspectable (`ClassDB.class_get_method_list()`, or <kbd>F1</kb
 gfgdextension/
   README.md
   gfgd.gdextension     manifest; library paths are relative to this file
+  VERSION.txt          which build this is
   bin/
     windows/  linux/  macos/  android/
+  doc_classes/         per-class XML reference   (.gdignore)
+  src/                 the C++ sources           (.gdignore)
+  skills/              agent skills              (.gdignore)
 ```
+
+The last three ship as plain text and carry an empty `.gdignore`, so Godot never scans, imports or
+exports them. Godot does not export non-resource files by default, but it does scan them into the
+FileSystem dock; the marker makes both guarantees unconditional and costs nothing. It follows that
+they cannot be `load()`ed either — read them with ordinary file tools.
+
+**The markers live in those subfolders and never in the addon root.** A `.gdignore` at the top would
+hide `gfgd.gdextension` itself, and the extension would not load at all.
+
+`skills/` holds two agent skills: `gfgd` for working in a game built on the framework, and
+`gfgd-dev` for working on the framework itself. Copy the folder you want into your client's skills
+directory, e.g. `.claude/skills/`.
 
 Library filenames are keyed by platform, architecture, float precision and build target — see `[libraries]` in the manifest for what each slot expects. The editor build provides the tag pickers and the tag table editor; template builds carry runtime only.
 
 ## Building
 
-From the repository root, not from here. **One SCons invocation builds exactly one library**, for one `platform` x `arch` x `target`; both default to the host, so every other platform has to be named.
+From the repository root, not from here. The short way, which builds and then assembles this folder:
+
+```powershell
+./pack_addon.ps1 -Build windows,android
+```
+
+One platform there is one full set of targets. Add `-Destination <project>/addons/gfgdextension -InstallSkills` to land the result in a game in the same command, and drop `-Build` to repack without compiling anything.
+
+The long way: **one SCons invocation builds exactly one library**, for one `platform` x `arch` x `target`; both default to the host, so every other platform has to be named.
 
 | | `editor` | `template_debug` | `template_release` |
 |---|:---:|:---:|:---:|
@@ -362,7 +464,10 @@ From the repository root, not from here. **One SCons invocation builds exactly o
 | `DEBUG_ENABLED` | ✓ | ✓ | |
 | optimisation | `speed_trace` | `speed_trace` | `speed` |
 | class reference compiled in | ✓ | ✓ | |
+| debug symbols (CMake presets) | ✓ | | |
 | loaded by | the editor | an export with debug | a release export |
+
+`GODOTCPP_TARGET` and `CMAKE_BUILD_TYPE` are separate axes, and confusing them is expensive. The target decides `DEBUG_ENABLED`, `TOOLS_ENABLED` and optimisation; the build type decides only whether debug symbols are emitted. `template_debug` does **not** have to mean compiled with `-g` — under MinGW the DWARF lands inside the library rather than beside it, which is worth 60 MB on Windows and 30 MB per Android ABI. The presets build it as `Release`; only the editor target keeps its symbols. SCons emits none by default for any target, which is why a SCons build has always come out smaller than a CMake one.
 
 ```sh
 # a desktop platform wants all three

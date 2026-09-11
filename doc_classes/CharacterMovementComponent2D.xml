@@ -1,0 +1,388 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="CharacterMovementComponent2D" inherits="Node" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Walking, falling and jumping for a 2D pawn.
+	</brief_description>
+	<description>
+		The 3D component's twin, and deliberately a twin rather than a shared base: Godot keeps 2D and 3D in separate hierarchies all the way down, and GFGD already follows that with [PlayerStart2D] and [PlayerStart3D].
+		What [i]is[/i] shared is everything with no dimension in it. [MovementState], [MovementInput], [ProposedMove], [FloorResult] and [MovementMode] are the same classes as in 3D; a 2D state keeps its position in the x and y of a [Vector3] and leaves z alone. That way there is one set of types, one mode contract and one prediction story rather than two.
+		[b]Units are pixels[/b], and the defaults are Unreal's centimetre values unchanged - which is what the usual "a metre is a hundred pixels" convention makes them. The 3D component divides the same numbers by a hundred.
+		[b]Up is negative Y.[/b] Godot's 2D screen axis points down, so [member up_direction] defaults to [code](0, -1)[/code].
+		Not in the 2D component yet: crouching, swimming, flying, moving platforms, layered moves and transitions. Those are 3D only for now.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="adjust_floor_height_at" qualifiers="const">
+			<return type="Transform2D" />
+			<param index="0" name="from" type="Transform2D" />
+			<param index="1" name="floor" type="FloorResult" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.adjust_floor_height_at].
+			</description>
+		</method>
+		<method name="cancel_all_layered_moves">
+			<return type="void" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.cancel_all_layered_moves].
+			</description>
+		</method>
+		<method name="compute_velocity" qualifiers="const">
+			<return type="Vector2" />
+			<param index="0" name="velocity" type="Vector2" />
+			<param index="1" name="acceleration" type="Vector2" />
+			<param index="2" name="friction" type="float" />
+			<param index="3" name="braking_deceleration" type="float" />
+			<param index="4" name="max_speed" type="float" />
+			<param index="5" name="delta" type="float" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.compute_velocity].
+			</description>
+		</method>
+		<method name="crouch">
+			<return type="void" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.crouch].
+			</description>
+		</method>
+		<method name="find_floor_at" qualifiers="const">
+			<return type="FloorResult" />
+			<param index="0" name="from" type="Transform2D" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.find_floor_at].
+			</description>
+		</method>
+		<method name="find_mode" qualifiers="const">
+			<return type="MovementMode" />
+			<param index="0" name="mode_name" type="StringName" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.find_mode].
+			</description>
+		</method>
+		<method name="find_water_volume_at" qualifiers="const">
+			<return type="Object" />
+			<param index="0" name="point" type="Vector2" />
+			<description>
+				The [WaterVolume2D] covering [param point], or [code]null[/code]. The 2D equivalent of [method CharacterMovementComponent.find_water_volume_at].
+			</description>
+		</method>
+		<method name="get_active_layered_moves" qualifiers="const">
+			<return type="Array" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.get_active_layered_moves].
+			</description>
+		</method>
+		<method name="get_analog_max_speed" qualifiers="const">
+			<return type="float" />
+			<param index="0" name="move_input" type="Vector2" />
+			<param index="1" name="base_max_speed" type="float" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.get_analog_max_speed].
+			</description>
+		</method>
+		<method name="get_capsule_half_height" qualifiers="const">
+			<return type="float" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.get_capsule_half_height].
+			</description>
+		</method>
+		<method name="get_capsule_radius" qualifiers="const">
+			<return type="float" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.get_capsule_radius].
+			</description>
+		</method>
+		<method name="get_current_floor" qualifiers="const">
+			<return type="FloorResult" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.get_current_floor].
+			</description>
+		</method>
+		<method name="get_effective_max_walk_speed" qualifiers="const">
+			<return type="float" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.get_effective_max_walk_speed].
+			</description>
+		</method>
+		<method name="get_immersion_depth_at" qualifiers="const">
+			<return type="float" />
+			<param index="0" name="from" type="Transform2D" />
+			<description>
+				How much of the capsule the water is holding up at [param from], from [code]0.0[/code] (dry) to [code]1.0[/code] (head under). The 2D equivalent of [method CharacterMovementComponent.get_immersion_depth_at].
+			</description>
+		</method>
+		<method name="get_input" qualifiers="const">
+			<return type="MovementInput" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.get_input].
+			</description>
+		</method>
+		<method name="get_movement_mode" qualifiers="const">
+			<return type="StringName" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.get_movement_mode].
+			</description>
+		</method>
+		<method name="get_pawn" qualifiers="const">
+			<return type="Pawn" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.get_pawn].
+			</description>
+		</method>
+		<method name="get_sim_time_ms" qualifiers="const">
+			<return type="float" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.get_sim_time_ms].
+			</description>
+		</method>
+		<method name="get_state" qualifiers="const">
+			<return type="MovementState" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.get_state].
+			</description>
+		</method>
+		<method name="get_updated_body" qualifiers="const">
+			<return type="PhysicsBody2D" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.get_updated_body].
+			</description>
+		</method>
+		<method name="get_velocity" qualifiers="const">
+			<return type="Vector2" />
+			<description>
+				Current velocity in pixels per second.
+			</description>
+		</method>
+		<method name="is_crouching" qualifiers="const">
+			<return type="bool" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.is_crouching].
+			</description>
+		</method>
+		<method name="is_falling" qualifiers="const">
+			<return type="bool" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.is_falling].
+			</description>
+		</method>
+		<method name="is_on_ground" qualifiers="const">
+			<return type="bool" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.is_on_ground].
+			</description>
+		</method>
+		<method name="jump">
+			<return type="void" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.jump].
+			</description>
+		</method>
+		<method name="move_along_floor_from" qualifiers="const">
+			<return type="Dictionary" />
+			<param index="0" name="from" type="Transform2D" />
+			<param index="1" name="motion" type="Vector2" />
+			<param index="2" name="velocity" type="Vector2" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.move_along_floor_from].
+			</description>
+		</method>
+		<method name="queue_layered_move">
+			<return type="void" />
+			<param index="0" name="move" type="LayeredMove" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.queue_layered_move].
+			</description>
+		</method>
+		<method name="queue_next_mode">
+			<return type="void" />
+			<param index="0" name="mode_name" type="StringName" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.queue_next_mode].
+			</description>
+		</method>
+		<method name="save_base_location">
+			<return type="void" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.save_base_location].
+			</description>
+		</method>
+		<method name="set_movement_mode">
+			<return type="void" />
+			<param index="0" name="mode_name" type="StringName" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.set_movement_mode].
+			</description>
+		</method>
+		<method name="set_velocity">
+			<return type="void" />
+			<param index="0" name="value" type="Vector2" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.set_velocity].
+			</description>
+		</method>
+		<method name="simulate">
+			<return type="void" />
+			<param index="0" name="delta" type="float" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.simulate].
+			</description>
+		</method>
+		<method name="slide_move_from" qualifiers="const">
+			<return type="Dictionary" />
+			<param index="0" name="from" type="Transform2D" />
+			<param index="1" name="motion" type="Vector2" />
+			<param index="2" name="velocity" type="Vector2" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.slide_move_from].
+			</description>
+		</method>
+		<method name="stop_jumping">
+			<return type="void" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.stop_jumping].
+			</description>
+		</method>
+		<method name="sweep_from" qualifiers="const">
+			<return type="Dictionary" />
+			<param index="0" name="from" type="Transform2D" />
+			<param index="1" name="motion" type="Vector2" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.sweep_from].
+			</description>
+		</method>
+		<method name="un_crouch">
+			<return type="void" />
+			<description>
+				The 2D equivalent of [method CharacterMovementComponent.un_crouch].
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="air_control" type="float" setter="set_air_control" getter="get_air_control" default="0.05">
+			The 2D equivalent of [member CharacterMovementComponent.air_control].
+		</member>
+		<member name="braking_deceleration_falling" type="float" setter="set_braking_deceleration_falling" getter="get_braking_deceleration_falling" default="0.0">
+			The 2D equivalent of [member CharacterMovementComponent.braking_deceleration_falling].
+		</member>
+		<member name="braking_deceleration_flying" type="float" setter="set_braking_deceleration_flying" getter="get_braking_deceleration_flying" default="2048.0">
+			The 2D equivalent of [member CharacterMovementComponent.braking_deceleration_flying].
+		</member>
+		<member name="braking_deceleration_swimming" type="float" setter="set_braking_deceleration_swimming" getter="get_braking_deceleration_swimming" default="2048.0">
+			The 2D equivalent of [member CharacterMovementComponent.braking_deceleration_swimming].
+		</member>
+		<member name="braking_deceleration_walking" type="float" setter="set_braking_deceleration_walking" getter="get_braking_deceleration_walking" default="2048.0">
+			The 2D equivalent of [member CharacterMovementComponent.braking_deceleration_walking].
+		</member>
+		<member name="braking_friction_factor" type="float" setter="set_braking_friction_factor" getter="get_braking_friction_factor" default="2.0">
+			The 2D equivalent of [member CharacterMovementComponent.braking_friction_factor].
+		</member>
+		<member name="can_crouch" type="bool" setter="set_can_crouch" getter="get_can_crouch" default="true">
+			The 2D equivalent of [member CharacterMovementComponent.can_crouch].
+		</member>
+		<member name="crouched_half_height" type="float" setter="set_crouched_half_height" getter="get_crouched_half_height" default="16.0">
+			Half the capsule's height while crouching, in pixels. The 2D equivalent of [member CharacterMovementComponent.crouched_half_height].
+		</member>
+		<member name="falling_lateral_friction" type="float" setter="set_falling_lateral_friction" getter="get_falling_lateral_friction" default="0.0">
+			The 2D equivalent of [member CharacterMovementComponent.falling_lateral_friction].
+		</member>
+		<member name="floor_sweep_distance" type="float" setter="set_floor_sweep_distance" getter="get_floor_sweep_distance" default="40.0">
+			The 2D equivalent of [member CharacterMovementComponent.floor_sweep_distance].
+		</member>
+		<member name="gravity" type="float" setter="set_gravity" getter="get_gravity" default="980.0">
+			Downward acceleration along [member up_direction], in pixels per second squared. Defaults to 980, which is Godot's own 2D default.
+		</member>
+		<member name="gravity_scale" type="float" setter="set_gravity_scale" getter="get_gravity_scale" default="1.0">
+			The 2D equivalent of [member CharacterMovementComponent.gravity_scale].
+		</member>
+		<member name="ground_friction" type="float" setter="set_ground_friction" getter="get_ground_friction" default="8.0">
+			The 2D equivalent of [member CharacterMovementComponent.ground_friction].
+		</member>
+		<member name="impart_base_velocity" type="bool" setter="set_impart_base_velocity" getter="get_impart_base_velocity" default="true">
+			The 2D equivalent of [member CharacterMovementComponent.impart_base_velocity].
+		</member>
+		<member name="jump_velocity" type="float" setter="set_jump_velocity" getter="get_jump_velocity" default="420.0">
+			Upward speed applied on [method jump], in pixels per second.
+		</member>
+		<member name="max_acceleration" type="float" setter="set_max_acceleration" getter="get_max_acceleration" default="2048.0">
+			How hard the character accelerates towards [member max_walk_speed], in pixels per second squared.
+		</member>
+		<member name="max_fly_speed" type="float" setter="set_max_fly_speed" getter="get_max_fly_speed" default="600.0">
+			The speed flying accelerates towards, in pixels per second.
+		</member>
+		<member name="max_simulation_iterations" type="int" setter="set_max_simulation_iterations" getter="get_max_simulation_iterations" default="8">
+			The 2D equivalent of [member CharacterMovementComponent.max_simulation_iterations].
+		</member>
+		<member name="max_simulation_time_step" type="float" setter="set_max_simulation_time_step" getter="get_max_simulation_time_step" default="0.05">
+			The 2D equivalent of [member CharacterMovementComponent.max_simulation_time_step].
+		</member>
+		<member name="max_slides" type="int" setter="set_max_slides" getter="get_max_slides" default="4">
+			The 2D equivalent of [member CharacterMovementComponent.max_slides].
+		</member>
+		<member name="max_step_height" type="float" setter="set_max_step_height" getter="get_max_step_height" default="45.0">
+			The tallest obstacle that may be stepped onto rather than blocked by, in pixels. See [member CharacterMovementComponent.max_step_height] for how the climb is decided.
+		</member>
+		<member name="max_swim_speed" type="float" setter="set_max_swim_speed" getter="get_max_swim_speed" default="300.0">
+			The speed swimming accelerates towards, in pixels per second.
+		</member>
+		<member name="max_walk_speed" type="float" setter="set_max_walk_speed" getter="get_max_walk_speed" default="600.0">
+			The speed walking accelerates towards, in pixels per second.
+		</member>
+		<member name="max_walk_speed_crouched" type="float" setter="set_max_walk_speed_crouched" getter="get_max_walk_speed_crouched" default="300.0">
+			The speed walking accelerates towards while crouched, in pixels per second.
+		</member>
+		<member name="min_analog_walk_speed" type="float" setter="set_min_analog_walk_speed" getter="get_min_analog_walk_speed" default="0.0">
+			The 2D equivalent of [member CharacterMovementComponent.min_analog_walk_speed].
+		</member>
+		<member name="modes" type="Dictionary" setter="set_modes" getter="get_modes" default="{}">
+			The 2D equivalent of [member CharacterMovementComponent.modes].
+		</member>
+		<member name="move_with_base" type="bool" setter="set_move_with_base" getter="get_move_with_base" default="true">
+			Carries the character along with whatever it is standing on. There is no [code]rotate_with_base[/code] twin here: the 2D component writes only a position back to the body, so there is no character rotation for a platform to turn.
+		</member>
+		<member name="out_of_water_jump_velocity" type="float" setter="set_out_of_water_jump_velocity" getter="get_out_of_water_jump_velocity" default="420.0">
+			The push a jump gives while swimming, in pixels per second. Taking it hands over to [code]Falling[/code] in the same tick - see [member CharacterMovementComponent.out_of_water_jump_velocity] for why.
+		</member>
+		<member name="starting_mode" type="StringName" setter="set_starting_mode" getter="get_starting_mode" default="&amp;&quot;Walking&quot;">
+			The 2D equivalent of [member CharacterMovementComponent.starting_mode].
+		</member>
+		<member name="transitions" type="Array" setter="set_transitions" getter="get_transitions" default="[]">
+			The 2D equivalent of [member CharacterMovementComponent.transitions].
+		</member>
+		<member name="up_direction" type="Vector2" setter="set_up_direction" getter="get_up_direction" default="Vector2(0, -1)">
+			Which way is up. Defaults to [code](0, -1)[/code], because Godot's 2D screen axis points down - every sign in the solver depends on this being right and nothing else catches it.
+		</member>
+		<member name="updated_body_path" type="NodePath" setter="set_updated_body_path" getter="get_updated_body_path" default="NodePath(&quot;..&quot;)">
+			The 2D equivalent of [member CharacterMovementComponent.updated_body_path].
+		</member>
+		<member name="walkable_floor_angle" type="float" setter="set_walkable_floor_angle" getter="get_walkable_floor_angle" default="45.0">
+			The 2D equivalent of [member CharacterMovementComponent.walkable_floor_angle].
+		</member>
+	</members>
+	<signals>
+		<signal name="crouch_changed">
+			<param index="0" name="crouching" type="bool" />
+			<description>
+				The 2D equivalent of [signal CharacterMovementComponent.crouch_changed].
+			</description>
+		</signal>
+		<signal name="layered_move_finished">
+			<param index="0" name="move" type="LayeredMove" />
+			<description>
+				The 2D equivalent of [signal CharacterMovementComponent.layered_move_finished].
+			</description>
+		</signal>
+		<signal name="layered_move_started">
+			<param index="0" name="move" type="LayeredMove" />
+			<description>
+				The 2D equivalent of [signal CharacterMovementComponent.layered_move_started].
+			</description>
+		</signal>
+		<signal name="movement_mode_changed">
+			<param index="0" name="from" type="StringName" />
+			<param index="1" name="to" type="StringName" />
+			<description>
+				The 2D equivalent of [signal CharacterMovementComponent.movement_mode_changed].
+			</description>
+		</signal>
+	</signals>
+</class>

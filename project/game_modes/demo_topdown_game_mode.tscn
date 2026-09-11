@@ -1,0 +1,8 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/demo_2d_game_mode.gd" id="1_gmtd"]
+[ext_resource type="PackedScene" path="res://scenes/player_pawn_topdown.tscn" id="2_pawntd"]
+
+[node name="DemoTopDownGameMode" type="GameModeBase"]
+script = ExtResource("1_gmtd")
+default_pawn_scene = ExtResource("2_pawntd")

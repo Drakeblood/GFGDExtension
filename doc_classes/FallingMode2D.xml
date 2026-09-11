@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="FallingMode2D" inherits="MovementMode" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Falling, in two dimensions.
+	</brief_description>
+	<description>
+		The 2D twin of [FallingMode]: gravity along [member CharacterMovementComponent2D.up_direction], sideways steering under [member CharacterMovementComponent2D.air_control], and a landing that only counts while descending.
+	</description>
+	<tutorials>
+	</tutorials>
+</class>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="LinearVelocityLayeredMove" inherits="LayeredMove" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		A layered move that proposes a constant velocity.
+	</brief_description>
+	<description>
+		A dash, a knockback, a conveyor, a gust. The one concrete [LayeredMove] that ships, because it is the shape most of them are - anything else is a [Resource] subclass away, in C++ or in GDScript.
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="decay_over_duration" type="bool" setter="set_decay_over_duration" getter="get_decay_over_duration" default="false">
+			Fades the contribution to nothing across [member LayeredMove.duration], so a knockback eases off instead of stopping like a wall. Ignored when the duration is not positive, because there is nothing to fade across.
+		</member>
+		<member name="velocity" type="Vector3" setter="set_velocity" getter="get_velocity" default="Vector3(0, 0, 0)">
+			The velocity to propose, in metres per second.
+		</member>
+	</members>
+</class>

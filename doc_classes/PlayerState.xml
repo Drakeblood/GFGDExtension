@@ -14,31 +14,37 @@
 		<method name="_get_replicated_properties" qualifiers="virtual">
 			<return type="PackedStringArray" />
 			<description>
+				Override to add your own properties to what is kept in step across peers. Return their names; the framework attaches the synchronizer.
 			</description>
 		</method>
 		<method name="get_local_role" qualifiers="const">
 			<return type="int" />
 			<description>
+				What this peer may do with this player state - see [enum World.NetRole].
 			</description>
 		</method>
 		<method name="get_remote_role" qualifiers="const">
 			<return type="int" />
 			<description>
+				The mirror image of [method get_local_role]: what the other side may do.
 			</description>
 		</method>
 		<method name="get_world" qualifiers="const">
 			<return type="World" />
 			<description>
+				The world this player state belongs to.
 			</description>
 		</method>
 		<method name="has_authority" qualifiers="const">
 			<return type="bool" />
 			<description>
+				True on the server, and in a game with no peer at all.
 			</description>
 		</method>
 	</methods>
 	<members>
 		<member name="a_bot" type="bool" setter="set_a_bot" getter="is_a_bot" default="false">
+			Whether an [AIController] drives this player rather than a human.
 		</member>
 		<member name="local" type="bool" setter="set_local" getter="is_local" default="true">
 			Whether this player is at this machine. Always [code]true[/code] without networking.
@@ -47,6 +53,7 @@
 			Always [code]0[/code] without networking. The field exists so UI written today keeps working once replication fills it in.
 		</member>
 		<member name="player_id" type="int" setter="set_player_id" getter="get_player_id" default="0">
+			Handed out by the server and unique for the session, including for a second player sharing one machine. Controllers and pawns are named after it, so it is how the same player is found on every peer.
 		</member>
 		<member name="player_index" type="int" setter="set_player_index" getter="get_player_index" default="0">
 			Matches [member LocalPlayer.player_index] for a local player.
@@ -55,8 +62,10 @@
 			Defaults to [code]Player 1[/code], [code]Player 2[/code] and so on.
 		</member>
 		<member name="score" type="int" setter="set_score" getter="get_score" default="0">
+			A general-purpose replicated score. Emits [signal score_changed] when it moves.
 		</member>
 		<member name="spectator" type="bool" setter="set_spectator" getter="is_spectator" default="false">
+			Whether this player watches rather than plays. The framework does not act on it; a game mode decides what it means.
 		</member>
 		<member name="unique_id" type="int" setter="set_unique_id" getter="get_unique_id" default="1">
 			The multiplayer peer id once there is networking. [code]1[/code] is the server, which is also what a purely local game reports.
@@ -66,11 +75,13 @@
 		<signal name="player_name_changed">
 			<param index="0" name="player_name" type="String" />
 			<description>
+				The display name changed - on the peer that set it, and on every peer it replicated to.
 			</description>
 		</signal>
 		<signal name="score_changed">
 			<param index="0" name="score" type="int" />
 			<description>
+				The score changed.
 			</description>
 		</signal>
 	</signals>

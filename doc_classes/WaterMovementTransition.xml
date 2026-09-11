@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="WaterMovementTransition" inherits="MovementModeTransition" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Into the water and out again.
+	</brief_description>
+	<description>
+		Registered in [member CharacterMovementComponent.transitions] by default, so dropping a [WaterVolume] into a level is the whole of making a character swim. The cost is one point query per tick per character; a game with no water anywhere can clear that array to stop paying it.
+		Entering is decided at the character's middle and leaving at its feet, and the asymmetry is deliberate. Testing the same place in both directions makes a character treading water cross it twice a second - swimming, falling, swimming - because the middle of the capsule sits almost exactly on the waterline. Shallow water never traps anyone, because entering needs the middle submerged and wading was never swimming.
+		It is a transition rather than something the modes do themselves because neither walking nor swimming should have to know the other exists.
+	</description>
+	<tutorials>
+	</tutorials>
+</class>

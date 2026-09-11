@@ -1,4 +1,3 @@
-#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
     Configures and builds every GDExtension target for one platform.

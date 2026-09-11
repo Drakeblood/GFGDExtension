@@ -12,16 +12,19 @@
 		<method name="get_active_id" qualifiers="const">
 			<return type="int" />
 			<description>
+				The handle [method AbilitySystemComponent.apply_gameplay_effect_to_self] returned, and what [method AbilitySystemComponent.remove_active_gameplay_effect] takes.
 			</description>
 		</method>
 		<method name="get_effect" qualifiers="const">
 			<return type="GameplayEffect" />
 			<description>
+				The [GameplayEffect] this instance was applied from - the shared template, not a copy.
 			</description>
 		</method>
 		<method name="get_remaining_time" qualifiers="const">
 			<return type="float" />
 			<description>
+				Seconds left, for a [constant GameplayEffect.HAS_DURATION] effect. Meaningless for the other policies.
 			</description>
 		</method>
 	</methods>

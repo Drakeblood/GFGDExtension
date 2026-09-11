@@ -37,8 +37,16 @@ func _process(delta: float) -> void:
 		var local_role: int = pawn.get_local_role() if pawn != null else World.ROLE_NONE
 		var remote_role: int = pawn.get_remote_role() if pawn != null else World.ROLE_NONE
 		var owner_peer: int = pawn.get_owner_peer_id() if pawn != null else 0
-		lines.append("%s at %.1f,%.1f role=%d/%d owner=%d" % [
-			pawn_root.name, pawn_root.position.x, pawn_root.position.z, local_role, remote_role, owner_peer])
+
+		# The movement mode is worth printing: it is the difference between a pawn
+		# standing on the floor and one falling past it, which the coordinates
+		# alone do not tell you.
+		var movement: CharacterMovementComponent = pawn_root.get_node_or_null(^"CharacterMovementComponent")
+		var mode: String = str(movement.get_movement_mode()) if movement != null else "-"
+
+		lines.append("%s at %.1f,%.2f,%.1f %s role=%d/%d owner=%d" % [
+			pawn_root.name, pawn_root.position.x, pawn_root.position.y, pawn_root.position.z,
+			mode, local_role, remote_role, owner_peer])
 
 	print("GFGD demo: [net_mode %d] players=%d pawns: %s" % [
 		world.get_net_mode(), world.get_game_state().get_player_count(), ", ".join(lines)])

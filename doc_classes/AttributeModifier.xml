@@ -13,23 +13,30 @@
 			<return type="float" />
 			<param index="0" name="input_value" type="float" />
 			<description>
+				Applies this modifier to [param input_value] alone. [AbilitySystemComponent] combines every active modifier instead; this is for computing a preview.
 			</description>
 		</method>
 	</methods>
 	<members>
 		<member name="attribute" type="StringName" setter="set_attribute" getter="get_attribute" default="&amp;&quot;&quot;">
+			The attribute this modifier changes, by name.
 		</member>
 		<member name="magnitude" type="float" setter="set_magnitude" getter="get_magnitude" default="0.0">
+			The amount. What it means depends on [member operation]: an addend, a factor, or the value itself.
 		</member>
 		<member name="operation" type="int" setter="set_operation" getter="get_operation" enum="AttributeModifier.Operation" default="0">
+			How [member magnitude] is combined with the attribute's value.
 		</member>
 	</members>
 	<constants>
 		<constant name="ADD" value="0" enum="Operation">
+			Added to the running value. Every [constant ADD] on an attribute is summed.
 		</constant>
 		<constant name="MULTIPLY" value="1" enum="Operation">
+			Multiplied into the running value, after every [constant ADD] has been summed.
 		</constant>
 		<constant name="OVERRIDE" value="2" enum="Operation">
+			Replaces the value outright. A single [constant OVERRIDE] beats every [constant ADD] and [constant MULTIPLY] on that attribute.
 		</constant>
 	</constants>
 </class>

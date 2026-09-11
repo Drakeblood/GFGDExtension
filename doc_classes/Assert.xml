@@ -15,6 +15,7 @@
 			<param index="1" name="actual" type="Variant" />
 			<param index="2" name="message" type="String" />
 			<description>
+				Fails unless [param actual] equals [param expected]. Both values are printed in the failure text, so a bare [param message] is usually enough context.
 			</description>
 		</method>
 		<method name="are_not_equal" qualifiers="static">
@@ -23,6 +24,7 @@
 			<param index="1" name="actual" type="Variant" />
 			<param index="2" name="message" type="String" />
 			<description>
+				Fails if [param actual] equals [param expected].
 			</description>
 		</method>
 		<method name="is_false" qualifiers="static">
@@ -30,6 +32,7 @@
 			<param index="0" name="condition" type="bool" />
 			<param index="1" name="message" type="String" />
 			<description>
+				Fails with [param message] unless [param condition] is false.
 			</description>
 		</method>
 		<method name="is_not_null" qualifiers="static">
@@ -37,6 +40,7 @@
 			<param index="0" name="value" type="Variant" />
 			<param index="1" name="message" type="String" />
 			<description>
+				Fails if [param value] is null.
 			</description>
 		</method>
 		<method name="is_null" qualifiers="static">
@@ -44,6 +48,7 @@
 			<param index="0" name="value" type="Variant" />
 			<param index="1" name="message" type="String" />
 			<description>
+				Fails unless [param value] is null.
 			</description>
 		</method>
 		<method name="is_true" qualifiers="static">
@@ -51,6 +56,7 @@
 			<param index="0" name="condition" type="bool" />
 			<param index="1" name="message" type="String" />
 			<description>
+				Fails with [param message] unless [param condition] is true. Failure is reported through the engine's error macros, so it prints with a stack trace in a debug build and does not stop the game.
 			</description>
 		</method>
 	</methods>

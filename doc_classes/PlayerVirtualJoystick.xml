@@ -46,10 +46,13 @@
 			The action pressed with a strength proportional to how far the stick is pushed down. Same for the other three axes. Leave one empty to ignore that direction.
 		</member>
 		<member name="action_left" type="StringName" setter="set_action_left" getter="get_action_left" default="&amp;&quot;&quot;">
+			The action pressed as the stick moves left, with a strength that follows how far it is pushed.
 		</member>
 		<member name="action_right" type="StringName" setter="set_action_right" getter="get_action_right" default="&amp;&quot;&quot;">
+			The action pressed as the stick moves right.
 		</member>
 		<member name="action_up" type="StringName" setter="set_action_up" getter="get_action_up" default="&amp;&quot;&quot;">
+			The action pressed as the stick moves up.
 		</member>
 		<member name="deadzone" type="float" setter="set_deadzone" getter="get_deadzone" default="0.12">
 			How far the stick must move, as a fraction of [member max_distance], before it reports anything at all.

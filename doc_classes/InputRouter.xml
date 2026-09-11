@@ -14,6 +14,7 @@
 		<method name="get_world" qualifiers="const">
 			<return type="World" />
 			<description>
+				The world this router belongs to.
 			</description>
 		</method>
 	</methods>

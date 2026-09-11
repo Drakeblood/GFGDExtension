@@ -1,0 +1,30 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/demo_pawn_topdown.gd" id="1_pawntd"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_pawntd"]
+radius = 16.0
+height = 32.0
+
+[node name="PlayerPawnTopDown" type="CharacterBody2D"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CapsuleShape2D_pawntd")
+
+[node name="Visual" type="Polygon2D" parent="."]
+color = Color(0.8, 0.55, 0.3, 1)
+polygon = PackedVector2Array(16, 0, 5, 11, -13, 16, -8, 0, -13, -16, 5, -11)
+
+[node name="Pawn" type="Pawn" parent="."]
+camera_path = NodePath("../Camera")
+script = ExtResource("1_pawntd")
+
+[node name="CharacterMovementComponent2D" type="CharacterMovementComponent2D" parent="."]
+starting_mode = &"Flying"
+gravity = 0.0
+can_crouch = false
+
+[node name="Camera" type="Camera2D" parent="."]
+zoom = Vector2(0.9, 0.9)
+position_smoothing_enabled = true
+position_smoothing_speed = 8.0

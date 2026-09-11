@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="WaterMovementTransition2D" inherits="MovementModeTransition" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Into the water and out again, in two dimensions.
+	</brief_description>
+	<description>
+		The 2D twin of [WaterMovementTransition]. [CharacterMovementComponent2D] registers one by default, so dropping a [WaterVolume2D] into a level is the whole of making a character swim. The cost is one point query per tick per character; a game with no water anywhere can clear [member CharacterMovementComponent2D.transitions] to stop paying it.
+		Entering is decided at the character's middle and leaving at its feet, and the asymmetry is deliberate: testing the same place in both directions makes a character treading water cross the line twice a second.
+	</description>
+	<tutorials>
+	</tutorials>
+</class>

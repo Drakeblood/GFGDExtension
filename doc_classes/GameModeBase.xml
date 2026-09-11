@@ -15,127 +15,149 @@
 			<return type="bool" />
 			<param index="0" name="device_slot" type="int" />
 			<description>
+				Override to refuse a press-to-join from [param device_slot]. This is where [i]two pads only, ignore the keyboard[/i] belongs: compare against [constant PlayerInput.DEVICE_SLOT_KEYBOARD_MOUSE].
 			</description>
 		</method>
 		<method name="_choose_player_start" qualifiers="virtual">
 			<return type="Node" />
 			<param index="0" name="controller" type="Controller" />
 			<description>
+				Override to pick where a player appears. Return a start node, or null to fall back to the default search.
 			</description>
 		</method>
 		<method name="_get_pawn_scene_for" qualifiers="virtual">
 			<return type="PackedScene" />
 			<param index="0" name="controller" type="Controller" />
 			<description>
+				Override to choose a pawn per controller - a class selection, a vehicle. [b]Return a scene, not a spawned node[/b]: naming a scene is what lets every peer build the same pawn.
 			</description>
 		</method>
 		<method name="_init_game" qualifiers="virtual">
 			<return type="bool" />
 			<param index="0" name="world" type="World" />
 			<description>
+				Override to prepare the level before anyone is spawned. [b]Return [code]true[/code] to suppress the player spawn entirely[/b] - that is how a menu level runs with no player at all rather than with an empty one. Return [code]false[/code] and the framework logs the local players in and possesses their pawns on its own. Prepare here, play in [code]_ready[/code].
 			</description>
 		</method>
 		<method name="_init_game_state" qualifiers="virtual">
 			<return type="void" />
 			<description>
+				Override for setup that runs after the game state exists and before any player is logged in.
 			</description>
 		</method>
 		<method name="_on_logout" qualifiers="virtual">
 			<return type="void" />
 			<param index="0" name="player_controller" type="PlayerController" />
 			<description>
+				Override to react to a player leaving, before their nodes are freed.
 			</description>
 		</method>
 		<method name="_on_post_login" qualifiers="virtual">
 			<return type="void" />
 			<param index="0" name="player_controller" type="PlayerController" />
 			<description>
+				Override to react to a player arriving, with their controller, player state and pawn already built.
 			</description>
 		</method>
 		<method name="_pre_login" qualifiers="virtual">
 			<return type="String" />
 			<param index="0" name="peer_id" type="int" />
 			<description>
+				Override to vet a connecting peer. Return an error message to refuse it - the reason reaches the client through [signal login_refused] - or an empty string to let it in.
 			</description>
 		</method>
 		<method name="choose_player_start">
 			<return type="Node" />
 			<param index="0" name="controller" type="Controller" />
 			<description>
+				Picks an unclaimed start for [param controller], asking [method _choose_player_start] first. [b]Starts are claimed once each per level[/b]: with more players than starts the framework warns and reuses them, and it cannot test whether a start is physically occupied.
 			</description>
 		</method>
 		<method name="find_player_start" qualifiers="const">
 			<return type="Node" />
 			<param index="0" name="player_start_tag" type="StringName" />
 			<description>
+				The first start whose [member PlayerStart2D.player_start_tag] matches, or null.
 			</description>
 		</method>
 		<method name="get_num_players" qualifiers="const">
 			<return type="int" />
 			<description>
+				How many players are in the match.
 			</description>
 		</method>
 		<method name="get_pawn_scene_for">
 			<return type="PackedScene" />
 			<param index="0" name="controller" type="Controller" />
 			<description>
+				The pawn scene for [param controller], asking [method _get_pawn_scene_for] first and falling back to [method get_pawn_scene_for_player].
 			</description>
 		</method>
 		<method name="get_pawn_scene_for_player" qualifiers="const">
 			<return type="PackedScene" />
 			<param index="0" name="player_index" type="int" />
 			<description>
+				The pawn scene for local player [param player_index]: its [member pawn_scene_overrides] entry, or [member default_pawn_scene].
 			</description>
 		</method>
 		<method name="get_player_controller_at" qualifiers="const">
 			<return type="PlayerController" />
 			<param index="0" name="index" type="int" />
 			<description>
+				The controller at [param index], or null.
 			</description>
 		</method>
 		<method name="get_player_controllers" qualifiers="const">
 			<return type="Array" />
 			<description>
+				Every player controller the server holds.
 			</description>
 		</method>
 		<method name="get_world" qualifiers="const">
 			<return type="World" />
 			<description>
+				The world this game mode belongs to.
 			</description>
 		</method>
 		<method name="login_local_player">
 			<return type="PlayerController" />
 			<param index="0" name="local_player" type="LocalPlayer" />
 			<description>
+				Creates the controller, the player state and a pawn for one human at this machine, and returns the controller.
 			</description>
 		</method>
 		<method name="login_peer">
 			<return type="PlayerController" />
 			<param index="0" name="peer_id" type="int" />
 			<description>
+				The same as [method login_local_player], for a player at another machine - called once that machine has reported the level up, never before.
 			</description>
 		</method>
 		<method name="logout">
 			<return type="void" />
 			<param index="0" name="player_controller" type="PlayerController" />
 			<description>
+				Removes a player: their pawn, their controller and their player state.
 			</description>
 		</method>
 		<method name="logout_peer">
 			<return type="void" />
 			<param index="0" name="peer_id" type="int" />
 			<description>
+				Logs out every player on connection [param peer_id].
 			</description>
 		</method>
 		<method name="restart_all_players">
 			<return type="void" />
 			<description>
+				Logs in every local player that has no controller yet, up to [member max_local_players].
 			</description>
 		</method>
 		<method name="restart_player">
 			<return type="void" />
 			<param index="0" name="controller" type="Controller" />
 			<description>
+				Spawns a fresh pawn at a chosen start and possesses it - a respawn.
 			</description>
 		</method>
 		<method name="restart_player_at">
@@ -143,41 +165,53 @@
 			<param index="0" name="controller" type="Controller" />
 			<param index="1" name="start_spot" type="Node" />
 			<description>
+				As [method restart_player], but at [param start_spot] rather than a chosen one.
 			</description>
 		</method>
 		<method name="spawn_default_player">
 			<return type="PlayerController" />
 			<description>
+				Ensures local player 0 exists, logs it in and returns its controller. This is what runs by default when [method _init_game] returns [code]false[/code].
 			</description>
 		</method>
 		<method name="start_play">
 			<return type="void" />
 			<description>
+				Marks the match as begun and lets every peer know, through [signal GameStateBase.begun_play].
 			</description>
 		</method>
 		<method name="try_join">
 			<return type="bool" />
 			<param index="0" name="device_slot" type="int" />
 			<description>
+				Offers [param device_slot] to press-to-join. The [InputRouter] calls this when a device nobody owns is pressed; a player already in the game but holding no device claims it first, which is what makes the same path double as picking a pad back up after a disconnect. Returns whether anyone took it.
 			</description>
 		</method>
 	</methods>
 	<members>
 		<member name="allow_press_to_join" type="bool" setter="set_allow_press_to_join" getter="get_allow_press_to_join" default="false">
+			When true, a button on a device no player owns logs a new local player in, up to [member max_local_players]. Gate it further with [method _can_join].
 		</member>
 		<member name="default_pawn_scene" type="PackedScene" setter="set_default_pawn_scene" getter="get_default_pawn_scene">
+			The pawn every player gets, unless [member pawn_scene_overrides] or [method _get_pawn_scene_for] says otherwise. It has to be its own file: [b]a scene built inline cannot be named to another machine[/b], so a client would have nothing to build.
 		</member>
 		<member name="game_state_scene" type="PackedScene" setter="set_game_state_scene" getter="get_game_state_scene">
+			The scene built as this level's [GameStateBase]. Its root must be one. Read on clients too, so both sides build the same thing.
 		</member>
 		<member name="max_local_players" type="int" setter="set_max_local_players" getter="get_max_local_players" default="1">
+			How many humans may share this machine. Leaving it at 1 keeps player 0 accepting every device, exactly as the global input singleton always did. [b]Raising it without narrowing player 0 off [constant PlayerInput.DEVICE_SLOT_ALL] leaves nothing for anyone else[/b] - the framework warns about that combination.
 		</member>
 		<member name="max_players" type="int" setter="set_max_players" getter="get_max_players" default="8">
+			How many players the session accepts, counting everyone on every machine.
 		</member>
 		<member name="pawn_scene_overrides" type="PackedScene[]" setter="set_pawn_scene_overrides" getter="get_pawn_scene_overrides" default="[]">
+			Per-local-player pawn scenes, indexed by local player index. Falls back to [member default_pawn_scene] when the array is short or the entry is null.
 		</member>
 		<member name="player_controller_scene" type="PackedScene" setter="set_player_controller_scene" getter="get_player_controller_scene">
+			The scene built for each player's [PlayerController]. Its root must be one.
 		</member>
 		<member name="player_state_scene" type="PackedScene" setter="set_player_state_scene" getter="get_player_state_scene">
+			The scene built for each player's [PlayerState]. Its root must be one.
 		</member>
 	</members>
 	<signals>
@@ -185,26 +219,31 @@
 			<param index="0" name="peer_id" type="int" />
 			<param index="1" name="reason" type="String" />
 			<description>
+				A connecting peer was turned away, with the reason [method _pre_login] gave.
 			</description>
 		</signal>
 		<signal name="play_started">
 			<description>
+				The match began - [method start_play] ran.
 			</description>
 		</signal>
 		<signal name="player_logged_in">
 			<param index="0" name="player_controller" type="Object" />
 			<description>
+				A player joined and their controller exists.
 			</description>
 		</signal>
 		<signal name="player_logged_out">
 			<param index="0" name="player_controller" type="Object" />
 			<description>
+				A player left.
 			</description>
 		</signal>
 		<signal name="player_restarted">
 			<param index="0" name="player_controller" type="Object" />
 			<param index="1" name="pawn" type="Object" />
 			<description>
+				A player got a fresh pawn.
 			</description>
 		</signal>
 	</signals>

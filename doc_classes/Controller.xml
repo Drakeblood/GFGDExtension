@@ -15,89 +15,106 @@
 			<return type="void" />
 			<param index="0" name="pawn" type="Node" />
 			<description>
+				Override to react to taking a pawn. The argument is always the possessed [Pawn]; it is typed as [Node] because a virtual's argument types have to be complete.
 			</description>
 		</method>
 		<method name="_on_unpossess" qualifiers="virtual">
 			<return type="void" />
 			<description>
+				Override to react to letting a pawn go.
 			</description>
 		</method>
 		<method name="get_local_role" qualifiers="const">
 			<return type="int" />
 			<description>
+				What this peer may do with this controller - see [enum World.NetRole].
 			</description>
 		</method>
 		<method name="get_owner_peer_id" qualifiers="const">
 			<return type="int" />
 			<description>
+				Which connection this controller answers to. A remote call arriving from anyone else is dropped. Everything driven by the server answers to the server.
 			</description>
 		</method>
 		<method name="get_pawn" qualifiers="const">
 			<return type="Pawn" />
 			<description>
+				The [Pawn] node currently possessed, or null.
 			</description>
 		</method>
 		<method name="get_pawn_root" qualifiers="const">
 			<return type="Node" />
 			<description>
+				The node the pawn scene is rooted at - the [RigidBody2D] or [CharacterBody3D] a game actually moves around, rather than the [Pawn] marker inside it. This is what gameplay code usually wants.
 			</description>
 		</method>
 		<method name="get_player_id" qualifiers="const">
 			<return type="int" />
 			<description>
+				The server-assigned id this controller and its pawn are named after, and how the same player is found on every peer.
 			</description>
 		</method>
 		<method name="get_player_state" qualifiers="const">
 			<return type="PlayerState" />
 			<description>
+				This player's replicated data. It lives under the [GameStateBase], not here: a controller exists only on the server and on its own client, while a player state has to be visible everywhere.
 			</description>
 		</method>
 		<method name="get_remote_role" qualifiers="const">
 			<return type="int" />
 			<description>
+				The mirror image of [method get_local_role].
 			</description>
 		</method>
 		<method name="get_world" qualifiers="const">
 			<return type="World" />
 			<description>
+				The world this controller belongs to. Null when the project does not use [World] as its main loop.
 			</description>
 		</method>
 		<method name="has_authority" qualifiers="const">
 			<return type="bool" />
 			<description>
+				True on the server, and in a game with no peer at all - which is what lets a rule written for a server also be correct offline.
 			</description>
 		</method>
 		<method name="is_local_controller" qualifiers="const">
 			<return type="bool" />
 			<description>
+				True where this controller's decisions are actually made - on the server for an [AIController], on the owning client for a player.
 			</description>
 		</method>
 		<method name="is_player_controller" qualifiers="const">
 			<return type="bool" />
 			<description>
+				False here, true on a [PlayerController]. It is what tells a bot's pawn from a human's without reaching for a cast.
 			</description>
 		</method>
 		<method name="possess">
 			<return type="void" />
 			<param index="0" name="pawn" type="Pawn" />
 			<description>
+				Takes control of [param pawn]: sets the pawn's controller, calls [method Pawn._possessed] and [method _on_possess], and on a [PlayerController] builds the [InputComponent] and calls [method Pawn._setup_input_component]. Possessing while already possessing something releases the old pawn first.
 			</description>
 		</method>
 		<method name="set_player_id">
 			<return type="void" />
 			<param index="0" name="value" type="int" />
 			<description>
+				Sets the id. Handed out by the server on login; a project does not assign it.
 			</description>
 		</method>
 		<method name="set_player_state">
 			<return type="void" />
 			<param index="0" name="value" type="PlayerState" />
 			<description>
+				Points this controller at its player state. The framework does this on login.
 			</description>
 		</method>
 		<method name="unpossess">
 			<return type="void" />
 			<description>
+				Lets the current pawn go. The pawn stays in the world; only the will behind it is gone.
 			</description>
 		</method>
 	</methods>
@@ -105,11 +122,13 @@
 		<signal name="pawn_changed">
 			<param index="0" name="pawn" type="Object" />
 			<description>
+				The possessed pawn changed, including to null on unpossession.
 			</description>
 		</signal>
 		<signal name="player_state_changed">
 			<param index="0" name="player_state" type="Object" />
 			<description>
+				This controller was pointed at a different player state.
 			</description>
 		</signal>
 	</signals>

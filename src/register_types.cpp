@@ -43,6 +43,24 @@
 #include "ability_system/gameplay_ability.h"
 #include "ability_system/gameplay_effect.h"
 #include "ability_system/active_gameplay_effect.h"
+#include "movement/movement_types.h"
+#include "movement/movement_mode.h"
+#include "movement/movement_backend.h"
+#include "movement/modes/walking_mode.h"
+#include "movement/modes/falling_mode.h"
+#include "movement/modes/flying_mode.h"
+#include "movement/movement_mode_transition.h"
+#include "movement/water_movement_transition.h"
+#include "movement/water_volume.h"
+#include "movement/modes/swimming_mode.h"
+#include "movement/modes/swimming_mode_2d.h"
+#include "movement/water_movement_transition_2d.h"
+#include "movement/water_volume_2d.h"
+#include "movement/layered_move.h"
+#include "movement/root_motion_layered_move.h"
+#include "movement/character_movement_component.h"
+#include "movement/modes/walking_mode_2d.h"
+#include "movement/character_movement_component_2d.h"
 
 #ifdef TOOLS_ENABLED
 #include "editor/gameplay_tag_editor_property.h"
@@ -151,6 +169,39 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level)
 	GDREGISTER_CLASS(ActiveGameplayEffect);
 	GDREGISTER_CLASS(GameplayAbility);
 	GDREGISTER_CLASS(AbilitySystemComponent);
+
+	// Movement. The types come first because everything below hands them around,
+	// and the modes before the component, which instantiates them by default.
+	GDREGISTER_CLASS(MovementInput);
+	GDREGISTER_CLASS(MovementState);
+	GDREGISTER_CLASS(ProposedMove);
+	GDREGISTER_CLASS(FloorResult);
+	GDREGISTER_CLASS(MovementTickParams);
+	GDREGISTER_ABSTRACT_CLASS(MovementBackend);
+	GDREGISTER_CLASS(StandaloneMovementBackend);
+	GDREGISTER_CLASS(MovementMode);
+	GDREGISTER_CLASS(NullMovementMode);
+	GDREGISTER_CLASS(WalkingMode);
+	GDREGISTER_CLASS(FallingMode);
+	GDREGISTER_CLASS(FlyingMode);
+	GDREGISTER_CLASS(MovementModeTransition);
+	GDREGISTER_CLASS(WaterMovementTransition);
+	GDREGISTER_CLASS(WaterVolume);
+	GDREGISTER_CLASS(SwimmingMode);
+	GDREGISTER_CLASS(LayeredMove);
+	GDREGISTER_CLASS(LinearVelocityLayeredMove);
+	GDREGISTER_CLASS(RootMotionLayeredMove);
+	GDREGISTER_CLASS(CharacterMovementComponent);
+
+	// The 2D twin. Shares the state, input, proposal and mode types with 3D;
+	// only the solver and the component differ.
+	GDREGISTER_CLASS(WalkingMode2D);
+	GDREGISTER_CLASS(FallingMode2D);
+	GDREGISTER_CLASS(FlyingMode2D);
+	GDREGISTER_CLASS(SwimmingMode2D);
+	GDREGISTER_CLASS(WaterMovementTransition2D);
+	GDREGISTER_CLASS(WaterVolume2D);
+	GDREGISTER_CLASS(CharacterMovementComponent2D);
 }
 
 void uninitialize_gdextension_types(ModuleInitializationLevel p_level) {

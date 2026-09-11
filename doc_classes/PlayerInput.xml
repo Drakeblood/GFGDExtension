@@ -31,12 +31,14 @@
 			<return type="void" />
 			<param index="0" name="action_name" type="StringName" />
 			<description>
+				Releases [param action_name] for this player. The counterpart to [method action_press]; use these rather than the global [method Input.action_press], which a player narrowed to specific devices never sees.
 			</description>
 		</method>
 		<method name="add_device_slot">
 			<return type="void" />
 			<param index="0" name="device_slot" type="int" />
 			<description>
+				Adds a device to the set this player accepts. State is kept per contributing device, so letting go of the pad does not clear an action the keyboard is still holding.
 			</description>
 		</method>
 		<method name="device_slot_from_event" qualifiers="static">
@@ -65,6 +67,7 @@
 			<return type="float" />
 			<param index="0" name="action_name" type="StringName" />
 			<description>
+				The action's analogue value for this player, between 0 and 1.
 			</description>
 		</method>
 		<method name="get_axis" qualifiers="const">
@@ -72,6 +75,7 @@
 			<param index="0" name="negative_action" type="StringName" />
 			<param index="1" name="positive_action" type="StringName" />
 			<description>
+				The difference between two actions' strengths for this player, as [method Input.get_axis] would give it.
 			</description>
 		</method>
 		<method name="get_vector" qualifiers="const">
@@ -89,6 +93,7 @@
 			<return type="bool" />
 			<param index="0" name="device_slot" type="int" />
 			<description>
+				Whether [param device_slot] is in this player's set. Unlike [method accepts_device_slot], holding [constant DEVICE_SLOT_ALL] does not make this true for every slot.
 			</description>
 		</method>
 		<method name="is_action_just_pressed" qualifiers="const">
@@ -102,17 +107,20 @@
 			<return type="bool" />
 			<param index="0" name="action_name" type="StringName" />
 			<description>
+				Whether this player released [param action_name] this frame.
 			</description>
 		</method>
 		<method name="is_action_pressed" qualifiers="const">
 			<return type="bool" />
 			<param index="0" name="action_name" type="StringName" />
 			<description>
+				Whether this player is holding [param action_name].
 			</description>
 		</method>
 		<method name="is_passthrough" qualifiers="const">
 			<return type="bool" />
 			<description>
+				True while this player holds [constant DEVICE_SLOT_ALL], in which case every query is forwarded straight to the global [Input] singleton - identical behaviour to a project that never heard of local multiplayer, down to synthetic [method Input.action_press]. [b]Once the player is narrowed to specific devices this turns false, and [method Input.action_press] no longer reaches them[/b] - use [method action_press] on the player you mean.
 			</description>
 		</method>
 		<method name="refresh_action_cache">

@@ -9,34 +9,54 @@
 	<tutorials>
 	</tutorials>
 	<methods>
+		<method name="clear_load_failure" qualifiers="static">
+			<return type="void" />
+			<param index="0" name="slot_name" type="String" />
+			<description>
+				Discards the protection [method is_slot_write_blocked] describes, so the next [method save_game] overwrites the slot.
+				Call it when the player has been told their save is unreadable and has chosen to start again - not to make an error message go away.
+			</description>
+		</method>
 		<method name="get_first_player_controller" qualifiers="static">
 			<return type="PlayerController" />
 			<param index="0" name="world" type="World" />
 			<description>
+				Shorthand for [method World.get_first_player_controller] - player one in a local game, and the only controller a client holds.
 			</description>
 		</method>
 		<method name="get_game_instance" qualifiers="static">
 			<return type="GameInstance" />
 			<param index="0" name="world" type="World" />
 			<description>
+				Shorthand for [method World.get_game_instance].
 			</description>
 		</method>
 		<method name="get_game_mode" qualifiers="static">
 			<return type="GameModeBase" />
 			<param index="0" name="world" type="World" />
 			<description>
+				Shorthand for [method World.get_game_mode]. Null on a client, where no game mode exists.
 			</description>
 		</method>
 		<method name="get_game_state" qualifiers="static">
 			<return type="GameStateBase" />
 			<param index="0" name="world" type="World" />
 			<description>
+				Shorthand for [method World.get_game_state]. Unlike the game mode, this exists on every peer.
+			</description>
+		</method>
+		<method name="get_last_load_result" qualifiers="static">
+			<return type="int" enum="ProjectStatics.LoadResult" />
+			<description>
+				Why the most recent [method load_game] call returned what it did, whichever slot it was for. [constant LOAD_OK] until the first call.
+				Use it immediately after loading, in the same way [method FileAccess.get_open_error] is used - anything else that loads a slot in between replaces it.
 			</description>
 		</method>
 		<method name="get_level" qualifiers="static">
 			<return type="Level" />
 			<param index="0" name="world" type="World" />
 			<description>
+				Shorthand for [method World.get_level].
 			</description>
 		</method>
 		<method name="get_local_player" qualifiers="static">
@@ -44,12 +64,14 @@
 			<param index="0" name="world" type="World" />
 			<param index="1" name="index" type="int" />
 			<description>
+				Shorthand for [method World.get_local_player] - the humans at this machine, by index.
 			</description>
 		</method>
 		<method name="get_local_player_count" qualifiers="static">
 			<return type="int" />
 			<param index="0" name="world" type="World" />
 			<description>
+				Shorthand for [method World.get_local_player_count].
 			</description>
 		</method>
 		<method name="get_player_controller" qualifiers="static">
@@ -57,12 +79,36 @@
 			<param index="0" name="world" type="World" />
 			<param index="1" name="index" type="int" />
 			<description>
+				Shorthand for [method World.get_player_controller_at].
 			</description>
 		</method>
 		<method name="get_player_controller_count" qualifiers="static">
 			<return type="int" />
 			<param index="0" name="world" type="World" />
 			<description>
+				Shorthand for [method World.get_player_controller_count].
+			</description>
+		</method>
+		<method name="get_slot_load_result" qualifiers="static">
+			<return type="int" enum="ProjectStatics.LoadResult" />
+			<param index="0" name="slot_name" type="String" />
+			<description>
+				The result this slot last produced, remembered per slot for the life of the process. [constant LOAD_OK] for a slot never read.
+			</description>
+		</method>
+		<method name="has_save_game" qualifiers="static">
+			<return type="bool" />
+			<param index="0" name="slot_name" type="String" />
+			<description>
+				Whether the slot file exists, without reading or decrypting it. This is the question [method load_game] returning [code]null[/code] cannot answer on its own.
+			</description>
+		</method>
+		<method name="is_slot_write_blocked" qualifiers="static">
+			<return type="bool" />
+			<param index="0" name="slot_name" type="String" />
+			<description>
+				True while [method save_game] will refuse this slot: it was read this session and failed with something other than [constant LOAD_NOT_FOUND], which means a file is there that nobody could parse.
+				Show the player that their save could not be read, rather than silently starting them over.
 			</description>
 		</method>
 		<method name="load_game" qualifiers="static">
@@ -71,7 +117,9 @@
 			<param index="1" name="encrypt" type="bool" default="true" />
 			<param index="2" name="save_game_script" type="Script" default="null" />
 			<description>
-				Reads back what [method save_game] wrote. Returns [code]null[/code] when the slot does not exist, cannot be decrypted, or does not name a script the project still has - never an error, so a corrupt or outdated save starts a fresh profile instead of failing to boot.
+				Reads back what [method save_game] wrote. Never raises an error, so a bad save cannot stop the game from booting.
+				[b]It returns [code]null[/code] for four different reasons, and [method get_last_load_result] is how you tell them apart[/b] - see [enum LoadResult]. Only [constant LOAD_NOT_FOUND] means "no save yet"; the other three mean a file is sitting there that the player would lose if the game started over and saved on top of it.
+				After any failure other than [constant LOAD_NOT_FOUND] the slot is marked, and [method save_game] refuses to write to it until [method clear_load_failure] is called. So the naive shape - load, and if that gave nothing start fresh and save - no longer destroys the file; it fails loudly on the write instead.
 				[param encrypt] must match what the file was written with.
 			</description>
 		</method>
@@ -80,17 +128,36 @@
 			<param index="0" name="world" type="World" />
 			<param index="1" name="resource_path" type="String" />
 			<description>
+				Shorthand for [method World.open_level].
 			</description>
 		</method>
 		<method name="save_game" qualifiers="static">
-			<return type="void" />
+			<return type="int" enum="Error" />
 			<param index="0" name="slot_name" type="String" />
 			<param index="1" name="data" type="SaveGame" />
 			<param index="2" name="encrypt" type="bool" default="true" />
 			<description>
 				Serializes [param data] to [code]user://saves/&lt;slot_name&gt;.sav[/code]. When [param encrypt] is true the file is written with the key in [code]application/game_framework/save_encryption_key[/code].
+				[b]Returns [constant @GlobalScope.ERR_LOCKED] without writing when [method is_slot_write_blocked] is true[/b] - the slot was read this session and could not be parsed, so the file that is there is kept rather than replaced with a fresh profile. [method clear_load_failure] lifts that deliberately. Other failures return the error that caused them; [constant @GlobalScope.OK] means the file was written.
 				[b]That setting defaults to a key that ships with this extension source[/b], so a released game should replace it. The default is kept as it is because changing it makes existing save files unreadable; the framework warns once per run while it is still in use.
 			</description>
 		</method>
 	</methods>
+	<constants>
+		<constant name="LOAD_OK" value="0" enum="LoadResult">
+			The slot was read and deserialized. This is also the value for a slot that has never been read.
+		</constant>
+		<constant name="LOAD_NOT_FOUND" value="1" enum="LoadResult">
+			There is no file for this slot. [b]The only result that means "first run"[/b] - starting from defaults is correct, and saving is not blocked.
+		</constant>
+		<constant name="LOAD_UNREADABLE" value="2" enum="LoadResult">
+			The file exists and could not be opened or decrypted. Most often [code]application/game_framework/save_encryption_key[/code] changed since it was written; the data itself may be perfectly good.
+		</constant>
+		<constant name="LOAD_INVALID_DATA" value="3" enum="LoadResult">
+			The file was read but its contents were rejected - either the JSON did not parse, or [method SaveGame.from_json] returned an error, which includes a game's own version migration refusing it.
+		</constant>
+		<constant name="LOAD_BAD_SCRIPT" value="4" enum="LoadResult">
+			[code]save_game_script[/code] does not extend [SaveGame]. The caller is wrong; the file was never touched.
+		</constant>
+	</constants>
 </class>

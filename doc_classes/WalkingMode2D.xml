@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="WalkingMode2D" inherits="MovementMode" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Walking, in two dimensions.
+	</brief_description>
+	<description>
+		The 2D twin of [WalkingMode]: velocity kept flat against the floor, steps climbed rather than slid along, and a lost floor handing over to [FallingMode2D].
+	</description>
+	<tutorials>
+	</tutorials>
+</class>

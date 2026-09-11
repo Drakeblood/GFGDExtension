@@ -10,6 +10,8 @@ extends GameModeBase
 ## level's rules in the game mode, which is what the game mode is for.
 
 const TEST_LEVEL := "res://levels/test_level.tscn"
+const TEST_LEVEL_2D := "res://levels/test_level_2d.tscn"
+const TEST_LEVEL_TOPDOWN := "res://levels/test_level_topdown.tscn"
 const COOP_LEVEL := "res://levels/coop_level.tscn"
 const ONLINE_LEVEL := "res://levels/online_level.tscn"
 
@@ -26,6 +28,8 @@ func _init_game(world: World) -> bool:
 	_status = buttons.get_node("Status")
 
 	buttons.get_node("NewGameButton").pressed.connect(_on_new_game_pressed)
+	buttons.get_node("Playground2DButton").pressed.connect(_on_playground_2d_pressed)
+	buttons.get_node("TopDownButton").pressed.connect(_on_topdown_pressed)
 	buttons.get_node("CoopButton").pressed.connect(_on_coop_pressed)
 	buttons.get_node("HostButton").pressed.connect(_on_host_pressed)
 	buttons.get_node("JoinButton").pressed.connect(_on_join_pressed)
@@ -42,6 +46,16 @@ func _on_new_game_pressed() -> void:
 	# open_level frees this level and this game mode with it, and creates the
 	# TestLevel game mode before TestLevel starts.
 	get_world().open_level(TEST_LEVEL)
+
+
+func _on_playground_2d_pressed() -> void:
+	print("GFGD demo: -- 2D Playground pressed, opening %s" % TEST_LEVEL_2D)
+	get_world().open_level(TEST_LEVEL_2D)
+
+
+func _on_topdown_pressed() -> void:
+	print("GFGD demo: -- Top-Down Playground pressed, opening %s" % TEST_LEVEL_TOPDOWN)
+	get_world().open_level(TEST_LEVEL_TOPDOWN)
 
 
 func _on_coop_pressed() -> void:

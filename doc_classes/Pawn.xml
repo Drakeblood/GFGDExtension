@@ -11,26 +11,38 @@
 	<tutorials>
 	</tutorials>
 	<methods>
+		<method name="_gather_movement_input" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="delta" type="float" />
+			<description>
+				Called on the physics tick, immediately before the movement input is taken out. This is where [method add_movement_input] belongs.
+				Reading input from [method Node._process] instead is not wrong, but it accumulates once per rendered frame while movement consumes once per physics frame, so the vector's length depends on how many frames happened to fit - which is what the clamp in [CharacterMovementComponent] exists to survive. Gathering here is exactly once per tick, so an analog stick keeps its magnitude and the clamp never has to do anything.
+			</description>
+		</method>
 		<method name="_get_replicated_properties" qualifiers="virtual">
 			<return type="PackedStringArray" />
 			<description>
+				Override to add your own properties to what is kept in step across peers. Return their names; the framework attaches the synchronizer, so a project places no [MultiplayerSynchronizer] of its own.
 			</description>
 		</method>
 		<method name="_possessed" qualifiers="virtual">
 			<return type="void" />
 			<param index="0" name="controller" type="Controller" />
 			<description>
+				Override to react to being taken over - enabling behaviour, showing a nameplate.
 			</description>
 		</method>
 		<method name="_setup_input_component" qualifiers="virtual">
 			<return type="void" />
 			<param index="0" name="input_component" type="InputComponent" />
 			<description>
+				Override to bind this pawn's input actions. [b]Called on possession, not from [code]_ready[/code][/b] - binding earlier is the single most common way for input to silently do nothing.
 			</description>
 		</method>
 		<method name="_unpossessed" qualifiers="virtual">
 			<return type="void" />
 			<description>
+				Override to react to being let go.
 			</description>
 		</method>
 		<method name="add_movement_input">
@@ -38,105 +50,135 @@
 			<param index="0" name="world_direction" type="Vector3" />
 			<param index="1" name="scale" type="float" default="1.0" />
 			<description>
+				Accumulates a direction to move in this frame, scaled by [param scale]. It does not move anything: the pawn's own code takes the total out with [method consume_movement_input_vector] and applies it however it likes, which keeps [i]what the player asked for[/i] separate from [i]how it moves[/i]. In 2D, pack the axes into the [Vector3] and read back the ones you need.
 			</description>
 		</method>
 		<method name="consume_movement_input_vector">
 			<return type="Vector3" />
 			<description>
+				Reads the accumulated direction and clears it. Call it once per frame, where the movement is applied.
+			</description>
+		</method>
+		<method name="gather_movement_input">
+			<return type="void" />
+			<param index="0" name="delta" type="float" />
+			<description>
+				Calls [method _gather_movement_input]. Invoked by [CharacterMovementComponent] once per simulated step; a game has no reason to call it.
 			</description>
 		</method>
 		<method name="get_controller" qualifiers="const">
 			<return type="Controller" />
 			<description>
+				The controller currently driving this pawn, or null.
 			</description>
 		</method>
 		<method name="get_local_role" qualifiers="const">
 			<return type="int" />
 			<description>
+				What this peer may do with this pawn - see [enum World.NetRole]. Note that [b]authority is not ownership[/b]: the server has authority over every pawn, including one a client owns.
 			</description>
 		</method>
 		<method name="get_owner_peer_id" qualifiers="const">
 			<return type="int" />
 			<description>
+				The connection this pawn answers to, through its controller.
 			</description>
 		</method>
 		<method name="get_pawn_root" qualifiers="const">
 			<return type="Node" />
 			<description>
+				The node this [Pawn] makes possessable - its parent. That is the [RigidBody2D], [CharacterBody3D] or whatever else the scene is built around, and it is what gameplay code almost always wants rather than the [Pawn] node itself.
 			</description>
 		</method>
 		<method name="get_pending_movement_input_vector" qualifiers="const">
 			<return type="Vector3" />
 			<description>
+				Reads the accumulated direction without clearing it.
 			</description>
 		</method>
 		<method name="get_player_state" qualifiers="const">
 			<return type="PlayerState" />
 			<description>
+				The replicated data for the player driving this pawn, or null when nobody is.
 			</description>
 		</method>
 		<method name="get_remote_role" qualifiers="const">
 			<return type="int" />
 			<description>
+				The mirror image of [method get_local_role].
 			</description>
 		</method>
 		<method name="get_world" qualifiers="const">
 			<return type="World" />
 			<description>
+				The world this pawn belongs to.
 			</description>
 		</method>
 		<method name="has_authority" qualifiers="const">
 			<return type="bool" />
 			<description>
+				True on the server, and in a game with no peer at all. Guard movement with it: the server decides where a pawn is, and elsewhere it is only shown.
 			</description>
 		</method>
 		<method name="is_bot_controlled" qualifiers="const">
 			<return type="bool" />
 			<description>
+				Whether an [AIController] drives this pawn.
 			</description>
 		</method>
 		<method name="is_locally_controlled" qualifiers="const">
 			<return type="bool" />
 			<description>
+				True where the human driving this pawn is sitting - [b]the only place that may read input for it[/b].
 			</description>
 		</method>
 		<method name="is_player_controlled" qualifiers="const">
 			<return type="bool" />
 			<description>
+				Whether a [PlayerController] drives this pawn rather than an [AIController].
 			</description>
 		</method>
 		<method name="setup_input_component">
 			<return type="void" />
 			<param index="0" name="input_component" type="InputComponent" />
 			<description>
+				Runs the input-binding hook. The [PlayerController] calls this on possession; override [method _setup_input_component] instead of calling it.
 			</description>
 		</method>
 	</methods>
 	<members>
 		<member name="auto_manage_camera" type="bool" setter="set_auto_manage_camera" getter="get_auto_manage_camera" default="true">
+			Whether possession makes the pawn's camera current, where the player is sitting. [b]Turn it off for a game filmed by a camera the level owns[/b] - otherwise the pawn quietly steals the view, and without a camera on the pawn you pay for a recursive search that finds nothing and warns.
 		</member>
 		<member name="auto_possess_player" type="int" setter="set_auto_possess_player" getter="get_auto_possess_player" default="-1">
+			The local player that takes this pawn over as soon as it is in the tree. [constant AUTO_POSSESS_DISABLED] means nothing happens on its own, which is what a pawn the game mode spawns wants.
 		</member>
 		<member name="camera_path" type="NodePath" setter="set_camera_path" getter="get_camera_path" default="NodePath(&quot;&quot;)">
+			The camera to make current on possession. Empty means search the pawn recursively for one.
 		</member>
 		<member name="player_id" type="int" setter="set_player_id" getter="get_player_id">
+			Set when the framework spawns the pawn, and part of its node name, so the same pawn is addressed the same way on every peer.
 		</member>
 		<member name="replicate_transform" type="bool" setter="set_replicate_transform" getter="get_replicate_transform" default="true">
+			Mirrors the root's position and rotation from the server. Turn it off for a pawn whose movement is driven some other way.
 		</member>
 	</members>
 	<signals>
 		<signal name="possessed">
 			<param index="0" name="controller" type="Object" />
 			<description>
+				A controller took this pawn.
 			</description>
 		</signal>
 		<signal name="unpossessed">
 			<description>
+				The controller let this pawn go.
 			</description>
 		</signal>
 	</signals>
 	<constants>
 		<constant name="AUTO_POSSESS_DISABLED" value="-1">
+			Nothing possesses this pawn on its own. The default, and what a pawn spawned by the game mode wants.
 		</constant>
 	</constants>
 </class>

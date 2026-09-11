@@ -14,17 +14,20 @@
 			<return type="bool" />
 			<param index="0" name="tag_to_check" type="GameplayTag" />
 			<description>
+				Hierarchical match: [code]A.B.C[/code] matches [code]A.B[/code] and [code]A.B.C[/code], but not [code]A.B.C.D[/code]. This is the one to use for gameplay questions - asking for [code]Status.Debuff[/code] should find [code]Status.Debuff.Burning[/code].
 			</description>
 		</method>
 		<method name="matches_tag_exact" qualifiers="const">
 			<return type="bool" />
 			<param index="0" name="tag_to_check" type="GameplayTag" />
 			<description>
+				Name equality, with no hierarchy.
 			</description>
 		</method>
 	</methods>
 	<members>
 		<member name="tag_name" type="StringName" setter="set_tag_name" getter="get_tag_name" default="&amp;&quot;&quot;">
+			The dot-separated name, and the tag's whole identity - two tags with the same name are the same tag. Author tags in a [GameplayTagTable] rather than setting this by hand.
 		</member>
 	</members>
 </class>

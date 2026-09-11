@@ -1,0 +1,415 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="CharacterMovementComponent" inherits="Node" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Walking, falling and jumping for a pawn.
+	</brief_description>
+	<description>
+		Attach as a child of the node being moved, beside the [Pawn] - the same shape [AbilitySystemComponent] has. The body itself may be any [PhysicsBody3D]; nothing here calls [method CharacterBody3D.move_and_slide], so a [CharacterBody3D] is a sensible default rather than a requirement.
+		Property names follow Unreal's CharacterMovementComponent, but the values are metric: Godot works in metres where Unreal works in centimetres, so [member max_walk_speed] defaults to 6.0 rather than 600.
+		How a character moves is decided by the [MovementMode] named in [method get_movement_mode], looked up in [member modes]. [WalkingMode] and [FallingMode] are registered automatically unless the project put its own mode under those names, and hand over to each other as the ground appears and disappears.
+		None of the simulation is stored on this node. It lives in a [MovementState], a tick is (state, input, delta) to state, and the body's transform is written exactly once at the end - which is what would let the same tick be replayed against a corrected state, the thing client prediction is.
+		The component simulates only where the pawn has authority. On a client, movement still arrives through the transform replication the [Pawn] sets up.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="adjust_floor_height_at" qualifiers="const">
+			<return type="Transform3D" />
+			<param index="0" name="from" type="Transform3D" />
+			<param index="1" name="floor" type="FloorResult" />
+			<description>
+				Snaps a transform into the narrow band the solver keeps a standing character in. A band rather than a single distance, so the correction does not fight itself every tick.
+			</description>
+		</method>
+		<method name="cancel_all_layered_moves">
+			<return type="void" />
+			<description>
+				Drops every active and queued move at once, applying each one's finish velocity as it goes.
+			</description>
+		</method>
+		<method name="compute_velocity" qualifiers="const">
+			<return type="Vector3" />
+			<param index="0" name="velocity" type="Vector3" />
+			<param index="1" name="acceleration" type="Vector3" />
+			<param index="2" name="friction" type="float" />
+			<param index="3" name="braking_deceleration" type="float" />
+			<param index="4" name="max_speed" type="float" />
+			<param index="5" name="delta" type="float" />
+			<description>
+				The acceleration, friction and braking model the built-in modes use. Friction steers, braking stops, and they are deliberately not the same number.
+			</description>
+		</method>
+		<method name="crouch">
+			<return type="void" />
+			<description>
+				Asks to crouch on the next tick.
+			</description>
+		</method>
+		<method name="find_floor_at" qualifiers="const">
+			<return type="FloorResult" />
+			<param index="0" name="from" type="Transform3D" />
+			<description>
+				Is there ground under this transform, and may it be stood on. Returns a fresh [FloorResult] each call, so a script may keep it.
+			</description>
+		</method>
+		<method name="find_mode" qualifiers="const">
+			<return type="MovementMode" />
+			<param index="0" name="mode_name" type="StringName" />
+			<description>
+				The [MovementMode] registered under this name, or [code]null[/code].
+			</description>
+		</method>
+		<method name="find_water_volume_at" qualifiers="const">
+			<return type="Object" />
+			<param index="0" name="point" type="Vector3" />
+			<description>
+				The [WaterVolume] at a point, or [code]null[/code].
+				Asked of the physics server rather than tracked through [Area3D] signals, so it answers for the transform being simulated rather than for wherever the body last happened to be. Signals would be state accumulated outside the simulation, and a replayed tick would see whatever the last enter or exit left behind.
+			</description>
+		</method>
+		<method name="get_active_layered_moves" qualifiers="const">
+			<return type="Array" />
+			<description>
+				The moves currently contributing, in priority order, lowest first.
+			</description>
+		</method>
+		<method name="get_analog_max_speed" qualifiers="const">
+			<return type="float" />
+			<param index="0" name="move_input" type="Vector3" />
+			<param index="1" name="base_max_speed" type="float" />
+			<description>
+				The speed cap for an input of this length: a stick pushed half way walks at half speed, not at full speed reached more slowly.
+				Scaling only the acceleration - which is what falls out of using the input vector as an acceleration and nothing else - would let every input eventually reach the same top speed, so a gentle push would be a slow start rather than a walk. Unreal calls the same factor AnalogInputModifier. An input of zero leaves the cap alone, because it is still what the braking below it is measured against.
+			</description>
+		</method>
+		<method name="get_capsule_half_height" qualifiers="const">
+			<return type="float" />
+			<description>
+				Half the height read off the body's [CapsuleShape3D], or a default when it has none.
+			</description>
+		</method>
+		<method name="get_capsule_radius" qualifiers="const">
+			<return type="float" />
+			<description>
+				The radius read off the body's [CapsuleShape3D], or a default when it has none.
+			</description>
+		</method>
+		<method name="get_current_floor" qualifiers="const">
+			<return type="FloorResult" />
+			<description>
+				The last floor query result. Rebuilt every tick a mode looks for ground, and cleared when the body is moved from outside the simulation.
+			</description>
+		</method>
+		<method name="get_effective_max_walk_speed" qualifiers="const">
+			<return type="float" />
+			<description>
+				The walking cap in force, which is [member max_walk_speed_crouched] while crouching.
+			</description>
+		</method>
+		<method name="get_immersion_depth_at" qualifiers="const">
+			<return type="float" />
+			<param index="0" name="from" type="Transform3D" />
+			<description>
+				How much of the character the water is holding up: 0 out of it, 1 under the surface, and a figure in between at the waterline.
+				It is what scales buoyancy and what damps a rise near the surface, so the value in between matters - a three-valued answer makes both of those step, and a character holding [i]swim up[/i] porpoises instead of settling. Sampled up the capsule, with early outs for the two common cases.
+			</description>
+		</method>
+		<method name="get_input" qualifiers="const">
+			<return type="MovementInput" />
+			<description>
+				The [MovementInput] gathered for the current tick.
+			</description>
+		</method>
+		<method name="get_pawn" qualifiers="const">
+			<return type="Pawn" />
+			<description>
+				The [Pawn] beside this component, or [code]null[/code] when there is none - in which case the component moves whatever it is attached to and reads no input.
+			</description>
+		</method>
+		<method name="get_sim_time_ms" qualifiers="const">
+			<return type="float" />
+			<description>
+				The backend's simulation clock, which is what a [LayeredMove] measures its duration against.
+			</description>
+		</method>
+		<method name="get_state" qualifiers="const">
+			<return type="MovementState" />
+			<description>
+				The live [MovementState]. Writing to it changes where the character is on the next tick.
+			</description>
+		</method>
+		<method name="get_updated_body" qualifiers="const">
+			<return type="PhysicsBody3D" />
+			<description>
+				The [PhysicsBody3D] this component moves.
+			</description>
+		</method>
+		<method name="get_velocity" qualifiers="const">
+			<return type="Vector3" />
+			<description>
+				Current velocity in metres per second. While walking this is flat against the floor plane, so climbing a ramp at full speed still reports [member max_walk_speed].
+			</description>
+		</method>
+		<method name="is_crouching" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Whether the character is crouched right now.
+			</description>
+		</method>
+		<method name="is_falling" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Whether the character is in the falling mode.
+			</description>
+		</method>
+		<method name="is_on_ground" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Whether the character is in the walking mode.
+			</description>
+		</method>
+		<method name="jump">
+			<return type="void" />
+			<description>
+				Asks for a jump on the next tick. Latched rather than acted on immediately, because input is polled on the render frame and the simulation runs on the physics one - a jump pressed and released between two physics ticks would otherwise be swallowed.
+			</description>
+		</method>
+		<method name="move_along_floor_from" qualifiers="const">
+			<return type="Dictionary" />
+			<param index="0" name="from" type="Transform3D" />
+			<param index="1" name="motion" type="Vector3" />
+			<param index="2" name="velocity" type="Vector3" />
+			<description>
+				The ground move: slides, and climbs anything short enough to step over before giving up and sliding. Same return shape as [method slide_move_from]. This is what [WalkingMode] uses.
+			</description>
+		</method>
+		<method name="queue_layered_move">
+			<return type="void" />
+			<param index="0" name="move" type="LayeredMove" />
+			<description>
+				Lays motion over whatever mode is running - a dash, a knockback, a gust. Starts on the next simulated tick.
+			</description>
+		</method>
+		<method name="queue_next_mode">
+			<return type="void" />
+			<param index="0" name="mode_name" type="StringName" />
+			<description>
+				Asks for a mode change, taken up at the next mode resolution inside the tick and never in the middle of one. A mode swapped underneath a half-finished move would leave the state describing a position the body is not in.
+			</description>
+		</method>
+		<method name="save_base_location">
+			<return type="void" />
+			<description>
+				Records what the character ended the tick standing on. Called once per simulated frame after the modes have run; a game has no reason to call it itself.
+			</description>
+		</method>
+		<method name="set_velocity">
+			<return type="void" />
+			<param index="0" name="value" type="Vector3" />
+			<description>
+				Sets velocity directly. Use it to launch or stop a character; a mode may overwrite it on the next tick.
+			</description>
+		</method>
+		<method name="simulate">
+			<return type="void" />
+			<param index="0" name="delta" type="float" />
+			<description>
+				Runs one simulation step. Called by the backend, which is what decides how many of them a frame gets - one while the server simulates, several when a client replays inputs after a correction.
+			</description>
+		</method>
+		<method name="slide_move_from" qualifiers="const">
+			<return type="Dictionary" />
+			<param index="0" name="from" type="Transform3D" />
+			<param index="1" name="motion" type="Vector3" />
+			<param index="2" name="velocity" type="Vector3" />
+			<description>
+				Collide and slide from an arbitrary transform. Returns [code]transform[/code], [code]velocity[/code], [code]hit_wall[/code], [code]hit_walkable[/code], [code]walkable_normal[/code] and [code]stepped_up[/code]. This is what [FallingMode] uses.
+			</description>
+		</method>
+		<method name="stop_jumping">
+			<return type="void" />
+			<description>
+				Clears a jump asked for but not yet taken.
+			</description>
+		</method>
+		<method name="sweep_from" qualifiers="const">
+			<return type="Dictionary" />
+			<param index="0" name="from" type="Transform3D" />
+			<param index="1" name="motion" type="Vector3" />
+			<description>
+				One shape cast from an arbitrary transform, for a [MovementMode] written in GDScript. Returns [code]transform[/code], [code]collided[/code], [code]remaining[/code], [code]normal[/code], [code]point[/code], [code]collider[/code] and [code]collider_velocity[/code].
+				Takes the transform to work from rather than reading the body, which is the rule the whole solver follows: a tick has to be replayable.
+			</description>
+		</method>
+		<method name="un_crouch">
+			<return type="void" />
+			<description>
+				Asks to stand on the next tick. A request rather than an order: a character under a low ceiling stays down and tries again until there is room.
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="air_control" type="float" setter="set_air_control" getter="get_air_control" default="0.05">
+			How much of [member max_acceleration] applies while falling, from 0 for no steering to 1 for full ground control.
+		</member>
+		<member name="braking_deceleration_falling" type="float" setter="set_braking_deceleration_falling" getter="get_braking_deceleration_falling" default="0.0">
+			How hard sideways movement slows while falling with no input.
+		</member>
+		<member name="braking_deceleration_flying" type="float" setter="set_braking_deceleration_flying" getter="get_braking_deceleration_flying" default="20.48">
+			How hard a flying character slows when there is no input, in metres per second squared.
+		</member>
+		<member name="braking_deceleration_swimming" type="float" setter="set_braking_deceleration_swimming" getter="get_braking_deceleration_swimming" default="20.48">
+			How hard a swimming character slows when there is no input, in metres per second squared.
+		</member>
+		<member name="braking_deceleration_walking" type="float" setter="set_braking_deceleration_walking" getter="get_braking_deceleration_walking" default="20.48">
+			How hard the character slows when there is no input, in metres per second squared.
+		</member>
+		<member name="braking_friction" type="float" setter="set_braking_friction" getter="get_braking_friction" default="8.0">
+			The friction used while braking, when [member use_separate_braking_friction] is on.
+		</member>
+		<member name="braking_friction_factor" type="float" setter="set_braking_friction_factor" getter="get_braking_friction_factor" default="2.0">
+			Multiplies the friction used while braking. Raising it shortens the slide after the player lets go without making the character harder to steer.
+		</member>
+		<member name="can_crouch" type="bool" setter="set_can_crouch" getter="get_can_crouch" default="true">
+			Whether this character crouches at all. Unreal defaults its equivalent off; this defaults on, because a crouch request that silently does nothing is a worse first experience than a character that crouches when asked.
+			Switching it on makes the component take ownership of the body's [CapsuleShape3D] - a shape authored once and shared between every pawn of a kind would otherwise crouch all of them at once.
+		</member>
+		<member name="can_walk_off_ledges" type="bool" setter="set_can_walk_off_ledges" getter="get_can_walk_off_ledges" default="true">
+			When false the character stops at a ledge instead of stepping off it. Unreal works out how far along the blocked move it could still have gone; this gives the whole move back, which is blunter but keeps the promise the flag makes - the character never walks off on its own.
+		</member>
+		<member name="crouched_half_height" type="float" setter="set_crouched_half_height" getter="get_crouched_half_height" default="0.5">
+			Half the capsule's height while crouching, in metres. The body is shifted down by the difference as it shrinks, so the feet stay where they were rather than the centre.
+		</member>
+		<member name="falling_lateral_friction" type="float" setter="set_falling_lateral_friction" getter="get_falling_lateral_friction" default="0.0">
+			Friction applied to sideways movement while in the air. Zero, the default, means a jump keeps its horizontal speed.
+		</member>
+		<member name="floor_sweep_distance" type="float" setter="set_floor_sweep_distance" getter="get_floor_sweep_distance" default="0.4">
+			How far below the capsule to look for ground, in metres. Too small and a character walking down a slope leaves it every tick; too large and it is pulled down onto ground it should have fallen past.
+		</member>
+		<member name="gravity" type="float" setter="set_gravity" getter="get_gravity" default="9.8">
+			Downward acceleration along [member up_direction], in metres per second squared. Multiplied by [member gravity_scale].
+		</member>
+		<member name="gravity_scale" type="float" setter="set_gravity_scale" getter="get_gravity_scale" default="1.0">
+			Multiplier on [member gravity] for this character. Lower it for a floaty jump without changing the world.
+		</member>
+		<member name="ground_friction" type="float" setter="set_ground_friction" getter="get_ground_friction" default="8.0">
+			How quickly a character can change direction while still being pushed. This is steering, not stopping - stopping is [member braking_deceleration_walking]. Turning sharply at speed is what this number controls.
+		</member>
+		<member name="impart_base_velocity" type="bool" setter="set_impart_base_velocity" getter="get_impart_base_velocity" default="true">
+			Hands the platform's own velocity to the character when it leaves, so a jump from a moving lift keeps the lift's momentum instead of dropping straight down.
+			Only bodies Godot tracks the motion of report a velocity to take: an [AnimatableBody3D] does, a [StaticBody3D] pushed around by a script does not.
+		</member>
+		<member name="jump_velocity" type="float" setter="set_jump_velocity" getter="get_jump_velocity" default="4.2">
+			Upward speed applied on [method jump], in metres per second. Jump height is roughly this squared over twice [member gravity].
+		</member>
+		<member name="max_acceleration" type="float" setter="set_max_acceleration" getter="get_max_acceleration" default="20.48">
+			How hard the character accelerates towards [member max_walk_speed], in metres per second squared.
+		</member>
+		<member name="max_fly_speed" type="float" setter="set_max_fly_speed" getter="get_max_fly_speed" default="6.0">
+			The speed [FlyingMode] accelerates towards, in metres per second.
+		</member>
+		<member name="max_simulation_iterations" type="int" setter="set_max_simulation_iterations" getter="get_max_simulation_iterations" default="8">
+			How many steps one frame may be split into. Running out drops the rest of the frame, which is the lesser wrong.
+		</member>
+		<member name="max_simulation_time_step" type="float" setter="set_max_simulation_time_step" getter="get_max_simulation_time_step" default="0.05">
+			The longest step the simulation will take, in seconds. A frame longer than this is split, so a hitch cannot walk a character through a wall.
+		</member>
+		<member name="max_slides" type="int" setter="set_max_slides" getter="get_max_slides" default="4">
+			How many surfaces one move may slide along before it gives up. Bounds the work in a corner.
+		</member>
+		<member name="max_step_height" type="float" setter="set_max_step_height" getter="get_max_step_height" default="0.45">
+			The tallest obstacle that may be stepped onto rather than blocked by, in metres. A ground move that is blocked by something too steep to walk on tries to climb it first: up by this much, forward, then back down, keeping the result only if it lands somewhere that could have been walked to. The step down is what makes it honest - without it a character climbs anything by teleporting to the top of it.
+		</member>
+		<member name="max_swim_speed" type="float" setter="set_max_swim_speed" getter="get_max_swim_speed" default="3.0">
+			The speed [SwimmingMode] accelerates towards, in metres per second.
+		</member>
+		<member name="max_walk_speed" type="float" setter="set_max_walk_speed" getter="get_max_walk_speed" default="6.0">
+			The speed walking accelerates towards, in metres per second. Also the cap on lateral speed while falling.
+		</member>
+		<member name="max_walk_speed_crouched" type="float" setter="set_max_walk_speed_crouched" getter="get_max_walk_speed_crouched" default="3.0">
+			The walking cap while crouched, in metres per second.
+		</member>
+		<member name="min_analog_walk_speed" type="float" setter="set_min_analog_walk_speed" getter="get_min_analog_walk_speed" default="0.0">
+			The floor a partly pushed stick is allowed to fall to. Zero means a stick pushed a tenth of the way walks at a tenth of the speed.
+		</member>
+		<member name="modes" type="Dictionary" setter="set_modes" getter="get_modes" default="{}">
+			Movement mode name to [MovementMode], authored inline. Names left unset are filled with the built-in [WalkingMode], [FallingMode] and [NullMovementMode], so a mode set up here is never quietly replaced.
+		</member>
+		<member name="move_with_base" type="bool" setter="set_move_with_base" getter="get_move_with_base" default="true">
+			Carries the character along with whatever it is standing on. What is applied each tick is how much the base [i]moved[/i], not a rebuilt position from a stored offset - the difference matters, because rebuilding throws away the corrections the solver made during the tick and the two then fight each other a little more every frame.
+		</member>
+		<member name="movement_mode" type="StringName" setter="set_movement_mode" getter="get_movement_mode">
+			The mode running right now. Not something you author - the knob for that is [member starting_mode], and during simulation modes hand over to each other. It is declared as a property so that it can be replicated; on a client it is written by the server and is the reason a pawn you do not own can be told apart walking from falling, which is what animation needs to know.
+		</member>
+		<member name="orient_rotation_to_movement" type="bool" setter="set_orient_rotation_to_movement" getter="get_orient_rotation_to_movement" default="false">
+			When true, the character turns to face the direction it is moving, at [member rotation_rate_deg].
+		</member>
+		<member name="out_of_water_jump_velocity" type="float" setter="set_out_of_water_jump_velocity" getter="get_out_of_water_jump_velocity" default="4.2">
+			The push a jump gives while swimming, in metres per second. What gets a character out of a pool rather than bobbing against the lip of it.
+			Taking it hands over to [code]Falling[/code] in the same tick rather than staying to swim upward, because the swim speed cap and the surface damping would both brake the impulse away over the next few ticks. Unreal applies its [code]OutofWaterZ[/code] from [code]PhysicsVolumeChanged[/code] for exactly this reason.
+		</member>
+		<member name="perch_additional_height" type="float" setter="set_perch_additional_height" getter="get_perch_additional_height" default="0.4">
+			How far above a walkable floor a perched character may hang, on top of [member max_step_height]. Only consulted while already on the ground, and only when [member perch_radius_threshold] has switched perching on.
+		</member>
+		<member name="perch_radius_threshold" type="float" setter="set_perch_radius_threshold" getter="get_perch_radius_threshold" default="0.0">
+			How close to the capsule's edge a ground contact may be before the character is no longer allowed to stand on it. Zero, the default, switches perching off entirely.
+			It is a restriction, not a licence: when the contact is nearer the rim than this, the floor is re-tested with a narrower probe, and if that probe finds nothing the character falls even though the full-width test was happy. Raising it makes a character let go of a ledge [i]sooner[/i] - roughly, it keeps its footing until its centre is a probe-radius past the edge. At 0.5 radius: off, 0.47 past; at 0.2, 0.27 past; at 0.35, 0.07 past.
+			It cuts the other way in one narrow case: where the full-width sweep finds only something too steep to stand on [b]and[/b] a ray down the capsule's axis finds nothing either, the narrow probe's answer is adopted instead - standing over a floor slot thinner than the probe, with a kerb beside it, is the shape of it. That result is recorded as a line trace, because the distance driving the floor-height adjustment is still the full-width capsule's.
+		</member>
+		<member name="replicate_movement_mode" type="bool" setter="set_replicate_movement_mode" getter="get_replicate_movement_mode" default="true">
+			Sends [member movement_mode] from the server to every other peer. Unreal replicates the same thing as [code]ACharacter::ReplicatedMovementMode[/code], but only to simulated proxies: an autonomous proxy there predicts its own mode, so sending it one would fight the prediction. Nothing here predicts yet, so the owning client receives it like everybody else.
+		</member>
+		<member name="rotate_with_base" type="bool" setter="set_rotate_with_base" getter="get_rotate_with_base" default="true">
+			Turns the character with its base, about the up axis only. Taking the platform's rotation wholesale would tip a character over on anything that tilts.
+		</member>
+		<member name="rotation_rate_deg" type="float" setter="set_rotation_rate_deg" getter="get_rotation_rate_deg" default="360.0">
+			How fast the character turns towards its movement direction, in degrees per second.
+		</member>
+		<member name="starting_mode" type="StringName" setter="set_starting_mode" getter="get_starting_mode" default="&amp;&quot;Walking&quot;">
+			The mode the character begins in. Falls back to [code]Null[/code], which moves nothing, if no mode is registered under this name.
+		</member>
+		<member name="transitions" type="Array" setter="set_transitions" getter="get_transitions" default="[]">
+			Transition rules checked in every mode, after that mode's own [member MovementMode.transitions]. Order is priority: the first rule that names a mode wins.
+			A rule is skipped entirely when the mode itself already asked for a change - a mode that acted knew more about the move it just made than any rule watching from outside.
+		</member>
+		<member name="up_direction" type="Vector3" setter="set_up_direction" getter="get_up_direction" default="Vector3(0, 1, 0)">
+			Which way is up for floor tests, jumping and gravity. Normalised on assignment; a zero vector is refused with a warning.
+		</member>
+		<member name="updated_body_path" type="NodePath" setter="set_updated_body_path" getter="get_updated_body_path" default="NodePath(&quot;..&quot;)">
+			The [PhysicsBody3D] to move, relative to this node. Defaults to [code]..[/code], the parent - which is the pawn root in the usual layout.
+		</member>
+		<member name="use_separate_braking_friction" type="bool" setter="set_use_separate_braking_friction" getter="get_use_separate_braking_friction" default="false">
+			When true, braking uses [member braking_friction] instead of [member ground_friction]. Two numbers exist because steering and stopping are not the same feel; leave this off to keep them in step.
+		</member>
+		<member name="walkable_floor_angle" type="float" setter="set_walkable_floor_angle" getter="get_walkable_floor_angle" default="45.0">
+			The steepest surface, in degrees from flat, that counts as a floor. Anything steeper is a wall: the character slides down it instead of standing on it.
+		</member>
+	</members>
+	<signals>
+		<signal name="crouch_changed">
+			<param index="0" name="crouching" type="bool" />
+			<description>
+				Emitted when the character crouches or stands, with the new state. Standing can lag a request by any number of ticks if there is a ceiling in the way.
+			</description>
+		</signal>
+		<signal name="layered_move_finished">
+			<param index="0" name="move" type="LayeredMove" />
+			<description>
+				Emitted when a move stops contributing, whether because its time was up or because it was cancelled.
+			</description>
+		</signal>
+		<signal name="layered_move_started">
+			<param index="0" name="move" type="LayeredMove" />
+			<description>
+				Emitted on the tick a queued move first runs, after its [method LayeredMove._on_start].
+			</description>
+		</signal>
+		<signal name="movement_mode_changed">
+			<param index="0" name="from" type="StringName" />
+			<param index="1" name="to" type="StringName" />
+			<description>
+				Emitted when the character changes movement mode, with the name it left and the name it entered.
+			</description>
+		</signal>
+	</signals>
+</class>

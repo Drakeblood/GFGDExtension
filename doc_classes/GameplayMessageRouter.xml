@@ -24,7 +24,8 @@
 			<param index="0" name="channel" type="StringName" />
 			<param index="1" name="payload" type="Variant" default="null" />
 			<description>
-				Calls every matching listener as [code]callback(channel, payload)[/code], in an unspecified order. The channel is passed because a [constant MATCH_PARTIAL] listener cannot otherwise tell what it heard.
+				Calls every matching listener as [code]callback(channel, payload)[/code]. The channel is passed because a [constant MATCH_PARTIAL] listener cannot otherwise tell what it heard.
+				[b]Listeners on one channel are called in reverse registration order - last registered, first called.[/b] The router iterates its listener list backwards so it can drop listeners whose object was freed while walking it. Never encode a dependency in registration order: if one listener needs what another produced, the producer should broadcast a second channel once the result exists, and the consumer should listen on that.
 				Listeners are collected before any of them runs, so a listener may broadcast again, register, or unregister itself without disturbing the delivery in progress.
 			</description>
 		</method>
@@ -37,6 +38,7 @@
 		<method name="get_singleton" qualifiers="static">
 			<return type="GameplayMessageRouter" />
 			<description>
+				The router, created on first use. It is not an autoload and does not appear in the scene tree.
 			</description>
 		</method>
 		<method name="has_listeners" qualifiers="const">

@@ -15,22 +15,26 @@
 			<return type="String" />
 			<param index="0" name="tag_name" type="StringName" />
 			<description>
+				The description this table gives [param tag_name], or an empty string.
 			</description>
 		</method>
 		<method name="get_tag_names" qualifiers="const">
 			<return type="PackedStringArray" />
 			<description>
+				Every name this table declares, sorted - so merging several tables stays deterministic regardless of the order the dictionary happens to be stored in.
 			</description>
 		</method>
 		<method name="has_tag" qualifiers="const">
 			<return type="bool" />
 			<param index="0" name="tag_name" type="StringName" />
 			<description>
+				Whether this table declares [param tag_name] outright. An ancestor it only implies does not count.
 			</description>
 		</method>
 	</methods>
 	<members>
 		<member name="tags" type="Dictionary[StringName, String]" setter="set_tags" getter="get_tags" default="{}">
+			Tag name to description. Only declared names are keys: declaring [code]Ability.Combat.Melee[/code] also registers [code]Ability[/code] and [code]Ability.Combat[/code] as usable tags, but they carry no description until some table declares them outright. Stored as a typed dictionary so the .tres writes one tag per line, which keeps diffs and merges readable.
 		</member>
 	</members>
 </class>

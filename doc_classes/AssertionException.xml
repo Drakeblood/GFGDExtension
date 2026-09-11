@@ -12,6 +12,7 @@
 		<method name="get_message" qualifiers="const">
 			<return type="String" />
 			<description>
+				The composed failure text: what was expected, what was found, and the caller's own message when one was given.
 			</description>
 		</method>
 	</methods>

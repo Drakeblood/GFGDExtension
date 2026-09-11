@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="MovementState" inherits="RefCounted" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Everything the simulation carries from one tick to the next.
+	</brief_description>
+	<description>
+		Nothing here lives on the [CharacterMovementComponent]. That is the point: a tick is (state, input, delta) to state, so the same code can be run twice on one frame from two different starting states - which is what a resimulation is. A field kept on the component instead would be invisible to that, and would survive a rollback it should not have survived.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="clear_base">
+			<return type="void" />
+			<description>
+				Forgets what the character was standing on. Done whenever the floor is lost, and whenever something outside the simulation moves the body - a stored offset left behind would drag it back onto the platform it was just moved away from.
+			</description>
+		</method>
+		<method name="copy_from">
+			<return type="void" />
+			<param index="0" name="other" type="MovementState" />
+			<description>
+				Overwrites this state with another. [member extra] is deep copied, so the two do not end up sharing one [Dictionary].
+			</description>
+		</method>
+		<method name="duplicate_state" qualifiers="const">
+			<return type="MovementState" />
+			<description>
+				An independent copy of this state.
+			</description>
+		</method>
+		<method name="get_active_layered_moves" qualifiers="const">
+			<return type="Array" />
+			<description>
+				Moves currently contributing, in priority order, lowest first.
+			</description>
+		</method>
+		<method name="get_base_id" qualifiers="const">
+			<return type="int" />
+			<description>
+				Instance id of the node the character is standing on, or 0 when it is standing on nothing tracked.
+			</description>
+		</method>
+		<method name="get_base_relative_position" qualifiers="const">
+			<return type="Vector3" />
+			<description>
+				Where the character stands relative to its base. Kept up to date for replication rather than to drive the movement, which uses the base's per-tick delta.
+			</description>
+		</method>
+		<method name="get_base_relative_rotation" qualifiers="const">
+			<return type="Basis" />
+			<description>
+				The character's orientation relative to its base. See [method get_base_relative_position].
+			</description>
+		</method>
+		<method name="get_queued_layered_moves" qualifiers="const">
+			<return type="Array" />
+			<description>
+				Moves waiting to start on the next tick.
+			</description>
+		</method>
+		<method name="has_base" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Whether the character is standing on something being tracked as a base.
+			</description>
+		</method>
+		<method name="set_active_layered_moves">
+			<return type="void" />
+			<param index="0" name="value" type="Array" />
+			<description>
+				Sets the active move list. Managed by the component; a game has no reason to write it.
+			</description>
+		</method>
+		<method name="set_base_id">
+			<return type="void" />
+			<param index="0" name="value" type="int" />
+			<description>
+				Sets the instance id of the node the character is standing on, or 0 for none.
+			</description>
+		</method>
+		<method name="set_base_relative_position">
+			<return type="void" />
+			<param index="0" name="value" type="Vector3" />
+			<description>
+				Sets where the character stands relative to its base. Not what drives the movement - the base's per-tick delta is - but it is what would be sent to a client to place the character on the right platform.
+			</description>
+		</method>
+		<method name="set_base_relative_rotation">
+			<return type="void" />
+			<param index="0" name="value" type="Basis" />
+			<description>
+				Sets the character's orientation relative to its base. See [method set_base_relative_position].
+			</description>
+		</method>
+		<method name="set_queued_layered_moves">
+			<return type="void" />
+			<param index="0" name="value" type="Array" />
+			<description>
+				Sets the moves waiting to start. Prefer [method CharacterMovementComponent.queue_layered_move].
+			</description>
+		</method>
+		<method name="should_reconcile" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="authority_state" type="MovementState" />
+			<param index="1" name="position_tolerance" type="float" default="0.05" />
+			<param index="2" name="velocity_tolerance" type="float" default="0.5" />
+			<description>
+				Whether a client holding this state would have to snap to [param authority_state] and replay. A mode change is never within tolerance, because the next tick would run different code and the divergence only grows. Nothing calls this yet; it is the decision a predicted client makes, and it belongs on the state because only the state knows which of its fields matter.
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="extra" type="Dictionary" setter="set_extra" getter="get_extra" default="{}">
+			A mode's own state, for anything the framework does not know about. A [Dictionary] because Godot can already put one on the wire, so a mode written in GDScript gets persistent state without a C++ change.
+		</member>
+		<member name="is_crouching" type="bool" setter="set_is_crouching" getter="get_is_crouching" default="false">
+			Whether the character is crouched. In the state rather than on the component so that it travels with everything else a tick produces.
+		</member>
+		<member name="movement_mode" type="StringName" setter="set_movement_mode" getter="get_movement_mode" default="&amp;&quot;&quot;">
+			The name of the [MovementMode] running. Mode identity is data rather than an enum, so a project can add modes without this class changing.
+		</member>
+		<member name="position" type="Vector3" setter="set_position" getter="get_position" default="Vector3(0, 0, 0)">
+			World position of the body being moved.
+		</member>
+		<member name="rotation" type="Basis" setter="set_rotation" getter="get_rotation" default="Basis(1, 0, 0, 0, 1, 0, 0, 0, 1)">
+			World orientation of the body being moved.
+		</member>
+		<member name="velocity" type="Vector3" setter="set_velocity" getter="get_velocity" default="Vector3(0, 0, 0)">
+			Metres per second. While walking this is flat against the floor plane.
+		</member>
+	</members>
+</class>

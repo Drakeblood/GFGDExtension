@@ -40,6 +40,7 @@
 			<return type="void" />
 			<param index="0" name="instance_id" type="int" />
 			<description>
+				The deferred half of [method release]: takes the node out of the tree at the end of the frame. It takes an instance id rather than a node because by the time it runs the node may have been reparented or freed, and re-resolving is what keeps either from turning into an error.
 			</description>
 		</method>
 		<method name="get_active" qualifiers="const">
@@ -51,6 +52,7 @@
 		<method name="get_active_count" qualifiers="const">
 			<return type="int" />
 			<description>
+				How many nodes are currently handed out.
 			</description>
 		</method>
 		<method name="get_total_created" qualifiers="const">
@@ -92,11 +94,13 @@
 		<signal name="node_acquired">
 			<param index="0" name="node" type="Object" />
 			<description>
+				A node was handed out.
 			</description>
 		</signal>
 		<signal name="node_released">
 			<param index="0" name="node" type="Object" />
 			<description>
+				A node was returned.
 			</description>
 		</signal>
 	</signals>

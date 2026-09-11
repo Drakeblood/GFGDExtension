@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="SwimmingMode" inherits="MovementMode" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Moving through water.
+	</brief_description>
+	<description>
+		Like [FlyingMode] the input is not flattened - you swim in whatever direction you point. Unlike it, gravity is not gone: it is scaled by [member WaterVolume.buoyancy] and by how much of the character is under the surface, so at neutral buoyancy a character at the waterline sinks until it is submerged and then hangs there. Floating up is a buoyancy above 1.
+		A rise near the surface is damped by the immersion depth, and the lift half of a stroke is scaled by that same depth, because there is nothing to push against above the waterline. Between them a character holding [i]up[/i] treads water at the surface instead of launching out of it and arcing back in.
+		Getting out of the water is therefore the jump's job. Taking it adds [member CharacterMovementComponent.out_of_water_jump_velocity] and hands over to [code]Falling[/code] in the same tick, which is what Unreal does with its [code]OutofWaterZ[/code] and for the same reason: the swim speed cap and the surface damping would both brake the impulse straight back down.
+	</description>
+	<tutorials>
+	</tutorials>
+</class>

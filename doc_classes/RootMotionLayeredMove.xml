@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="RootMotionLayeredMove" inherits="LayeredMove" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Motion driven by an animation, laid over whatever movement mode is running.
+	</brief_description>
+	<description>
+		This is the whole of root motion, and it is a [LayeredMove] rather than new machinery - which is the point the propose/execute split was making. The animation proposes a velocity; the active [MovementMode] still does the sweeping, the collision and the floor. A root-motion attack therefore cannot walk through a wall or off a ledge, and needed no special case anywhere to stop it.
+		Defaults to [constant ProposedMove.OVERRIDE_ALL_EXCEPT_VERTICAL] and an unlimited duration: the animation drives horizontal movement, gravity still applies, and whatever started the animation cancels the move when it ends.
+		Two things have to be right on the [AnimationMixer] or it silently proposes nothing:
+		- [member AnimationMixer.callback_mode_process] must be the physics one. Root motion is consumed per simulated tick, and a mixer advancing on the render frame hands out deltas that do not line up with it.
+		- [member AnimationMixer.root_motion_track] is the [b]track's own path[/b] - for a [Node3D] position track that is just the node, [code]"Root"[/code], not [code]"Root:position"[/code]. A skeleton track is [code]"Skeleton3D:Hips"[/code].
+		Rotation is not consumed yet: [method AnimationMixer.get_root_motion_rotation] is available but nothing applies [member ProposedMove.angular_velocity_deg].
+		Works on [CharacterMovementComponent2D] too, with one thing to know first: Godot accumulates root motion only from [constant Animation.TYPE_POSITION_3D] tracks, and a 2D position track contributes nothing at all. A 2D pawn therefore needs a plain [Node3D] hung under it as the carrier for the track to address. That is legal, and the node is never actually moved - a root motion track is excluded from being applied, in either dimension. The x and y of the delta are then pixels.
+		The delta is taken as authored in 2D rather than turned by the character's facing, because a 2D [MovementState] carries no rotation: facing there is a sprite flip, not a transform the solver knows about. An animation that has to run both ways either flips sign in the track or is authored twice.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="get_mixer" qualifiers="const">
+			<return type="AnimationMixer" />
+			<description>
+				The [AnimationMixer] this move reads, once resolved.
+			</description>
+		</method>
+		<method name="set_mixer">
+			<return type="void" />
+			<param index="0" name="value" type="AnimationMixer" />
+			<description>
+				Sets the mixer directly, instead of letting [member animation_mixer_path] find it.
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="animation_mixer_path" type="NodePath" setter="set_animation_mixer_path" getter="get_animation_mixer_path" default="NodePath(&quot;&quot;)">
+			Where to find the [AnimationMixer], relative to the pawn's root - the node the movement component drives. Resolved once, when the move starts.
+		</member>
+		<member name="duration" type="float" setter="set_duration" getter="get_duration" overrides="LayeredMove" default="-1.0" />
+		<member name="mix_mode" type="int" setter="set_mix_mode" getter="get_mix_mode" overrides="LayeredMove" enum="ProposedMove.MixMode" default="3" />
+	</members>
+</class>

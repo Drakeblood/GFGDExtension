@@ -16,6 +16,7 @@
     {
       "name": "t-editor",
       "hidden": true,
+      "description": "Debug build type, so this one keeps its symbols: the editor build is the only one anybody attaches a debugger to.",
       "cacheVariables": {
         "GODOTCPP_TARGET": "editor",
         "CMAKE_BUILD_TYPE": "Debug"
@@ -24,9 +25,10 @@
     {
       "name": "t-template_debug",
       "hidden": true,
+      "description": "Release build type on purpose. GODOTCPP_TARGET is what defines DEBUG_ENABLED and makes this the library a debug export loads; CMAKE_BUILD_TYPE only decides whether debug symbols are emitted. Under MinGW the DWARF lands inside the .dll rather than beside it, which cost 60.9 MB on Windows and 30 MB per Android ABI for symbols nobody reads.",
       "cacheVariables": {
         "GODOTCPP_TARGET": "template_debug",
-        "CMAKE_BUILD_TYPE": "Debug"
+        "CMAKE_BUILD_TYPE": "Release"
       }
     },
     {

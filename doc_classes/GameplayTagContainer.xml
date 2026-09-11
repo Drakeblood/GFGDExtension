@@ -14,64 +14,75 @@
 			<return type="void" />
 			<param index="0" name="tag" type="GameplayTag" />
 			<description>
+				Adds [param tag]. Adding a tag already present does nothing.
 			</description>
 		</method>
 		<method name="add_tag_by_name">
 			<return type="void" />
 			<param index="0" name="tag_name" type="StringName" />
 			<description>
+				Adds the tag called [param tag_name], resolving it through [GameplayTagsManager].
 			</description>
 		</method>
 		<method name="get_length" qualifiers="const">
 			<return type="int" />
 			<description>
+				How many tags the container holds.
 			</description>
 		</method>
 		<method name="get_tag" qualifiers="const">
 			<return type="GameplayTag" />
 			<param index="0" name="index" type="int" />
 			<description>
+				The tag at [param index], or null when the index is out of range.
 			</description>
 		</method>
 		<method name="has_all" qualifiers="const">
 			<return type="bool" />
 			<param index="0" name="tag_container" type="GameplayTagContainer" />
 			<description>
+				True if this container holds every tag in [param tag_container], hierarchically.
 			</description>
 		</method>
 		<method name="has_all_exact" qualifiers="const">
 			<return type="bool" />
 			<param index="0" name="tag_container" type="GameplayTagContainer" />
 			<description>
+				As [method has_all], but every match must be exact.
 			</description>
 		</method>
 		<method name="has_any" qualifiers="const">
 			<return type="bool" />
 			<param index="0" name="tag_container" type="GameplayTagContainer" />
 			<description>
+				True if this container holds at least one tag from [param tag_container], hierarchically.
 			</description>
 		</method>
 		<method name="has_tag" qualifiers="const">
 			<return type="bool" />
 			<param index="0" name="tag_to_check" type="GameplayTag" />
 			<description>
+				Hierarchical test: a container holding [code]Status.Debuff.Burning[/code] answers true for [code]Status.Debuff[/code]. This is almost always the one you want.
 			</description>
 		</method>
 		<method name="has_tag_exact" qualifiers="const">
 			<return type="bool" />
 			<param index="0" name="tag_to_check" type="GameplayTag" />
 			<description>
+				As [method has_tag], but only an exact name counts.
 			</description>
 		</method>
 		<method name="remove_tag">
 			<return type="void" />
 			<param index="0" name="tag" type="GameplayTag" />
 			<description>
+				Removes [param tag]. Removing one that is not present does nothing.
 			</description>
 		</method>
 	</methods>
 	<members>
 		<member name="tags" type="PackedStringArray" setter="set_tags" getter="get_tags" default="PackedStringArray()">
+			The container's contents as plain names. This is the serialized form: tags are stored as strings and resolved through [GameplayTagsManager] on load, so a tag can be renamed or moved between tables without touching the assets that use it. [b]Never author an inline [GameplayTag] sub-resource in a .tres[/b] - it compares equal by name but is not the canonical instance.
 		</member>
 	</members>
 </class>

@@ -15,7 +15,8 @@ root
  │   └─ Pawn<id>           – the node a player drives
  │       ├─ Pawn           – makes the parent possessable, sets up input bindings
  │       ├─ Camera2D/3D    – made current on possession, where the player is sitting
- │       └─ AbilitySystemComponent – abilities, gameplay tags, effects, attributes
+ │       ├─ AbilitySystemComponent – abilities, gameplay tags, effects, attributes
+ │       └─ CharacterMovementComponent – walking, falling, jumping (3D)
  ├─ InputRouter            – sends each raw event to the player owning that device
  ├─ Level                  – scene root node, may override the game mode
  │   └─ PlayerStart2D/3D…  – where restart_player places each pawn
@@ -43,6 +44,8 @@ Controllers, pawns and player states hang off fixed parents rather than off the 
 6. On possession the `PlayerController` makes the pawn camera current and calls `Pawn._setup_input_component`, where you bind input actions.
 
 The level is in the tree and started before any of this, so `_init_game` and everything it spawns see a world that is already live. The game mode's own `_ready` runs after `init_game`, which makes it the point where the level, the players and the game state are all up.
+
+The same fact read from the other side is the one that costs integrators the most time: **everything inside the level scene has its `_ready` run before step 3.** A HUD, a camera, a spawner or a touch control sitting in the level cannot see the game mode, a pawn or a controller from `_ready` — `World::get_game_mode()` returns null, the ordinary null guard swallows it, and the node quietly never finds what it wanted. `Level::_init_level` (step 6, after everything) is the hook for handing references out; resolving them on first use is better still, because it also survives a respawn.
 
 All hooks degrade gracefully — missing settings produce warnings and sensible fallbacks, never crashes.
 
@@ -204,6 +207,40 @@ Both track their finger by index in `_input` rather than through GUI routing, wh
 
 Split screen is deliberately left to the project: set `LocalPlayer.viewport_override` and the framework points the right camera at the right viewport, but it does not build the layout.
 
+## Character movement
+
+`CharacterMovementComponent` gives a pawn walking, falling and jumping. Attach it beside the `Pawn`, on a root that is a `PhysicsBody3D` with a capsule; `updated_body_path` defaults to the parent and the modes register themselves.
+
+Property names follow Unreal's `CharacterMovementComponent` — `max_walk_speed`, `ground_friction`, `braking_deceleration_walking`, `jump_velocity`, `air_control`, `walkable_floor_angle` — because that is the vocabulary people already have. **The values are metric**: Godot works in metres where Unreal works in centimetres, so `max_walk_speed` defaults to `6.0`, not `600`.
+
+Drive it with the `add_movement_input` the pawn already had, guarded by `has_authority()` the way the demo pawns are, and let the component consume it:
+
+```gdscript
+func _process(_delta: float) -> void:
+	if _input == null or not has_authority():
+		return
+	var move := _input.get_vector(&"move_left", &"move_right", &"move_forward", &"move_back")
+	add_movement_input(Vector3(move.x, 0.0, move.y))
+```
+
+### Modes, and why they are objects
+
+How a character moves is a named `MovementMode` in a dictionary — `Walking`, `Falling`, `Null` — rather than a value in an enum. A mode is a `Resource`, so it can be authored inline, shared between pawns and subclassed in GDScript; putting your own under one of those names replaces the built-in one.
+
+Each mode has two halves that are deliberately not the same function. `_generate_move` **proposes** motion: it is side effect free and touches nothing, so proposals can be blended. `_simulation_tick` **executes** it: sweeps, resolves collisions, writes the state. Unreal fuses the two inside each of its `Phys*` functions, and that is exactly why layering a dash on top of a walk there is painful.
+
+### It does not use `move_and_slide`
+
+`move_and_slide()` reads `velocity` off the body, derives its step from the engine's physics delta, and writes back to the node. Each of those alone would make it impossible to run the same tick twice from two different starting states — which is what a resimulation is, and therefore what client prediction needs. The solver is built on `PhysicsServer3D.body_test_motion` instead, which sweeps from a `Transform3D` handed to it without moving anything.
+
+That is also why the simulation state lives in a `MovementState` object rather than in fields on the node, and why `MovementBackend` exists with one implementation: a predicted backend would call `simulate()` once per unacknowledged input after a correction, without a line changing in any mode. **None of this is prediction yet** — movement still runs on the authority and costs a round trip. The seam is there because it cannot be added afterwards.
+
+Two things reach a client: the transform, through the `Pawn`'s synchronizer, and **`movement_mode`**, through the component's own. A position says where a pawn is, not whether it is walking or falling, and the second is the question an animation graph asks first — guessing it back out of vertical velocity is wrong at the top of a jump and wrong on a ramp. Unreal replicates the same field as `ACharacter::ReplicatedMovementMode`, but only to simulated proxies, because an autonomous proxy there predicts its own; nothing here predicts yet, so the owning client receives it too. `movement_mode_changed` fires on every peer.
+
+### Not in yet
+
+Step-up (`max_step_height` is carried but not acted on), crouching, swimming, flying, moving platforms, root motion, layered moves, 2D, and prediction itself.
+
 ## Gameplay Ability System
 
 - **GameplayTag / GameplayTagContainer** — hierarchical `StringName` tags; `"A.B.C"` matches the parent query `"A.B"`. Containers serialize as a `PackedStringArray` (`tags`) and resolve through the `GameplayTagsManager` singleton.
@@ -246,9 +283,11 @@ Pooled nodes get `_on_acquired()` / `_on_released()` called if they define them 
 
 Encryption uses `application/game_framework/save_encryption_key`. It defaults to the key compiled into this extension, which is public — a released game should set its own. The framework warns once per run while the default is still in use.
 
+`load_game` returns null for four different reasons, and only `LOAD_NOT_FOUND` means the player has never played: `get_last_load_result()` says which, and `has_save_game(slot)` asks whether a file exists without reading it. After any other failure the slot is marked and `save_game` refuses it with `ERR_LOCKED`, so "load, and if that gave me nothing start fresh and save" cannot overwrite a save the game merely failed to decrypt — the usual cause being a changed encryption key. `clear_load_failure(slot)` lifts the block once the player has been told and has chosen to start over.
+
 ## The demo project
 
-`project/` is a working example of every mode. From the menu: **New Game** (single player, ability demo), **Local Co-op** (two pads), **Host** and **Join**. From the command line, after `--`:
+`project/` is a working example of every mode. From the menu: **New Game** (single player, ability demo), **Local Co-op** (two pads), **Host** and **Join**. Every pawn is a `CharacterBody3D` driven by a `CharacterMovementComponent`: **WASD** walks, **Space** jumps, **E** activates the test ability. From the command line, after `--`:
 
 ```sh
 godot --path project -- --server --port 7777          # dedicated server

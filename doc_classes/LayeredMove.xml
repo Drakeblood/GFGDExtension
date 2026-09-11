@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="LayeredMove" inherits="Resource" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Motion laid on top of whatever movement mode is running.
+	</brief_description>
+	<description>
+		A dash, a knockback, a gust of wind, an animation driving the character. Queue one with [method CharacterMovementComponent.queue_layered_move].
+		A layered move only ever [i]proposes[/i]. It never sweeps, never writes state, and never knows which mode is active - the mode executes the mixed result. That is the whole reason [MovementMode] was split into [method MovementMode._generate_move] and [method MovementMode._simulation_tick]: a proposal is side effect free, so proposals can be blended, and a dash becomes possible without the walking code ever hearing about dashes. Unreal's CharacterMovementComponent fuses the two inside each of its physics functions, which is exactly why layering anything on it is painful.
+		Mixing happens between the mode's proposal and its execution - the only point at which motion is still a value rather than a position.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_generate_move" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="params" type="MovementTickParams" />
+			<param index="1" name="out_proposal" type="ProposedMove" />
+			<description>
+				Fills [param out_proposal] with the motion this move wants. Must not move anything - a proposal that had side effects could not be blended with another.
+			</description>
+		</method>
+		<method name="_is_finished" qualifiers="virtual">
+			<return type="bool" />
+			<param index="0" name="sim_time_ms" type="float" />
+			<description>
+				Whether the move is done. Override for a move that ends on a condition rather than a clock; the default is the [member duration] test.
+			</description>
+		</method>
+		<method name="_on_start" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="params" type="MovementTickParams" />
+			<description>
+				Called once, on the tick the move first runs.
+			</description>
+		</method>
+		<method name="get_elapsed" qualifiers="const">
+			<return type="float" />
+			<param index="0" name="sim_time_ms" type="float" />
+			<description>
+				How long this move has been running, in seconds.
+			</description>
+		</method>
+		<method name="get_start_time_ms" qualifiers="const">
+			<return type="float" />
+			<description>
+				The point on the simulation clock at which this move started.
+			</description>
+		</method>
+		<method name="is_finished">
+			<return type="bool" />
+			<param index="0" name="sim_time_ms" type="float" />
+			<description>
+				Whether the move is done, at this point on the simulation clock.
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="duration" type="float" setter="set_duration" getter="get_duration" default="0.0">
+			Seconds. Zero is a single tick - an impulse. Negative runs until something cancels it.
+		</member>
+		<member name="finish_clamp_speed" type="float" setter="set_finish_clamp_speed" getter="get_finish_clamp_speed" default="0.0">
+			The cap applied when [member finish_velocity_mode] is [constant CLAMP_VELOCITY], in metres per second.
+		</member>
+		<member name="finish_velocity" type="Vector3" setter="set_finish_velocity" getter="get_finish_velocity" default="Vector3(0, 0, 0)">
+			The velocity to leave behind when [member finish_velocity_mode] is [constant SET_VELOCITY]. Zero stops the character dead.
+		</member>
+		<member name="finish_velocity_mode" type="int" setter="set_finish_velocity_mode" getter="get_finish_velocity_mode" enum="LayeredMove.FinishVelocityMode" default="0">
+			What happens to the character's velocity when the move ends.
+		</member>
+		<member name="mix_mode" type="int" setter="set_mix_mode" getter="get_mix_mode" enum="ProposedMove.MixMode" default="1">
+			How this move's proposal combines with what is already proposed. [constant ProposedMove.OVERRIDE_ALL_EXCEPT_VERTICAL] is the one to reach for mid-air: it takes over sideways movement and leaves gravity alone.
+		</member>
+		<member name="priority" type="int" setter="set_priority" getter="get_priority" default="0">
+			Higher wins. Moves are applied lowest first, so the highest priority is the last to overwrite anything.
+		</member>
+	</members>
+	<constants>
+		<constant name="KEEP_VELOCITY" value="0" enum="FinishVelocityMode">
+			Whatever the move left behind carries on. A dash that ends mid-air keeps its speed.
+		</constant>
+		<constant name="SET_VELOCITY" value="1" enum="FinishVelocityMode">
+			Replaced outright with [member finish_velocity].
+		</constant>
+		<constant name="CLAMP_VELOCITY" value="2" enum="FinishVelocityMode">
+			Kept in direction but capped at [member finish_clamp_speed], so a launch does not hand the character a speed the rest of the simulation was never tuned for.
+		</constant>
+	</constants>
+</class>

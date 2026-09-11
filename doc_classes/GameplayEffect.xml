@@ -11,30 +11,42 @@
 	</tutorials>
 	<members>
 		<member name="application_blocked_tags" type="GameplayTagContainer" setter="set_application_blocked_tags" getter="get_application_blocked_tags">
+			The owner must hold none of these, or the effect is not applied.
 		</member>
 		<member name="application_required_tags" type="GameplayTagContainer" setter="set_application_required_tags" getter="get_application_required_tags">
+			The owner must hold every one of these, or the effect is not applied.
 		</member>
 		<member name="duration" type="float" setter="set_duration" getter="get_duration" default="0.0">
+			How long the effect lasts, in seconds. Only read when [member duration_policy] is [constant HAS_DURATION].
 		</member>
 		<member name="duration_policy" type="int" setter="set_duration_policy" getter="get_duration_policy" enum="GameplayEffect.DurationPolicy" default="0">
+			Whether the effect applies once, lasts a set time, or lasts until removed.
 		</member>
 		<member name="effect_tags" type="GameplayTagContainer" setter="set_effect_tags" getter="get_effect_tags">
+			What this effect [i]is[/i]. Other effects and abilities match against these - notably [member remove_effects_with_tags].
 		</member>
 		<member name="granted_tags" type="GameplayTagContainer" setter="set_granted_tags" getter="get_granted_tags">
+			Tags the owner holds while this effect is active. Reference counted, so two effects granting the same tag both have to end before it goes away.
 		</member>
 		<member name="modifiers" type="AttributeModifier[]" setter="set_modifiers" getter="get_modifiers" default="[]">
+			What this effect does to attributes. Each entry names an attribute, an operation and a magnitude.
 		</member>
 		<member name="period" type="float" setter="set_period" getter="get_period" default="0.0">
+			Re-application interval in seconds - a damage-over-time tick. [code]0[/code] applies the modifiers once and then leaves them standing.
 		</member>
 		<member name="remove_effects_with_tags" type="GameplayTagContainer" setter="set_remove_effects_with_tags" getter="get_remove_effects_with_tags">
+			Applying this effect strips every active effect whose [member effect_tags] match - a cleanse, or a buff that replaces a weaker one.
 		</member>
 	</members>
 	<constants>
 		<constant name="INSTANT" value="0" enum="DurationPolicy">
+			Applied once and gone. Its modifiers change the base value rather than standing as a temporary modifier.
 		</constant>
 		<constant name="INFINITE" value="1" enum="DurationPolicy">
+			Lasts until something removes it. This is the shape a permanent upgrade or an equipped bonus takes.
 		</constant>
 		<constant name="HAS_DURATION" value="2" enum="DurationPolicy">
+			Lasts [member duration] seconds, then removes itself.
 		</constant>
 	</constants>
 </class>

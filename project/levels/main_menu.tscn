@@ -28,6 +28,14 @@ horizontal_alignment = 1
 layout_mode = 2
 text = "New Game"
 
+[node name="Playground2DButton" type="Button" parent="Menu/Buttons"]
+layout_mode = 2
+text = "2D Playground"
+
+[node name="TopDownButton" type="Button" parent="Menu/Buttons"]
+layout_mode = 2
+text = "Top-Down Playground"
+
 [node name="CoopButton" type="Button" parent="Menu/Buttons"]
 layout_mode = 2
 text = "Local Co-op"

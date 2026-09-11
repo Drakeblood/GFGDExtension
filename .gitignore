@@ -12,6 +12,14 @@
 project/addons/gfgdextension/bin/**
 !project/addons/gfgdextension/bin/**/
 !project/addons/gfgdextension/bin/**/.gitkeep
+
+# pack_addon.ps1 mirrors these into the addon from the copies at the repository
+# root, which are the tracked originals. Ignoring the mirrors keeps one source
+# of truth in git and stops every pack showing up as a diff.
+project/addons/gfgdextension/src/
+project/addons/gfgdextension/doc_classes/
+project/addons/gfgdextension/skills/
+project/addons/gfgdextension/VERSION.txt
 .sconsign*.dblite
 
 # Ignore custom.py

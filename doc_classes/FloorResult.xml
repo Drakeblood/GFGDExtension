@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="FloorResult" inherits="RefCounted" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		The answer to whether there is ground under a character, and whether it may be stood on.
+	</brief_description>
+	<description>
+		[member walkable_floor] is not implied by [member blocking_hit]: a steep slope is a hit that is not a floor, and telling those apart is what keeps a character from standing on a wall.
+		The query runs in two phases. A shape sweep downward first, then a ray as the fallback for when the sweep caught something that is not a floor. The case the second phase exists for is a character standing where a wall meets the ground: the sweep reports the wall, and without the ray the character decides it has no floor and starts falling.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="clear">
+			<return type="void" />
+			<description>
+				Forgets this result, leaving it reporting no floor.
+			</description>
+		</method>
+		<method name="copy_from">
+			<return type="void" />
+			<param index="0" name="other" type="FloorResult" />
+			<description>
+				Overwrites this result with another. Used where one floor query has to adopt the answer of a second without the two ever pointing at the same object.
+			</description>
+		</method>
+		<method name="get_collider" qualifiers="const">
+			<return type="Object" />
+			<description>
+				The object the floor belongs to, or [code]null[/code].
+			</description>
+		</method>
+		<method name="get_collider_velocity" qualifiers="const">
+			<return type="Vector3" />
+			<description>
+				The surface's own motion, as the sweep reported it. Zero for anything Godot does not track the movement of - an [AnimatableBody3D] reports a velocity, a [StaticBody3D] pushed around by a script does not.
+			</description>
+		</method>
+		<method name="get_distance_to_floor" qualifiers="const">
+			<return type="float" />
+			<description>
+				The distance that actually applies, which is the ray's when the sweep did not produce this result.
+			</description>
+		</method>
+		<method name="is_walkable_floor" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Whether there is a floor here and it may be stood on.
+			</description>
+		</method>
+		<method name="set_collider">
+			<return type="void" />
+			<param index="0" name="value" type="Object" />
+			<description>
+				Sets the object this floor belongs to.
+			</description>
+		</method>
+		<method name="set_collider_velocity">
+			<return type="void" />
+			<param index="0" name="value" type="Vector3" />
+			<description>
+				Sets the surface's own motion. Filled in by the floor query from what the sweep reported.
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="blocking_hit" type="bool" setter="set_blocking_hit" getter="get_blocking_hit" default="false">
+			Whether anything at all was found below.
+		</member>
+		<member name="floor_dist" type="float" setter="set_floor_dist" getter="get_floor_dist" default="0.0">
+			Gap between the bottom of the capsule and the surface the sweep found, in metres.
+		</member>
+		<member name="line_dist" type="float" setter="set_line_dist" getter="get_line_dist" default="0.0">
+			The same gap as measured by the fallback ray, in metres.
+		</member>
+		<member name="line_trace" type="bool" setter="set_line_trace" getter="get_line_trace" default="false">
+			True when the sweep found nothing usable and the downward ray is what reported this floor. The distance to trust is then [member line_dist].
+		</member>
+		<member name="normal" type="Vector3" setter="set_normal" getter="get_normal" default="Vector3(0, 1, 0)">
+			Surface normal of the floor.
+		</member>
+		<member name="point" type="Vector3" setter="set_point" getter="get_point" default="Vector3(0, 0, 0)">
+			Where the floor was touched, in world space.
+		</member>
+		<member name="walkable_floor" type="bool" setter="set_walkable_floor" getter="get_walkable_floor" default="false">
+			Whether what was found is shallow enough to stand on.
+		</member>
+	</members>
+</class>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="MovementModeTransition" inherits="Resource" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		A rule for leaving one movement mode for another, as an object.
+	</brief_description>
+	<description>
+		The point is where the rule lives. A mode that decides its own exits has every such decision written into it, so adding [i]climb a ladder when one is in reach[/i] means editing the walking mode - and then editing it again for the next idea. A transition is authored beside the mode instead, in [member MovementMode.transitions], or globally in [member CharacterMovementComponent.transitions], and the mode it leaves never hears about it.
+		Evaluated after the mode has run, in order: the active mode's own list first, then the component's global one. The first that answers with a name wins, so order is priority.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_evaluate" qualifiers="virtual">
+			<return type="StringName" />
+			<param index="0" name="params" type="MovementTickParams" />
+			<description>
+				The mode to switch to, or an empty [StringName] for [i]not now[/i]. Called every tick while the mode it belongs to is active, so it should be cheap - and it must not move anything.
+			</description>
+		</method>
+	</methods>
+</class>

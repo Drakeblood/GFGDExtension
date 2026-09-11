@@ -15,11 +15,13 @@
 		<method name="get_input_component" qualifiers="const">
 			<return type="InputComponent" />
 			<description>
+				The component built for the possessed pawn, through which its bindings run. Null while nothing is possessed.
 			</description>
 		</method>
 		<method name="get_local_player" qualifiers="const">
 			<return type="LocalPlayer" />
 			<description>
+				The human this controller belongs to. Null on the server for a player sitting at another machine, and on a dedicated server for everyone. It is owned by the [GameInstance], so it outlives this controller across a level change.
 			</description>
 		</method>
 		<method name="get_player_index" qualifiers="const">
@@ -31,6 +33,7 @@
 		<method name="get_player_input" qualifiers="const">
 			<return type="PlayerInput" />
 			<description>
+				The action state this controller reads: a local player's own state, or - on the server, for a player at another machine - the state that player's client last sent.
 			</description>
 		</method>
 		<method name="get_player_viewport" qualifiers="const">
@@ -58,40 +61,47 @@
 			<param index="1" name="pressed" type="PackedByteArray" />
 			<param index="2" name="strengths" type="PackedFloat32Array" />
 			<description>
+				Remote call: the owning client's action state, written into this controller's [PlayerInput] on the server. From the input component down the server then runs exactly the code a local player runs. Input sent for a controller the sender does not own is dropped.
 			</description>
 		</method>
 		<method name="set_local_player">
 			<return type="void" />
 			<param index="0" name="value" type="LocalPlayer" />
 			<description>
+				Binds this controller to a human at this machine. The framework does this on login.
 			</description>
 		</method>
 		<method name="set_owner_peer_id">
 			<return type="void" />
 			<param index="0" name="value" type="int" />
 			<description>
+				Sets which connection this controller answers to. The framework assigns it on login; remote calls from any other peer are dropped.
 			</description>
 		</method>
 		<method name="set_pawn_camera_node_as_current">
 			<return type="void" />
 			<description>
+				Makes the possessed pawn's camera current in this player's viewport. Called on possession unless [member Pawn.auto_manage_camera] is false. [b]Warns when the pawn has no camera[/b], which is the expected shape for a game filmed by a camera the level owns - turn [member Pawn.auto_manage_camera] off there.
 			</description>
 		</method>
 		<method name="unregister_input_component">
 			<return type="void" />
 			<param index="0" name="input" type="InputComponent" />
 			<description>
+				Takes a component out of this controller's input stack. Safe to call from inside a binding.
 			</description>
 		</method>
 	</methods>
 	<members>
 		<member name="replicated_actions" type="PackedStringArray" setter="set_replicated_actions" getter="get_replicated_actions" default="PackedStringArray()">
+			Which input actions are sent to the server. [b]Empty means every action in the input map that is not a built-in [code]ui_[/code] one[/b] - narrow it to what gameplay actually needs and the per-frame traffic shrinks with it.
 		</member>
 	</members>
 	<signals>
 		<signal name="local_player_changed">
 			<param index="0" name="local_player" type="Object" />
 			<description>
+				This controller was bound to a different human, or to none.
 			</description>
 		</signal>
 	</signals>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="SwimmingMode2D" inherits="MovementMode" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Moving through water, in two dimensions.
+	</brief_description>
+	<description>
+		The 2D twin of [SwimmingMode]. Like [FlyingMode2D] the input is not flattened, so the character swims in whatever direction it points. Unlike flying, gravity is not gone: it is scaled by how much of the capsule is under the surface and by the volume's [member WaterVolume2D.buoyancy], so a character at the surface sinks until it is submerged and then hangs there.
+		The lift half of a stroke is scaled by that same immersion, because there is nothing to push against above the waterline. A character holding [i]up[/i] therefore treads water instead of swimming clean out of the pool; getting out is what the jump is for, and taking it hands over to [code]Falling[/code] in the same tick.
+		Entered and left by [WaterMovementTransition2D], which [CharacterMovementComponent2D] registers by default.
+	</description>
+	<tutorials>
+	</tutorials>
+</class>

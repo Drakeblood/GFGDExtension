@@ -15,63 +15,74 @@
 			<return type="void" />
 			<param index="0" name="data" type="Dictionary" />
 			<description>
+				Remote call: build this client's own controller. A client holds no other player's controller.
 			</description>
 		</method>
 		<method name="client_despawn_pawn">
 			<return type="void" />
 			<param index="0" name="player_id" type="int" />
 			<description>
+				Remote call: a pawn is gone.
 			</description>
 		</method>
 		<method name="client_despawn_player_state">
 			<return type="void" />
 			<param index="0" name="player_id" type="int" />
 			<description>
+				Remote call: a player left; drop their player state.
 			</description>
 		</method>
 		<method name="client_destroy_player_controller">
 			<return type="void" />
 			<param index="0" name="player_id" type="int" />
 			<description>
+				Remote call: this client's controller is gone.
 			</description>
 		</method>
 		<method name="client_spawn_pawn">
 			<return type="void" />
 			<param index="0" name="data" type="Dictionary" />
 			<description>
+				Remote call: build a pawn the server spawned, from the scene the server named. A pawn a script instantiated itself is never mirrored - this is why the game mode names pawn scenes rather than building them.
 			</description>
 		</method>
 		<method name="client_spawn_player_state">
 			<return type="void" />
 			<param index="0" name="data" type="Dictionary" />
 			<description>
+				Remote call: build a player state the server created.
 			</description>
 		</method>
 		<method name="client_travel_to_level">
 			<return type="void" />
 			<param index="0" name="level_path" type="String" />
 			<description>
+				Remote call: tells a client to load [param level_path]. It reports back with [method server_notify_level_loaded], and only then is handed the world as it stands.
 			</description>
 		</method>
 		<method name="get_ready_peers" qualifiers="const">
 			<return type="PackedInt32Array" />
 			<description>
+				Every peer with the current level built. Cleared whenever the level changes.
 			</description>
 		</method>
 		<method name="get_world" qualifiers="const">
 			<return type="World" />
 			<description>
+				The world this driver belongs to.
 			</description>
 		</method>
 		<method name="is_peer_ready" qualifiers="const">
 			<return type="bool" />
 			<param index="0" name="peer_id" type="int" />
 			<description>
+				Whether [param peer_id] has reported the current level built. Nothing is sent to a peer before that, which is what makes a late join and a level change the same case.
 			</description>
 		</method>
 		<method name="server_notify_level_loaded">
 			<return type="void" />
 			<description>
+				Remote call: a client telling the server its level is built. The server then sends it everything it missed - player states first, then pawns, then its own controller.
 			</description>
 		</method>
 	</methods>

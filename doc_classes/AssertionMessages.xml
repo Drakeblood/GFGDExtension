@@ -13,6 +13,7 @@
 			<return type="String" />
 			<param index="0" name="expected" type="bool" />
 			<description>
+				Composes the text for a boolean check against [param expected].
 			</description>
 		</method>
 		<method name="get_equality_message" qualifiers="static">
@@ -21,12 +22,14 @@
 			<param index="1" name="expected" type="Variant" />
 			<param index="2" name="expect_equal" type="bool" />
 			<description>
+				Composes the text for an equality check: reads [code]Values are not equal.[/code] with [code]actual == expected[/code] when [param expect_equal] is true, and the reverse when it is false.
 			</description>
 		</method>
 		<method name="get_message" qualifiers="static">
 			<return type="String" />
 			<param index="0" name="failure_message" type="String" />
 			<description>
+				Prefixes [param failure_message] with [code]Assertion failure: [/code].
 			</description>
 		</method>
 		<method name="get_message_with_expected" qualifiers="static">
@@ -34,6 +37,7 @@
 			<param index="0" name="failure_message" type="String" />
 			<param index="1" name="expected" type="String" />
 			<description>
+				As [method get_message], with [code] Expected: &lt;expected&gt;[/code] appended.
 			</description>
 		</method>
 		<method name="null_failure_message" qualifiers="static">
@@ -41,6 +45,7 @@
 			<param index="0" name="value" type="Variant" />
 			<param index="1" name="expect_null" type="bool" />
 			<description>
+				Composes the text for a null check, phrased for whichever outcome [param expect_null] asked for.
 			</description>
 		</method>
 	</methods>

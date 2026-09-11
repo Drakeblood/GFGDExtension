@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="MovementInput" inherits="RefCounted" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		What the player asked for on one simulation tick.
+	</brief_description>
+	<description>
+		An object rather than a set of arguments because it is the half of the simulation that has to travel: a predicted client sends this and nothing else, and the server replays it. Everything needed to reproduce a tick is here.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="reset">
+			<return type="void" />
+			<description>
+				Clears every field.
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="frame" type="int" setter="set_frame" getter="get_frame" default="0">
+			The tick this input belongs to. Unused while the server is the only thing simulating, and the one field a client would have to send for a server to be able to say which inputs it has processed - which is the whole basis of reconciliation.
+		</member>
+		<member name="move_input" type="Vector3" setter="set_move_input" getter="get_move_input" default="Vector3(0, 0, 0)">
+			World space direction, length clamped to 1. The clamp matters: the [Pawn] accumulates input on the render frame and the simulation consumes it on the physics frame, so at 144Hz render and 60Hz physics the vector has been added twice and is twice as long. Left alone, walking speed would rise with the frame rate.
+		</member>
+		<member name="want_crouch" type="bool" setter="set_want_crouch" getter="get_want_crouch" default="false">
+			Whether a crouch was asked for. Read by no built-in mode yet; it is here so a mode written in GDScript does not have to wait for the stance work.
+		</member>
+		<member name="want_jump" type="bool" setter="set_want_jump" getter="get_want_jump" default="false">
+			Whether a jump was asked for this tick.
+		</member>
+	</members>
+</class>

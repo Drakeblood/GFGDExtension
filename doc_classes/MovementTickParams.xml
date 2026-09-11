@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="MovementTickParams" inherits="RefCounted" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Everything a [MovementMode] is handed when it is time to move.
+	</brief_description>
+	<description>
+		A single object rather than six arguments, so a mode written in GDScript has one thing to type and adding to it later does not break every mode.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="get_component" qualifiers="const">
+			<return type="CharacterMovementComponent" />
+			<description>
+				The [CharacterMovementComponent] running this tick. Settings and [method CharacterMovementComponent.queue_next_mode] are reached through it.
+			</description>
+		</method>
+		<method name="get_component_2d" qualifiers="const">
+			<return type="CharacterMovementComponent2D" />
+			<description>
+				The [CharacterMovementComponent2D] running this tick, when the character is a 2D one. Exactly one of this and [method get_component] is set - a mode cannot be dimension-agnostic when the solver it calls is not.
+			</description>
+		</method>
+		<method name="get_delta" qualifiers="const">
+			<return type="float" />
+			<description>
+				Length of this step in seconds. Not necessarily the frame time - a long frame is split into several steps.
+			</description>
+		</method>
+		<method name="get_input" qualifiers="const">
+			<return type="MovementInput" />
+			<description>
+				What the player asked for this tick.
+			</description>
+		</method>
+		<method name="get_out_state" qualifiers="const">
+			<return type="MovementState" />
+			<description>
+				Where the mode writes its result. Arrives holding a copy of the starting state, so a mode that changes nothing is still correct.
+			</description>
+		</method>
+		<method name="get_proposed_move" qualifiers="const">
+			<return type="ProposedMove" />
+			<description>
+				The proposal [method MovementMode._generate_move] writes into and [method MovementMode._simulation_tick] reads.
+			</description>
+		</method>
+		<method name="get_sim_time_ms" qualifiers="const">
+			<return type="float" />
+			<description>
+				Milliseconds of simulated time since the component started, taken from whichever component is set. A [LayeredMove] times itself against this rather than against the clock, so the same move behaves identically in 2D and 3D and survives being replayed.
+			</description>
+		</method>
+		<method name="get_start_state" qualifiers="const">
+			<return type="MovementState" />
+			<description>
+				The state the tick began from.
+			</description>
+		</method>
+		<method name="set_component">
+			<return type="void" />
+			<param index="0" name="value" type="CharacterMovementComponent" />
+			<description>
+				Sets the component running this tick.
+			</description>
+		</method>
+		<method name="set_component_2d">
+			<return type="void" />
+			<param index="0" name="value" type="CharacterMovementComponent2D" />
+			<description>
+				Sets the 2D component running this tick.
+			</description>
+		</method>
+		<method name="set_delta">
+			<return type="void" />
+			<param index="0" name="value" type="float" />
+			<description>
+				Sets the length of this step.
+			</description>
+		</method>
+		<method name="set_input">
+			<return type="void" />
+			<param index="0" name="value" type="MovementInput" />
+			<description>
+				Sets the input for this tick.
+			</description>
+		</method>
+		<method name="set_out_state">
+			<return type="void" />
+			<param index="0" name="value" type="MovementState" />
+			<description>
+				Sets the object the mode writes its result into.
+			</description>
+		</method>
+		<method name="set_proposed_move">
+			<return type="void" />
+			<param index="0" name="value" type="ProposedMove" />
+			<description>
+				Sets the proposal object.
+			</description>
+		</method>
+		<method name="set_start_state">
+			<return type="void" />
+			<param index="0" name="value" type="MovementState" />
+			<description>
+				Sets the state the tick begins from.
+			</description>
+		</method>
+	</methods>
+</class>

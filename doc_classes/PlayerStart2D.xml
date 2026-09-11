@@ -10,6 +10,7 @@
 	</tutorials>
 	<members>
 		<member name="player_start_tag" type="StringName" setter="set_player_start_tag" getter="get_player_start_tag" default="&amp;&quot;&quot;">
+			Groups starts into sets a level can pick between - one per team, or one for the start of a round. [method GameModeBase.find_player_start] looks a start up by this tag.
 		</member>
 	</members>
 </class>

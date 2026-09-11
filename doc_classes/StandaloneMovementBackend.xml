@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="StandaloneMovementBackend" inherits="MovementBackend" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		One simulation step per physics frame, with no history and no replay.
+	</brief_description>
+	<description>
+		The whole of what a server-authoritative game needs, and what a single player game should keep using - there is nothing to predict when the machine simulating is the machine playing.
+	</description>
+	<tutorials>
+	</tutorials>
+</class>

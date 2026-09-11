@@ -16,148 +16,176 @@
 			<param index="0" name="port" type="int" />
 			<param index="1" name="max_players" type="int" default="32" />
 			<description>
+				Hosts without a player of its own: no local player, no input routing and no camera work. Becomes a [constant NET_MODE_DEDICATED_SERVER].
 			</description>
 		</method>
 		<method name="create_default_local_player">
 			<return type="LocalPlayer" />
 			<description>
+				Adds the first human, holding [constant PlayerInput.DEVICE_SLOT_ALL] - every device. This is what a single-player game gets without asking.
 			</description>
 		</method>
 		<method name="create_local_player">
 			<return type="LocalPlayer" />
 			<param index="0" name="device_slot" type="int" />
 			<description>
+				Adds a human at this machine holding one device. [param device_slot] is a [enum PlayerInput.DeviceSlot] value. A convenience wrapper over the [GameInstance], so scripts have one obvious place to reach local players from.
 			</description>
 		</method>
 		<method name="disconnect_from_network">
 			<return type="void" />
 			<description>
+				Leaves the session and returns to [constant NET_MODE_STANDALONE].
 			</description>
 		</method>
 		<method name="find_level">
 			<return type="Level" />
 			<description>
+				Searches the tree for the [Level] and adopts it. The framework calls this as a level comes up; [method get_level] is what a project reads.
 			</description>
 		</method>
 		<method name="find_player_controller_by_player_id" qualifiers="const">
 			<return type="PlayerController" />
 			<param index="0" name="player_id" type="int" />
 			<description>
+				The controller with the server-assigned [param player_id], or null.
 			</description>
 		</method>
 		<method name="get_controllers" qualifiers="const">
 			<return type="Array" />
 			<description>
+				Every controller in the world, players and bots alike.
 			</description>
 		</method>
 		<method name="get_first_player_controller" qualifiers="const">
 			<return type="PlayerController" />
 			<description>
+				Player one. [b]The world owns the player list, so this is where [i]who is player one[/i] is answered[/b] - the game mode does not exist on a client to answer it.
 			</description>
 		</method>
 		<method name="get_game_instance" qualifiers="const">
 			<return type="GameInstance" />
 			<description>
+				The application-lifetime object built from [code]application/game_framework/game_instance_script[/code]. It lives outside the scene tree and survives a level change.
 			</description>
 		</method>
 		<method name="get_game_mode" qualifiers="const">
 			<return type="GameModeBase" />
 			<description>
+				The rules of the current level. [b]Null on a client[/b] - the rules are the server's, and asking for them there is a mistake worth seeing rather than a silent empty object. Use [method get_game_state] for anything a client has to read.
 			</description>
 		</method>
 		<method name="get_game_mode_defaults" qualifiers="const">
 			<return type="GameModeBase" />
 			<description>
+				The default scenes the game mode declares, readable on [i]every[/i] peer. On a server this is the game mode itself; on a client it is an instance deliberately never added to the tree, because both sides have to agree on what a player is built from even though only one side runs the rules.
 			</description>
 		</method>
 		<method name="get_game_state" qualifiers="const">
 			<return type="GameStateBase" />
 			<description>
+				What every peer is allowed to know about the match, including the player list. Unlike the game mode, this exists on clients too.
 			</description>
 		</method>
 		<method name="get_input_router" qualifiers="const">
 			<return type="InputRouter" />
 			<description>
+				The node that hands each raw input event to whichever local player owns the device it came from. Built once and never freed with a level.
 			</description>
 		</method>
 		<method name="get_level" qualifiers="const">
 			<return type="Level" />
 			<description>
+				The level currently running.
 			</description>
 		</method>
 		<method name="get_local_peer_id" qualifiers="const">
 			<return type="int" />
 			<description>
+				This peer's id. [constant SERVER_PEER_ID] on a server, and in a game with no peer.
 			</description>
 		</method>
 		<method name="get_local_player" qualifiers="const">
 			<return type="LocalPlayer" />
 			<param index="0" name="index" type="int" />
 			<description>
+				The human at [param index] - 0 is player one.
 			</description>
 		</method>
 		<method name="get_local_player_count" qualifiers="const">
 			<return type="int" />
 			<description>
+				How many humans are at this machine.
 			</description>
 		</method>
 		<method name="get_local_role_for" qualifiers="const">
 			<return type="int" enum="World.NetRole" />
 			<param index="0" name="node" type="Node" />
 			<description>
+				What this peer may do with [param node]. [b]Authority is not ownership[/b] - the server has authority over every pawn, including one a client owns.
 			</description>
 		</method>
 		<method name="get_net_driver" qualifiers="const">
 			<return type="NetDriver" />
 			<description>
+				Connections, travel, and the mirroring of everything the server creates. It sits at [code]/root/NetDriver[/code] on every peer, because that is the address remote calls are sent to.
 			</description>
 		</method>
 		<method name="get_net_mode" qualifiers="const">
 			<return type="int" enum="World.NetMode" />
 			<description>
+				How this process takes part in the session, decided entirely by which of [method host_game], [method create_dedicated_server] and [method join_game] was called.
 			</description>
 		</method>
 		<method name="get_net_owner_peer" qualifiers="const">
 			<return type="int" />
 			<param index="0" name="node" type="Node" />
 			<description>
+				Which connection [param node] answers to, found by walking up the ownership chain: a pawn is owned by its controller, and a player controller by the peer it was created for. A remote call arriving from any other peer is dropped.
 			</description>
 		</method>
 		<method name="get_pawn_container" qualifiers="const">
 			<return type="Node" />
 			<description>
+				The fixed parent of every spawned pawn, at [code]/root/Pawns[/code], for the same reason as [method get_players_container].
 			</description>
 		</method>
 		<method name="get_player_controller_at" qualifiers="const">
 			<return type="PlayerController" />
 			<param index="0" name="index" type="int" />
 			<description>
+				The player controller at [param index], or null.
 			</description>
 		</method>
 		<method name="get_player_controller_count" qualifiers="const">
 			<return type="int" />
 			<description>
+				How many player controllers this peer holds.
 			</description>
 		</method>
 		<method name="get_player_controllers" qualifiers="const">
 			<return type="Array" />
 			<description>
+				Every player controller. On a server that is all of them; on a client it is only its own.
 			</description>
 		</method>
 		<method name="get_players_container" qualifiers="const">
 			<return type="Node" />
 			<description>
+				The fixed parent of every [PlayerController], at [code]/root/Players[/code]. Controllers hang off it rather than off the level so their node path is the same on every peer no matter what the level scene is called.
 			</description>
 		</method>
 		<method name="get_remote_role_for" qualifiers="const">
 			<return type="int" enum="World.NetRole" />
 			<param index="0" name="node" type="Node" />
 			<description>
+				The other side's view of [param node] - the mirror image of [method get_local_role_for].
 			</description>
 		</method>
 		<method name="has_authority" qualifiers="const">
 			<return type="bool" />
 			<description>
+				True in every mode but client - [b]including with no peer at all[/b], which is what makes a rule written for a server also correct in a game that never touches the network. Write [code]if not has_authority(): return[/code] and the single-player build takes the same path.
 			</description>
 		</method>
 		<method name="host_game">
@@ -165,26 +193,31 @@
 			<param index="0" name="port" type="int" />
 			<param index="1" name="max_players" type="int" default="32" />
 			<description>
+				Hosts on this machine and keeps playing on it, becoming a [constant NET_MODE_LISTEN_SERVER].
 			</description>
 		</method>
 		<method name="is_client" qualifiers="const">
 			<return type="bool" />
 			<description>
+				Whether this process connected to somebody else's server.
 			</description>
 		</method>
 		<method name="is_dedicated_server" qualifiers="const">
 			<return type="bool" />
 			<description>
+				Whether this is a server with no player of its own.
 			</description>
 		</method>
 		<method name="is_listen_server" qualifiers="const">
 			<return type="bool" />
 			<description>
+				Whether this is a server somebody is playing on.
 			</description>
 		</method>
 		<method name="is_networked" qualifiers="const">
 			<return type="bool" />
 			<description>
+				Whether there is a peer at all.
 			</description>
 		</method>
 		<method name="join_game">
@@ -192,91 +225,113 @@
 			<param index="0" name="address" type="String" />
 			<param index="1" name="port" type="int" />
 			<description>
+				Connects to a server, becoming a [constant NET_MODE_CLIENT]. The level to load arrives from the server, so nothing changes locally until it does.
 			</description>
 		</method>
 		<method name="load_level">
 			<return type="void" />
 			<param index="0" name="resource_path" type="String" />
 			<description>
+				Tears the current level down and builds [param resource_path] here only, with no travel. The travel paths use it once they have agreed on what to load.
 			</description>
 		</method>
 		<method name="open_level">
 			<return type="void" />
 			<param index="0" name="resource_path" type="String" />
 			<description>
+				Changes level. On a server this forwards to [method server_travel]; a client cannot change level on its own and is told so.
 			</description>
 		</method>
 		<method name="register_controller">
 			<return type="void" />
 			<param index="0" name="controller" type="Controller" />
 			<description>
+				Adds a controller to the world's lists. [Controller] does this from [code]_enter_tree[/code], which also catches controllers a designer placed in a level by hand. Idempotent. [b]A subclass overriding [code]_enter_tree[/code] must call the base implementation[/b], or its controller silently never appears in any list.
 			</description>
 		</method>
 		<method name="server_travel">
 			<return type="void" />
 			<param index="0" name="resource_path" type="String" />
 			<description>
+				Loads [param resource_path] on the server and takes every connected client along: each is told to load, reports back, and is only then handed the world as it stands and logged in. [b]That is why a late join and a level change are the same case[/b], and why nothing is ever sent to a peer that could not receive it.
 			</description>
 		</method>
 		<method name="unregister_controller">
 			<return type="void" />
 			<param index="0" name="controller" type="Controller" />
 			<description>
+				Takes a controller out again, from [code]_exit_tree[/code] - which always runs before the node is deleted, so the lists can never hold a freed controller.
 			</description>
 		</method>
 	</methods>
 	<signals>
 		<signal name="connected_to_server">
 			<description>
+				This client reached the server. The level to load follows.
 			</description>
 		</signal>
 		<signal name="connection_failed">
 			<description>
+				This client could not reach the server.
 			</description>
 		</signal>
 		<signal name="level_loaded">
 			<param index="0" name="level" type="Object" />
 			<description>
+				A level finished building, on this peer.
 			</description>
 		</signal>
 		<signal name="net_mode_changed">
 			<param index="0" name="net_mode" type="int" />
 			<description>
+				The session role changed - hosting started, a connection was made or lost.
 			</description>
 		</signal>
 		<signal name="peer_connected">
 			<param index="0" name="peer_id" type="int" />
 			<description>
+				A peer connected. Server side; it is not yet ready to receive the world.
 			</description>
 		</signal>
 		<signal name="peer_disconnected">
 			<param index="0" name="peer_id" type="int" />
 			<description>
+				A peer went away.
 			</description>
 		</signal>
 		<signal name="server_disconnected">
 			<description>
+				The server went away.
 			</description>
 		</signal>
 	</signals>
 	<constants>
 		<constant name="NET_MODE_STANDALONE" value="0" enum="NetMode">
+			No peer at all. [method has_authority] is still true, so server rules run unchanged.
 		</constant>
 		<constant name="NET_MODE_DEDICATED_SERVER" value="1" enum="NetMode">
+			A server with no player of its own.
 		</constant>
 		<constant name="NET_MODE_LISTEN_SERVER" value="2" enum="NetMode">
+			A server somebody is playing on.
 		</constant>
 		<constant name="NET_MODE_CLIENT" value="3" enum="NetMode">
+			Connected to somebody else's server. The only mode where [method has_authority] is false.
 		</constant>
 		<constant name="ROLE_NONE" value="0" enum="NetRole">
+			No role - the node takes no part in replication.
 		</constant>
 		<constant name="ROLE_SIMULATED_PROXY" value="1" enum="NetRole">
+			Somebody else's copy, which only receives updates.
 		</constant>
 		<constant name="ROLE_AUTONOMOUS_PROXY" value="2" enum="NetRole">
+			The copy belonging to the human driving it, which may send input for it.
 		</constant>
 		<constant name="ROLE_AUTHORITY" value="3" enum="NetRole">
+			The copy that decides. Everything on the server, and everything in a standalone game.
 		</constant>
 		<constant name="SERVER_PEER_ID" value="1">
+			The peer id a server always has, and the id a game with no peer reports.
 		</constant>
 	</constants>
 </class>

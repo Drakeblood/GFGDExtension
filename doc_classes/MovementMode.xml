@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="MovementMode" inherits="Resource" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		One way of moving: walking, falling, or whatever a game invents.
+	</brief_description>
+	<description>
+		A [Resource] rather than a [Node], so a mode can be authored inline in the inspector, shared between pawns, and written in GDScript without touching this extension. Register one by putting it in [member CharacterMovementComponent.modes] under the name modes will refer to it by.
+		The two halves are deliberately separate. [method _generate_move] proposes motion: it is side effect free, touches nothing, and can therefore be blended with other proposals - which is what will make a dash on top of a walk possible without the walking code ever hearing about dashes. [method _simulation_tick] executes it: sweeps, resolves collisions, writes the state.
+		Unreal's CharacterMovementComponent fuses the two inside each of its physics functions, and that is precisely why layering anything on top of it is painful.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_generate_move" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="params" type="MovementTickParams" />
+			<description>
+				Fills [code]params.proposed_move[/code] with the motion this mode wants. The proposal object is reused between ticks, so write into it rather than returning a new one. Do not move anything here.
+			</description>
+		</method>
+		<method name="_simulation_tick" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="params" type="MovementTickParams" />
+			<description>
+				Carries out the proposal and writes [code]params.out_state[/code], which arrives holding a copy of the starting state - so a mode that returns without writing is correct rather than undefined.
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="transitions" type="Array" setter="set_transitions" getter="get_transitions" default="[]">
+			Rules for leaving this mode, authored beside it. Checked after the tick, in order, before [member CharacterMovementComponent.transitions].
+		</member>
+	</members>
+</class>

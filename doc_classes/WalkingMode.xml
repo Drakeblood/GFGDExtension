@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="WalkingMode" inherits="MovementMode" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Moving while there is walkable ground underneath.
+	</brief_description>
+	<description>
+		Velocity is kept flat against the floor plane rather than in world horizontal, which is what makes a slope feel like a slope instead of a series of small falls. Horizontal speed is maintained up a ramp, so a character climbing a thirty degree slope at [member CharacterMovementComponent.max_walk_speed] covers ground as fast as one on the flat and simply rises as well.
+		Losing the floor - walking off a ledge, or onto something steeper than [member CharacterMovementComponent.walkable_floor_angle] - hands over to [FallingMode]. Jumping does the same thing deliberately.
+	</description>
+	<tutorials>
+	</tutorials>
+</class>

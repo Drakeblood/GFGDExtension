@@ -5,7 +5,8 @@
 	</brief_description>
 	<description>
 		The main scene root must be a [Level] for the framework to find it, and so must anything opened with [method World.open_level] or [method World.server_travel]. Set [member game_mode_override] to run this level under different rules from the project default.
-		Pawns are placed at a [PlayerStart2D] or [PlayerStart3D] anywhere below it. They are parented to [code]/root/Pawns[/code] rather than to the level, so that their path is the same on every peer no matter what the level scene is called.
+		Pawns are placed at a [PlayerStart2D] or [PlayerStart3D] anywhere below it. They are parented to [code]/root/Pawns[/code] rather than to the level, so that their path is the same on every peer no matter what the level scene is called. [b]In 2D that also puts them behind the level in draw order[/b] - [code]Pawns[/code] is created before any level is loaded, so it comes earlier in root's child list and the level paints over it. Give the pawn scene root a [member CanvasItem.z_index] above what the level draws.
+		[b]This node and everything inside it are ready before the game mode exists.[/b] The order is: the level's [code]_enter_tree[/code]/[code]_ready[/code], then the game state, then [code]GameModeBase._init_game[/code] (which spawns and possesses), then [code]GameModeBase._ready[/code], and only then [method _init_level]. A child of the level asking for the game mode, a pawn or a controller from its own [code]_ready[/code] gets [code]null[/code] and no warning. Hand references out from [method _init_level], or have each node resolve what it needs on first use - which also survives a respawn.
 	</description>
 	<tutorials>
 	</tutorials>
@@ -14,11 +15,13 @@
 			<return type="void" />
 			<param index="0" name="world" type="World" />
 			<description>
+				Called after the game mode's [code]_ready[/code], so everything the framework builds - the game state, the players, their pawns - is live by the time this runs. This is where level-specific setup belongs; [code]_ready[/code] on the level itself runs first, before any of it exists.
 			</description>
 		</method>
 	</methods>
 	<members>
 		<member name="game_mode_override" type="PackedScene" setter="set_game_mode_override" getter="get_game_mode_override">
+			The game mode to run in this level, in place of [code]application/game_framework/default_game_mode[/code]. Its root must be a [GameModeBase]. It is a scene rather than a script so that the default scenes the game mode declares can be set on it in the inspector.
 		</member>
 	</members>
 </class>

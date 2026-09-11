@@ -13,22 +13,26 @@
 			<return type="int" />
 			<param index="0" name="data" type="Variant" />
 			<description>
+				Override to read back what [method _to_json] wrote. Return an [enum @GlobalScope.Error]. A save written by an older build is the normal case rather than the exception, so branch on a version you put in the payload yourself.
 			</description>
 		</method>
 		<method name="_to_json" qualifiers="virtual">
 			<return type="String" />
 			<description>
+				Override to serialize by hand instead of by reflection. Returning from this replaces the default entirely, so it is also how you keep a property out of the file.
 			</description>
 		</method>
 		<method name="from_json">
 			<return type="int" enum="Error" />
 			<param index="0" name="data" type="Variant" />
 			<description>
+				Reads [param data] back, assigning each key to the property of that name. Returns [constant @GlobalScope.ERR_INVALID_DATA] if [param data] is not a [Dictionary].
 			</description>
 		</method>
 		<method name="to_json">
 			<return type="String" />
 			<description>
+				Serializes to a JSON string. Without an override this writes [b]every script variable[/b], not only the [code]@export[/code]ed ones - a plain GDScript member carries no storage flag, and requiring one would serialize an empty object for every save class written in GDScript.
 			</description>
 		</method>
 	</methods>

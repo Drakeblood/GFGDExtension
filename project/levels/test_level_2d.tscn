@@ -1,0 +1,31 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://game_modes/demo_2d_game_mode.tscn" id="1_gm2d"]
+[ext_resource type="Script" path="res://scripts/demo_level_2d.gd" id="2_level2d"]
+
+[node name="TestLevel2D" type="Level"]
+script = ExtResource("2_level2d")
+game_mode_override = ExtResource("1_gm2d")
+
+[node name="Background" type="CanvasLayer" parent="."]
+layer = -1
+
+[node name="Colour" type="ColorRect" parent="Background"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.08, 0.09, 0.11, 1)
+
+[node name="PlayerStart" type="PlayerStart2D" parent="."]
+position = Vector2(100, -40)
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="HUD" type="Label" parent="UI"]
+offset_left = 16.0
+offset_top = 12.0
+offset_right = 760.0
+offset_bottom = 200.0
+text = "waiting for the pawn..."

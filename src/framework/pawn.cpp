@@ -164,6 +164,11 @@ int Pawn::get_owner_peer_id() const
 	return world != nullptr ? world->get_net_owner_peer(const_cast<Pawn*>(this)) : World::SERVER_PEER_ID;
 }
 
+void Pawn::gather_movement_input(double delta)
+{
+	GDVIRTUAL_CALL(_gather_movement_input, delta);
+}
+
 void Pawn::add_movement_input(const Vector3& world_direction, float scale)
 {
 	movement_input += world_direction * scale;
@@ -218,6 +223,9 @@ void Pawn::_bind_methods()
 
 	BIND_CONSTANT(AUTO_POSSESS_DISABLED);
 
+	ClassDB::bind_method(D_METHOD("gather_movement_input", "delta"), &Pawn::gather_movement_input);
+
+	GDVIRTUAL_BIND(_gather_movement_input, "delta");
 	GDVIRTUAL_BIND(_possessed, "controller");
 	GDVIRTUAL_BIND(_unpossessed);
 	GDVIRTUAL_BIND(_setup_input_component, "input_component");

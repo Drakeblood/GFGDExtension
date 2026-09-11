@@ -13,110 +13,131 @@
 		<method name="_activate_ability" qualifiers="virtual">
 			<return type="void" />
 			<description>
+				Override with what the ability actually does. [b]Call [method end_ability] when it is finished[/b] - nothing ends it for you.
 			</description>
 		</method>
 		<method name="_can_activate_ability" qualifiers="virtual">
 			<return type="bool" />
 			<description>
+				Override to add your own condition on top of the tag gates: enough stamina, a target in range, off cooldown. Return [code]false[/code] to refuse.
 			</description>
 		</method>
 		<method name="_end_ability" qualifiers="virtual">
 			<return type="void" />
 			<param index="0" name="was_canceled" type="bool" />
 			<description>
+				Override to clean up. [param was_canceled] is true when something interrupted the ability rather than it running to completion.
 			</description>
 		</method>
 		<method name="_input_pressed" qualifiers="virtual">
 			<return type="void" />
 			<description>
+				Override to react to the driving input going down while the ability is active - a charge starting, a held beam.
 			</description>
 		</method>
 		<method name="_input_released" qualifiers="virtual">
 			<return type="void" />
 			<description>
+				Override to react to the driving input coming up - releasing a charged shot, or ending a held ability.
 			</description>
 		</method>
 		<method name="_on_give_ability" qualifiers="virtual">
 			<return type="void" />
 			<description>
+				Override to set the ability up when it is granted - before it ever activates. Runs once per granted instance.
 			</description>
 		</method>
 		<method name="activate_ability">
 			<return type="void" />
 			<description>
+				Starts the ability: grants [member activation_owned_tags], cancels what [member cancel_abilities_with_tag] names, and calls [method _activate_ability]. It does [b]not[/b] re-check [method can_activate_ability], so call that first unless you mean to force it.
 			</description>
 		</method>
 		<method name="apply_effect_to_owner">
 			<return type="int" />
 			<param index="0" name="effect" type="GameplayEffect" />
 			<description>
+				Applies [param effect] to the component that owns this ability, returning the same handle as [method AbilitySystemComponent.apply_gameplay_effect_to_self]. This is how an ability spends a cost or applies its own buff.
 			</description>
 		</method>
 		<method name="can_activate_ability">
 			<return type="bool" />
 			<description>
+				Checks the tag gates - [member activation_required_tags], [member activation_blocked_tags], and whether another ability is blocking this one - and then [method _can_activate_ability]. Both have to pass.
 			</description>
 		</method>
 		<method name="end_ability">
 			<return type="void" />
 			<param index="0" name="was_canceled" type="bool" default="false" />
 			<description>
+				Ends the ability, releasing its owned tags and calling [method _end_ability]. Pass [code]true[/code] for [param was_canceled] when something interrupted it rather than it finishing. [b]An ability that never calls this stays active and keeps blocking.[/b]
 			</description>
 		</method>
 		<method name="get_ability_id" qualifiers="const">
 			<return type="int" />
 			<description>
+				This instance's id, unique across every ability granted this run. Granting the same template twice yields two instances with different ids.
 			</description>
 		</method>
 		<method name="get_ability_system_component" qualifiers="const">
 			<return type="AbilitySystemComponent" />
 			<description>
+				The component this ability was granted to.
 			</description>
 		</method>
 		<method name="get_id_counter" qualifiers="static">
 			<return type="int" />
 			<description>
+				The counter ids are drawn from. Exposed for tooling; a project has no reason to read it.
 			</description>
 		</method>
 		<method name="get_is_active" qualifiers="const">
 			<return type="bool" />
 			<description>
+				Whether the ability is running - between [method activate_ability] and [method end_ability].
 			</description>
 		</method>
 		<method name="get_is_input_pressed" qualifiers="const">
 			<return type="bool" />
 			<description>
+				Whether the input driving this ability is currently held. Maintained by [method input_pressed] and [method input_released].
 			</description>
 		</method>
 		<method name="get_source_object" qualifiers="const">
 			<return type="Variant" />
 			<description>
+				Whatever was passed to [method AbilitySystemComponent.give_ability] as the source - the weapon, item or actor that granted the ability. Null when nothing was given.
 			</description>
 		</method>
 		<method name="increment_id_counter" qualifiers="static">
 			<return type="void" />
 			<description>
+				Advances the id counter. Exposed for tooling; a project has no reason to call it.
 			</description>
 		</method>
 		<method name="input_pressed">
 			<return type="void" />
 			<description>
+				Tells the ability its input went down; calls [method _input_pressed].
 			</description>
 		</method>
 		<method name="input_released">
 			<return type="void" />
 			<description>
+				Tells the ability its input came up; calls [method _input_released].
 			</description>
 		</method>
 		<method name="on_give_ability">
 			<return type="void" />
 			<description>
+				Runs the grant-time hook. Called by [method AbilitySystemComponent.give_ability]; override [method _on_give_ability] instead of calling this.
 			</description>
 		</method>
 		<method name="set_is_input_pressed">
 			<return type="void" />
 			<param index="0" name="value" type="bool" />
 			<description>
+				Sets the held flag by hand. Normally [method input_pressed] and [method input_released] do this.
 			</description>
 		</method>
 		<method name="setup_ability">
@@ -124,31 +145,41 @@
 			<param index="0" name="ability_system_component" type="AbilitySystemComponent" />
 			<param index="1" name="source_object" type="Variant" default="null" />
 			<description>
+				Binds a freshly granted instance to its component and source. [method AbilitySystemComponent.give_ability] calls this; a project does not.
 			</description>
 		</method>
 	</methods>
 	<members>
 		<member name="ability_name" type="StringName" setter="set_ability_name" getter="get_ability_name" default="&amp;&quot;&quot;">
+			The name [method AbilitySystemComponent.try_activate_ability] looks this ability up by. It has to be unique within one component.
 		</member>
 		<member name="ability_tags" type="GameplayTagContainer" setter="set_ability_tags" getter="get_ability_tags">
+			What this ability [i]is[/i]. Other abilities and effects match against these - notably [member cancel_abilities_with_tag] and [member block_abilities_with_tag].
 		</member>
 		<member name="activation_blocked_tags" type="GameplayTagContainer" setter="set_activation_blocked_tags" getter="get_activation_blocked_tags">
+			The owner must hold none of these for the ability to activate.
 		</member>
 		<member name="activation_owned_tags" type="GameplayTagContainer" setter="set_activation_owned_tags" getter="get_activation_owned_tags">
+			Tags the owner holds for as long as this ability is active. Reference counted, so another source granting the same tag keeps it alive after this ability ends.
 		</member>
 		<member name="activation_required_tags" type="GameplayTagContainer" setter="set_activation_required_tags" getter="get_activation_required_tags">
+			The owner must hold every one of these for the ability to activate.
 		</member>
 		<member name="block_abilities_with_tag" type="GameplayTagContainer" setter="set_block_abilities_with_tag" getter="get_block_abilities_with_tag">
+			While this ability is active, abilities whose [member ability_tags] match cannot start.
 		</member>
 		<member name="cancel_abilities_with_tag" type="GameplayTagContainer" setter="set_cancel_abilities_with_tag" getter="get_cancel_abilities_with_tag">
+			Activating this ability cancels every active ability whose [member ability_tags] match.
 		</member>
 		<member name="input_action_name" type="StringName" setter="set_input_action_name" getter="get_input_action_name" default="&amp;&quot;&quot;">
+			The input action [method AbilitySystemComponent.ability_local_input_pressed] routes to this ability. Bind the action on the [Pawn] and forward it; the ability never reads input itself.
 		</member>
 	</members>
 	<signals>
 		<signal name="ability_ended">
 			<param index="0" name="was_canceled" type="bool" />
 			<description>
+				Emitted when the ability ends, however it ended.
 			</description>
 		</signal>
 	</signals>

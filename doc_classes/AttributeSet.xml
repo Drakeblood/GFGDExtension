@@ -7,6 +7,8 @@
 		Base values are authored in the editor as a name to value dictionary; current values are derived at runtime from the base plus every active modifier.
 		The formula is [code](base + sum of ADD) * product of MULTIPLY[/code], and a single [code]OVERRIDE[/code] wins over all of it.
 		Override [code]_pre_attribute_change[/code] to clamp a value before it is written, and [code]_post_attribute_change[/code] to react after it is. From C#, connect to the signals instead - C# cannot inherit GDExtension classes.
+		[b]A [code].tres[/code] holding a subclass of this must declare that type in its header[/b] - [code][lb]gd_resource type="AttributeSet" script_class="MyAttributes" ...[rb][/code], not [code]type="Resource"[/code]. Godot will not attach a script whose base is a GDExtension class to a resource declared as something else; the file then loads as a plain [Resource] with no script and no attributes, silently. The editor writes the correct header itself, so this only bites a hand-written or hand-edited file.
+		[b]Attributes do not exist until [AbilitySystemComponent] is ready[/b], which is when it duplicates this template and calls [method init_current_from_base]. Anything whose [code]_ready[/code] runs earlier - a sibling, a child of the pawn root, a HUD - reads [code]0.0[/code] with no warning. Read attributes at the point of use, and choose a fallback that means "not configured" rather than one that means "do nothing": for a multiplier that is [code]1.0[/code], never [code]0.0[/code].
 	</description>
 	<tutorials>
 	</tutorials>
@@ -17,6 +19,7 @@
 			<param index="1" name="old_value" type="float" />
 			<param index="2" name="new_value" type="float" />
 			<description>
+				Override to react to a change that has already been written - death at zero health, a derived stat that follows another. From C#, connect to [signal attribute_changed] instead: a GDExtension virtual cannot be overridden there.
 			</description>
 		</method>
 		<method name="_pre_attribute_change" qualifiers="virtual">
@@ -24,6 +27,7 @@
 			<param index="0" name="attribute_name" type="StringName" />
 			<param index="1" name="new_value" type="float" />
 			<description>
+				Override to clamp. [b]Return the value to actually store[/b] - this is the hook where [code]health[/code] gets held between zero and [code]max_health[/code]. Called before the change is written, so [method get_current_value] still reads the old one.
 			</description>
 		</method>
 		<method name="define_attribute">
@@ -31,34 +35,40 @@
 			<param index="0" name="attribute_name" type="StringName" />
 			<param index="1" name="base_value" type="float" />
 			<description>
+				Declares [param attribute_name] with [param base_value]. Use it to build a set from code; authored sets fill [member attributes] in the inspector instead.
 			</description>
 		</method>
 		<method name="get_attribute_names" qualifiers="const">
 			<return type="PackedStringArray" />
 			<description>
+				Every defined attribute name.
 			</description>
 		</method>
 		<method name="get_base_value" qualifiers="const">
 			<return type="float" />
 			<param index="0" name="attribute_name" type="StringName" />
 			<description>
+				The authored value, before any modifier.
 			</description>
 		</method>
 		<method name="get_current_value" qualifiers="const">
 			<return type="float" />
 			<param index="0" name="attribute_name" type="StringName" />
 			<description>
+				The value after modifiers: [code](base + sum of ADD) * product of MULTIPLY[/code], with a single [constant AttributeModifier.OVERRIDE] beating all of it. Falls back to the base value until [method init_current_from_base] has run.
 			</description>
 		</method>
 		<method name="has_attribute" qualifiers="const">
 			<return type="bool" />
 			<param index="0" name="attribute_name" type="StringName" />
 			<description>
+				Whether [param attribute_name] is defined. An undefined attribute reads as [code]0.0[/code] rather than failing, so check this when zero is a meaningful value.
 			</description>
 		</method>
 		<method name="init_current_from_base">
 			<return type="void" />
 			<description>
+				Resets every current value to its base, discarding what modifiers had computed.
 			</description>
 		</method>
 		<method name="set_base_value">
@@ -66,6 +76,7 @@
 			<param index="0" name="attribute_name" type="StringName" />
 			<param index="1" name="value" type="float" />
 			<description>
+				Sets the authored value and emits [signal base_value_changed]. This is the one a permanent change writes to - a level-up, a purchased upgrade - while temporary changes belong in a [GameplayEffect].
 			</description>
 		</method>
 		<method name="set_current_value">
@@ -73,11 +84,13 @@
 			<param index="0" name="attribute_name" type="StringName" />
 			<param index="1" name="value" type="float" />
 			<description>
+				Writes the derived value, passing it through [method _pre_attribute_change] first, then emitting [signal attribute_changed] and calling [method _post_attribute_change]. Setting it to what it already holds does nothing.
 			</description>
 		</method>
 	</methods>
 	<members>
 		<member name="attributes" type="Dictionary[StringName, float]" setter="set_attributes" getter="get_attributes" default="{}">
+			The authored base values, as name to number. This is the template on disk: [AbilitySystemComponent] duplicates the set at runtime, so play never mutates the resource.
 		</member>
 	</members>
 	<signals>
@@ -86,6 +99,7 @@
 			<param index="1" name="old_value" type="float" />
 			<param index="2" name="new_value" type="float" />
 			<description>
+				A current value changed, after modifiers. This is what UI should listen to.
 			</description>
 		</signal>
 		<signal name="base_value_changed">
@@ -93,6 +107,7 @@
 			<param index="1" name="old_value" type="float" />
 			<param index="2" name="new_value" type="float" />
 			<description>
+				An authored value changed. Fires for a permanent change, not for a [GameplayEffect] modifying the current value.
 			</description>
 		</signal>
 	</signals>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="FallingMode" inherits="MovementMode" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		In the air, under gravity, with whatever steering the game allows.
+	</brief_description>
+	<description>
+		Sideways and vertical are solved separately, because they answer to different things: sideways is steering under [member CharacterMovementComponent.air_control], vertical is gravity and nothing else.
+		[member CharacterMovementComponent.air_control] is a fraction of the ground acceleration rather than a speed of its own, so a character that accelerates hard on the ground also turns harder in the air - usually what a designer means, and one number to tune instead of two that drift apart.
+		Landing hands back to [WalkingMode], but only while descending: clipping the top of a ramp on the way up is a graze, and treating it as a landing would cut a jump short.
+	</description>
+	<tutorials>
+	</tutorials>
+</class>

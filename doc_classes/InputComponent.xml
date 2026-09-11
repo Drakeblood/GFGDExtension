@@ -16,12 +16,14 @@
 			<param index="1" name="trigger_event" type="int" enum="InputComponent.TriggerEvent" />
 			<param index="2" name="action" type="Callable" />
 			<description>
+				Calls [param action] whenever [param action_name] reaches [param trigger_event]. Bind from [method Pawn._setup_input_component], which runs [b]on possession[/b] - binding from [code]_ready[/code] is too early and will not fire.
 			</description>
 		</method>
 		<method name="get_action_strength" qualifiers="const">
 			<return type="float" />
 			<param index="0" name="action_name" type="StringName" />
 			<description>
+				The action's analogue value for the owning player, between 0 and 1.
 			</description>
 		</method>
 		<method name="get_axis" qualifiers="const">
@@ -29,11 +31,13 @@
 			<param index="0" name="negative_action" type="StringName" />
 			<param index="1" name="positive_action" type="StringName" />
 			<description>
+				The difference between two actions' strengths, as [method Input.get_axis] would give it - but scoped to the owning player.
 			</description>
 		</method>
 		<method name="get_owning_controller" qualifiers="const">
 			<return type="PlayerController" />
 			<description>
+				The controller this component was registered with. Null while unregistered, in which case every query falls back to the global [Input] singleton - the pre-local-multiplayer behaviour.
 			</description>
 		</method>
 		<method name="get_player_input" qualifiers="const">
@@ -57,23 +61,27 @@
 			<return type="bool" />
 			<param index="0" name="action_name" type="StringName" />
 			<description>
+				Whether the owning player pressed [param action_name] this frame.
 			</description>
 		</method>
 		<method name="is_action_just_released" qualifiers="const">
 			<return type="bool" />
 			<param index="0" name="action_name" type="StringName" />
 			<description>
+				Whether the owning player released [param action_name] this frame.
 			</description>
 		</method>
 		<method name="is_action_pressed" qualifiers="const">
 			<return type="bool" />
 			<param index="0" name="action_name" type="StringName" />
 			<description>
+				Whether the owning player is holding [param action_name]. Use this rather than [method Input.is_action_pressed], which merges every device and would move both pawns in a two-player game.
 			</description>
 		</method>
 		<method name="remove_all_bindings">
 			<return type="void" />
 			<description>
+				Drops every binding on this component.
 			</description>
 		</method>
 		<method name="remove_binding">
@@ -82,25 +90,31 @@
 			<param index="1" name="trigger_event" type="int" enum="InputComponent.TriggerEvent" />
 			<param index="2" name="action" type="Callable" />
 			<description>
+				Removes one binding. All three arguments have to match what [method bind_action] was given.
 			</description>
 		</method>
 		<method name="set_owning_controller">
 			<return type="void" />
 			<param index="0" name="value" type="PlayerController" />
 			<description>
+				Sets which controller this component listens through. [PlayerController] does this on possession; a project does not.
 			</description>
 		</method>
 	</methods>
 	<members>
 		<member name="enabled" type="bool" setter="set_enabled" getter="get_enabled" default="true">
+			While false the component fires no bindings and every query reads as unpressed. This is the gate for input that should stop during a pause or while a [LineEdit] has focus - the [InputRouter] itself never stops routing.
 		</member>
 	</members>
 	<constants>
 		<constant name="TRIGGERED" value="0" enum="TriggerEvent">
+			Fired every frame while the action is held.
 		</constant>
 		<constant name="STARTED" value="1" enum="TriggerEvent">
+			Fired once when the action is pressed.
 		</constant>
 		<constant name="COMPLETED" value="2" enum="TriggerEvent">
+			Fired once when the action is released.
 		</constant>
 	</constants>
 </class>

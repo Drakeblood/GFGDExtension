@@ -13,94 +13,112 @@
 		<method name="_get_replicated_properties" qualifiers="virtual">
 			<return type="PackedStringArray" />
 			<description>
+				Override to add your own properties to what is kept in step across peers. Return their names; the framework attaches the synchronizer, so a project places no [MultiplayerSynchronizer] of its own.
 			</description>
 		</method>
 		<method name="_init_game_state" qualifiers="virtual">
 			<return type="void" />
 			<param index="0" name="world" type="World" />
 			<description>
+				Override for setup that every peer needs - unlike a game mode's, this hook runs on clients too.
 			</description>
 		</method>
 		<method name="add_player_state">
 			<return type="void" />
 			<param index="0" name="player_state" type="PlayerState" />
 			<description>
+				Reparents [param player_state] under this node and adds it to the list. The framework does this as players log in.
 			</description>
 		</method>
 		<method name="get_player_array" qualifiers="const">
 			<return type="Array" />
 			<description>
+				Every player in the match, as seen from this peer. This is what a scoreboard reads - it lists players at other machines too, which is exactly why player data lives here and not on the controller.
 			</description>
 		</method>
 		<method name="get_player_count" qualifiers="const">
 			<return type="int" />
 			<description>
+				How many players are in the match.
 			</description>
 		</method>
 		<method name="get_player_state_by_index" qualifiers="const">
 			<return type="PlayerState" />
 			<param index="0" name="player_index" type="int" />
 			<description>
+				The player at [param player_index] in the list, or null.
 			</description>
 		</method>
 		<method name="get_player_state_by_player_id" qualifiers="const">
 			<return type="PlayerState" />
 			<param index="0" name="player_id" type="int" />
 			<description>
+				The player with the server-assigned [param player_id], or null.
 			</description>
 		</method>
 		<method name="get_player_state_by_unique_id" qualifiers="const">
 			<return type="PlayerState" />
 			<param index="0" name="unique_id" type="int" />
 			<description>
+				The players on connection [param unique_id]. The server is [constant World.SERVER_PEER_ID], which is also what a game with no peer reports.
 			</description>
 		</method>
 		<method name="get_server_world_time_seconds" qualifiers="const">
 			<return type="float" />
 			<description>
+				The server's clock as this peer best knows it: measured directly on the server, carried forward from the last update on a client. Use it for anything that has to mean the same thing on both sides.
 			</description>
 		</method>
 		<method name="get_world" qualifiers="const">
 			<return type="World" />
 			<description>
+				The world this game state belongs to.
 			</description>
 		</method>
 		<method name="handle_begin_play">
 			<return type="void" />
 			<description>
+				Marks the match as running. The game mode calls this once the level is up and players may join.
 			</description>
 		</method>
 		<method name="has_authority" qualifiers="const">
 			<return type="bool" />
 			<description>
+				True on the server, and in a game with no peer at all.
 			</description>
 		</method>
 		<method name="remove_player_state">
 			<return type="void" />
 			<param index="0" name="player_state" type="PlayerState" />
 			<description>
+				Takes a player out of the list, on logout.
 			</description>
 		</method>
 	</methods>
 	<members>
 		<member name="has_begun_play" type="bool" setter="set_has_begun_play" getter="get_has_begun_play" default="false">
+			Set once the game mode has started the level. Clients read it to know the match is really running rather than still being built.
 		</member>
 		<member name="server_world_time" type="float" setter="set_server_world_time" getter="get_server_world_time" default="0.0">
+			The server's clock, so every peer can agree on when something happened. Read it through [method get_server_world_time_seconds], which carries it forward between updates on a client.
 		</member>
 	</members>
 	<signals>
 		<signal name="begun_play">
 			<description>
+				The match started - [member has_begun_play] turned true. Fires on every peer, which is what makes it usable for client-side UI.
 			</description>
 		</signal>
 		<signal name="player_state_added">
 			<param index="0" name="player_state" type="Object" />
 			<description>
+				A player joined the match.
 			</description>
 		</signal>
 		<signal name="player_state_removed">
 			<param index="0" name="player_state" type="Object" />
 			<description>
+				A player left.
 			</description>
 		</signal>
 	</signals>

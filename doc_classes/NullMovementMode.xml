@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="NullMovementMode" inherits="MovementMode" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		The mode that is active when nothing else is.
+	</brief_description>
+	<description>
+		Proposes nothing and moves nothing. It exists so that there is always an active mode and no caller has to handle its absence.
+	</description>
+	<tutorials>
+	</tutorials>
+</class>

@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/coop_pawn.gd" id="1_pawn"]
 [ext_resource type="AttributeSet" uid="uid://b813xtrmo2duf" path="res://resources/demo_attributes.tres" id="2_attrs"]
@@ -10,14 +10,20 @@ size = Vector3(1, 2, 1)
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_pawn"]
 albedo_color = Color(0.35, 0.6, 0.9, 1)
 
-[node name="CoopPlayerPawn" type="Node3D"]
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_pawn"]
+
+[node name="CoopPlayerPawn" type="CharacterBody3D"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("CapsuleShape3D_pawn")
 
 [node name="Pawn" type="Pawn" parent="."]
 camera_path = NodePath("../Camera")
 script = ExtResource("1_pawn")
 
+[node name="CharacterMovementComponent" type="CharacterMovementComponent" parent="."]
+
 [node name="Mesh" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 mesh = SubResource("BoxMesh_pawn")
 surface_material_override/0 = SubResource("StandardMaterial3D_pawn")
 

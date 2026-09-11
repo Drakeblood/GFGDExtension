@@ -15,83 +15,99 @@
 		<method name="destroy_singleton" qualifiers="static">
 			<return type="void" />
 			<description>
+				Tears the manager down. The extension calls this on unload; a project has no reason to.
 			</description>
 		</method>
 		<method name="get_all_tag_names" qualifiers="const">
 			<return type="PackedStringArray" />
 			<description>
+				Every registered name, from every source.
 			</description>
 		</method>
 		<method name="get_loaded_table_paths" qualifiers="const">
 			<return type="PackedStringArray" />
 			<description>
+				The tables currently merged, in the order they were listed in [code]application/game_framework/gameplay_tag_tables[/code].
 			</description>
 		</method>
 		<method name="get_separated_tag">
 			<return type="GameplayTag[]" />
 			<param index="0" name="tag" type="GameplayTag" />
 			<description>
+				Splits [param tag] into the chain of tags leading to it: [code]A.B.C[/code] yields [code]A[/code], [code]A.B[/code], [code]A.B.C[/code].
 			</description>
 		</method>
 		<method name="get_singleton" qualifiers="static">
 			<return type="GameplayTagsManager" />
 			<description>
+				The manager, created on first use. It is not an autoload and does not appear in the scene tree.
 			</description>
 		</method>
 		<method name="get_tag" qualifiers="const">
 			<return type="GameplayTag" />
 			<param index="0" name="tag_name" type="StringName" />
 			<description>
+				The canonical tag for [param tag_name], or null if nothing registered it. Use this when a miss should stay a miss.
 			</description>
 		</method>
 		<method name="get_tag_description" qualifiers="const">
 			<return type="String" />
 			<param index="0" name="tag_name" type="StringName" />
 			<description>
+				The description [param tag_name] was declared with, or an empty string.
 			</description>
 		</method>
 		<method name="get_tag_source_kind" qualifiers="const">
 			<return type="int" enum="GameplayTagsManager.TagSourceKind" />
 			<param index="0" name="tag_name" type="StringName" />
 			<description>
+				Where [param tag_name] came from. [constant TAG_SOURCE_RUNTIME] is how you find typos.
 			</description>
 		</method>
 		<method name="get_tag_source_path" qualifiers="const">
 			<return type="String" />
 			<param index="0" name="tag_name" type="StringName" />
 			<description>
+				The [GameplayTagTable] that declares [param tag_name], or an empty string for an implicit or runtime tag, which no single table owns.
 			</description>
 		</method>
 		<method name="has_tag" qualifiers="const">
 			<return type="bool" />
 			<param index="0" name="tag_name" type="StringName" />
 			<description>
+				Whether [param tag_name] is known - declared by a table, implied as an ancestor, or conjured at runtime.
 			</description>
 		</method>
 		<method name="initialize_tags">
 			<return type="void" />
 			<description>
+				Rebuilds the whole lookup from the project setting. Safe to call again at any time: tag instances that survive the rebuild are reused, so references already handed out keep pointing at the canonical tag. [World] calls this before it creates the [GameInstance], so tags are resolvable from [method GameInstance._on_init] onward.
 			</description>
 		</method>
 		<method name="is_valid_tag_name" qualifiers="static">
 			<return type="bool" />
 			<param index="0" name="tag_name" type="String" />
 			<description>
+				The rule the table loader applies, exposed so the editor can reject a bad name at authoring time instead of silently dropping it on the next load.
 			</description>
 		</method>
 		<method name="request_tag">
 			<return type="GameplayTag" />
 			<param index="0" name="tag_name" type="StringName" />
 			<description>
+				The canonical tag for [param tag_name], [b]registering it if nothing declared it[/b]. It never returns null for a well-formed name: an asset that outlived its table still yields a usable tag instead of a null, at the cost of turning a typo into a real tag. Such tags report [constant TAG_SOURCE_RUNTIME] and the editor pickers show them in red.
 			</description>
 		</method>
 	</methods>
 	<constants>
 		<constant name="TAG_SOURCE_TABLE" value="0" enum="TagSourceKind">
+			Declared in a [GameplayTagTable]; [method get_tag_source_path] names the table.
 		</constant>
 		<constant name="TAG_SOURCE_IMPLICIT" value="1" enum="TagSourceKind">
+			An ancestor implied by a longer declared tag - [code]A.B[/code] registered because some table declares [code]A.B.C[/code]. Owned by no single table, since several may imply the same ancestor.
 		</constant>
 		<constant name="TAG_SOURCE_RUNTIME" value="2" enum="TagSourceKind">
+			Conjured on demand by [method request_tag] because nothing declared it - usually a typo, or a name left behind by a deleted table entry.
 		</constant>
 	</constants>
 </class>

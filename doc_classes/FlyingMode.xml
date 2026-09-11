@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="FlyingMode" inherits="MovementMode" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Moving freely in three dimensions, with no gravity and no floor.
+	</brief_description>
+	<description>
+		Unlike [WalkingMode], the input is not flattened against anything: whatever direction the pawn asked for is the direction it accelerates in, capped by [member CharacterMovementComponent.max_fly_speed].
+		Nothing here decides when to stop flying. A flying character that finds ground under it has not landed - something else has to say so, which is what a [MovementModeTransition] is for.
+	</description>
+	<tutorials>
+	</tutorials>
+</class>

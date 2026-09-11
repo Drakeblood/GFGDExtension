@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="ProposedMove" inherits="RefCounted" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		What a movement mode asks for, before anything has been swept or resolved.
+	</brief_description>
+	<description>
+		The split between proposing a move and executing it is the reason this type exists. A proposal is side effect free, so proposals can be blended - which is what makes a dash on top of a walk possible without the walking code knowing about dashes. Fusing the two, which is what a single do-the-movement method would be, forecloses that permanently.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="reset">
+			<return type="void" />
+			<description>
+				Clears every field back to its default.
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="angular_velocity_deg" type="Vector3" setter="set_angular_velocity_deg" getter="get_angular_velocity_deg" default="Vector3(0, 0, 0)">
+			The turn this mode wants, in degrees per second.
+		</member>
+		<member name="direction_intent" type="Vector3" setter="set_direction_intent" getter="get_direction_intent" default="Vector3(0, 0, 0)">
+			Which way the player asked to go, before any speed was worked out.
+		</member>
+		<member name="has_dir_intent" type="bool" setter="set_has_dir_intent" getter="get_has_dir_intent" default="false">
+			Whether [member direction_intent] means anything this tick.
+		</member>
+		<member name="linear_velocity" type="Vector3" setter="set_linear_velocity" getter="get_linear_velocity" default="Vector3(0, 0, 0)">
+			The velocity this mode wants, in metres per second.
+		</member>
+		<member name="mix_mode" type="int" setter="set_mix_mode" getter="get_mix_mode" enum="ProposedMove.MixMode" default="1">
+			How this proposal combines with others. Only [constant OVERRIDE_VELOCITY] is acted on while a mode is the only thing proposing; the rest describe the blend that layered moves will need.
+		</member>
+		<member name="preferred_mode" type="StringName" setter="set_preferred_mode" getter="get_preferred_mode" default="&amp;&quot;&quot;">
+			A mode this proposal would rather run in. Empty means no preference.
+		</member>
+	</members>
+	<constants>
+		<constant name="ADDITIVE_VELOCITY" value="0" enum="MixMode">
+			Add this velocity to whatever else was proposed.
+		</constant>
+		<constant name="OVERRIDE_VELOCITY" value="1" enum="MixMode">
+			Replace the proposed velocity, leaving rotation alone.
+		</constant>
+		<constant name="OVERRIDE_ALL" value="2" enum="MixMode">
+			Replace everything proposed so far.
+		</constant>
+		<constant name="OVERRIDE_ALL_EXCEPT_VERTICAL" value="3" enum="MixMode">
+			Replace everything except movement along the up direction, so gravity still applies.
+		</constant>
+	</constants>
+</class>

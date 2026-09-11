@@ -1,0 +1,27 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/demo_pawn_2d.gd" id="1_pawn2d"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_pawn2d"]
+radius = 16.0
+height = 64.0
+
+[node name="PlayerPawn2D" type="CharacterBody2D"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CapsuleShape2D_pawn2d")
+
+[node name="Visual" type="Polygon2D" parent="."]
+color = Color(0.8, 0.55, 0.3, 1)
+polygon = PackedVector2Array(-16, -32, 16, -32, 16, 32, -16, 32)
+
+[node name="Pawn" type="Pawn" parent="."]
+camera_path = NodePath("../Camera")
+script = ExtResource("1_pawn2d")
+
+[node name="CharacterMovementComponent2D" type="CharacterMovementComponent2D" parent="."]
+
+[node name="Camera" type="Camera2D" parent="."]
+zoom = Vector2(0.75, 0.75)
+position_smoothing_enabled = true
+position_smoothing_speed = 8.0

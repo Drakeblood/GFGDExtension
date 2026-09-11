@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="WaterVolume" inherits="Area3D" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		A body of water: put one anywhere a character should swim.
+	</brief_description>
+	<description>
+		An [Area3D], so its shape is authored the way any trigger volume is. Dropping one into a level is the whole of making a character swim, because [WaterMovementTransition] is registered by default.
+		The movement component does not connect to its signals - it asks the physics server which volume is at a point, every tick, from the transform it is simulating. See [method CharacterMovementComponent.find_water_volume_at] for why.
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="buoyancy" type="float" setter="set_buoyancy" getter="get_buoyancy" default="1.0">
+			How strongly the water cancels gravity. 1.0 is neutral: a submerged character neither sinks nor rises, and one at the surface sinks until it is under and then hangs there. Below 1 it sinks, above 1 it floats up.
+		</member>
+		<member name="monitoring" type="bool" setter="set_monitoring" getter="is_monitoring" overrides="Area3D" default="false" />
+		<member name="water_velocity" type="Vector3" setter="set_water_velocity" getter="get_water_velocity" default="Vector3(0, 0, 0)">
+			A current, in metres per second. Added to whatever the character is doing, so it drifts even while still.
+		</member>
+	</members>
+</class>

@@ -14,11 +14,13 @@
 			<return type="void" />
 			<param index="0" name="world" type="World" />
 			<description>
+				Override for application-lifetime setup: load the save, read settings, prepare state that has to survive a level change. Gameplay tags are already resolvable here - [World] builds [GameplayTagsManager] before it creates the instance.
 			</description>
 		</method>
 		<method name="_on_shutdown" qualifiers="virtual">
 			<return type="void" />
 			<description>
+				Override to tear that down. Called once, as the world goes away.
 			</description>
 		</method>
 		<method name="create_local_player">
@@ -40,27 +42,32 @@
 			<return type="LocalPlayer" />
 			<param index="0" name="device_slot" type="int" />
 			<description>
+				The human holding [param device_slot], or null if nobody does. Press-to-join uses this to tell a new device from one already claimed.
 			</description>
 		</method>
 		<method name="get_local_player" qualifiers="const">
 			<return type="LocalPlayer" />
 			<param index="0" name="index" type="int" />
 			<description>
+				The human at [param index] - 0 is player one. Returns null past the end.
 			</description>
 		</method>
 		<method name="get_local_player_count" qualifiers="const">
 			<return type="int" />
 			<description>
+				How many humans are at this machine.
 			</description>
 		</method>
 		<method name="get_local_players" qualifiers="const">
 			<return type="Array" />
 			<description>
+				Every human at this machine.
 			</description>
 		</method>
 		<method name="get_world" qualifiers="const">
 			<return type="World" />
 			<description>
+				The world this instance belongs to.
 			</description>
 		</method>
 		<method name="remove_local_player">
@@ -75,11 +82,13 @@
 		<signal name="local_player_added">
 			<param index="0" name="local_player" type="LocalPlayer" />
 			<description>
+				A human joined at this machine.
 			</description>
 		</signal>
 		<signal name="local_player_removed">
 			<param index="0" name="local_player" type="LocalPlayer" />
 			<description>
+				A human left.
 			</description>
 		</signal>
 	</signals>

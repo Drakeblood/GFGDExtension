@@ -108,6 +108,18 @@ public:
 
 	World* get_world() const;
 
+	// Called on the physics tick, immediately before the movement input is taken
+	// out. This is where add_movement_input belongs.
+	//
+	// Reading input from _process instead is not wrong, but it accumulates once
+	// per rendered frame while movement consumes once per physics frame, so the
+	// vector's length depends on how many frames happened to fit - which is what
+	// the clamp in CharacterMovementComponent exists to survive. Gathering here
+	// is exactly once per tick, so an analog stick keeps its magnitude and the
+	// clamp never has to do anything.
+	void gather_movement_input(double delta);
+
+	GDVIRTUAL1(_gather_movement_input, double)
 	GDVIRTUAL1(_possessed, Controller*)
 	GDVIRTUAL0(_unpossessed)
 	GDVIRTUAL1(_setup_input_component, InputComponent*)

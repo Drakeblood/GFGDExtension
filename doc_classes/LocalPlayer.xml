@@ -14,6 +14,7 @@
 			<return type="void" />
 			<param index="0" name="device_slot" type="int" />
 			<description>
+				Gives this player another device on top of the ones they hold - keyboard [i]and[/i] a pad is the normal setup for player one in a co-op game.
 			</description>
 		</method>
 		<method name="adopt_camera">
@@ -27,6 +28,7 @@
 		<method name="get_player_controller" qualifiers="const">
 			<return type="PlayerController" />
 			<description>
+				The controller representing this player in the current level, or null between levels - the controller dies with the level while this player does not.
 			</description>
 		</method>
 		<method name="get_player_input" qualifiers="const">
@@ -39,18 +41,21 @@
 			<return type="bool" />
 			<param index="0" name="device_slot" type="int" />
 			<description>
+				Whether this player owns [param device_slot].
 			</description>
 		</method>
 		<method name="remove_device_slot">
 			<return type="void" />
 			<param index="0" name="device_slot" type="int" />
 			<description>
+				Takes a device away from this player. Removing their last one leaves them holding nothing until a press-to-join hands them a device again.
 			</description>
 		</method>
 		<method name="set_player_controller">
 			<return type="void" />
 			<param index="0" name="value" type="PlayerController" />
 			<description>
+				Points this player at the controller representing them in the current level. The framework maintains this and clears it before the old level is freed; a project reads it rather than writes it.
 			</description>
 		</method>
 	</methods>
