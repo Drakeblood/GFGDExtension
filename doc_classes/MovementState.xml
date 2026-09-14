@@ -18,14 +18,16 @@
 		<method name="copy_from">
 			<return type="void" />
 			<param index="0" name="other" type="MovementState" />
+			<param index="1" name="deep_layered_moves" type="bool" default="false" />
 			<description>
-				Overwrites this state with another. [member extra] is deep copied, so the two do not end up sharing one [Dictionary].
+				Overwrites this state with another. [member extra] is deep copied, so the two do not end up sharing one [Dictionary]. The layered-move lists are new, but the moves in them are shared unless [param deep_layered_moves] is true - which only a prediction history needs, because a move's start time is per-instance and a replay restarting the live object would rewrite the history it replays from.
 			</description>
 		</method>
 		<method name="duplicate_state" qualifiers="const">
 			<return type="MovementState" />
+			<param index="0" name="deep_layered_moves" type="bool" default="false" />
 			<description>
-				An independent copy of this state.
+				An independent copy of this state. [param deep_layered_moves] duplicates every layered move as well, with [method LayeredMove.duplicate_move]; see [method copy_from].
 			</description>
 		</method>
 		<method name="get_active_layered_moves" qualifiers="const">
@@ -105,7 +107,7 @@
 			<param index="1" name="position_tolerance" type="float" default="0.05" />
 			<param index="2" name="velocity_tolerance" type="float" default="0.5" />
 			<description>
-				Whether a client holding this state would have to snap to [param authority_state] and replay. A mode change is never within tolerance, because the next tick would run different code and the divergence only grows. Nothing calls this yet; it is the decision a predicted client makes, and it belongs on the state because only the state knows which of its fields matter.
+				Whether a client holding this state would have to snap to [param authority_state] and replay: position or velocity further off than the tolerances, a different movement mode, or a different crouch. A mode change is never within tolerance, because the next tick would run different code and the divergence only grows; a crouch is a different capsule, with the same result. [PredictedMovementBackend] asks it on every acknowledgement. It belongs on the state because only the state knows which of its fields matter.
 			</description>
 		</method>
 	</methods>

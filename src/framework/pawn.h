@@ -53,6 +53,16 @@ private:
 	// pawn whose movement is driven some other way.
 	bool replicate_transform;
 
+	// Set by a movement component with client_prediction on. The owning client
+	// then simulates this pawn itself, and ignores the transform the server
+	// replicates, which would otherwise fight it.
+	bool movement_predicted;
+
+	// Set by an AbilitySystemComponent that replicates. Its owning client then
+	// runs the pawn's input bindings, because ability input reaches the server
+	// through the component's own requests and not through the action state.
+	bool abilities_replicated;
+
 	// Set when the framework spawns it, and part of the pawn's node name, so the
 	// same pawn is addressed the same way everywhere.
 	int player_id;
@@ -80,6 +90,42 @@ public:
 	bool is_bot_controlled() const;
 
 	bool has_authority() const;
+
+	// True where the movement component uses what add_movement_input, jump()
+	// and the other movement requests are given: the server for a pawn nobody
+	// predicts, and the owning client for one it does. On the server, a pawn a
+	// remote client predicts is driven by the moves that client sends, and
+	// input read there would go nowhere.
+	//
+	// Input that drives movement belongs behind this check rather than behind
+	// has_authority(), so the same script works whether prediction is on or off.
+	bool wants_movement_input() const;
+
+	// True on the owning client of a pawn whose movement it predicts.
+	bool is_locally_predicted() const;
+
+	bool get_movement_predicted() const { return movement_predicted; }
+	void set_movement_predicted(bool value) { movement_predicted = value; }
+
+	bool get_abilities_replicated() const { return abilities_replicated; }
+	void set_abilities_replicated(bool value) { abilities_replicated = value; }
+
+	// True on the owning client when something on this pawn needs its input
+	// bindings run there - predicted movement, or replicated abilities.
+	bool runs_input_locally() const;
+
+	// What the transform replication reads and writes: the root's position and
+	// rotation, except that a client predicting this pawn drops what arrives.
+	//
+	// A property of this node rather than of the root, and dropped on arrival
+	// rather than filtered out on the server, on purpose: a synchronizer hidden
+	// from a peer hides its root node from that peer's remote calls too, and the
+	// owner of a pawn is the one peer that must keep receiving them.
+	Variant get_replicated_position() const;
+	void set_replicated_position(const Variant& value);
+	Variant get_replicated_rotation() const;
+	void set_replicated_rotation(const Variant& value);
+
 	int get_local_role() const;
 	int get_remote_role() const;
 	int get_owner_peer_id() const;

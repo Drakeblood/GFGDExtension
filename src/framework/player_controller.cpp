@@ -90,6 +90,17 @@ void PlayerController::_process(double delta)
 
 	if (is_local_player_controller())
 	{
+		// A pawn whose movement this machine predicts, or whose abilities it
+		// drives, needs its bindings run here too: a jump bound to a button has
+		// to reach the simulation it is predicting, and an ability button has to
+		// reach the component that sends the request. The action state still
+		// goes to the server, for everything else.
+		Pawn* pawn = get_pawn();
+		if (pawn != nullptr && pawn->runs_input_locally())
+		{
+			pump_input(delta);
+		}
+
 		send_input_to_server();
 	}
 }

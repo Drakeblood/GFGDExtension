@@ -37,6 +37,13 @@ public:
 	PackedStringArray get_attribute_names() const;
 	void init_current_from_base();
 
+	// A value the server already worked out, written as it is: no
+	// _pre_attribute_change (the server clamped it) and no
+	// _post_attribute_change (whatever that does - dying, above all - happened
+	// on the server). The change signals still fire, which is what a client's
+	// UI listens to.
+	void apply_replicated_value(const StringName& attribute_name, double base_value, double current_value);
+
 	void set_attributes(const TypedDictionary<StringName, double>& value) { attributes = value; }
 	TypedDictionary<StringName, double> get_attributes() const { return attributes; }
 

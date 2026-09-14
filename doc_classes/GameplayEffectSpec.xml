@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="GameplayEffectSpec" inherits="RefCounted" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		One application of a GameplayEffect: how strong, from whom, and with which values.
+	</brief_description>
+	<description>
+		The effect stays a shared, authored [Resource]; a spec is made per use and is cheap. "Fireball does 40 at level 3" is one asset and a spec at level 3, not ten assets. Make one with [method AbilitySystemComponent.make_outgoing_spec] or [method GameplayAbility.make_outgoing_spec], set what only the moment knows, and apply it.
+		[codeblock]
+		var spec := asc.make_outgoing_spec(DAMAGE, 3.0)
+		spec.set_set_by_caller_magnitude(&amp;"Damage", -roll_damage())
+		spec.context = { "position": hit_position }
+		asc.apply_gameplay_effect_spec_to_target(spec, target_asc)
+		[/codeblock]
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="duplicate_spec" qualifiers="const">
+			<return type="GameplayEffectSpec" />
+			<description>
+				An independent copy.
+			</description>
+		</method>
+		<method name="get_set_by_caller_magnitude" qualifiers="const">
+			<return type="float" />
+			<param index="0" name="name" type="StringName" />
+			<param index="1" name="default_value" type="float" default="0.0" />
+			<description>
+				The value set under [param name], or [param default_value].
+			</description>
+		</method>
+		<method name="get_set_by_caller_magnitudes" qualifiers="const">
+			<return type="Dictionary" />
+			<description>
+				Every set-by-caller value, by name.
+			</description>
+		</method>
+		<method name="get_source" qualifiers="const">
+			<return type="AbilitySystemComponent" />
+			<description>
+				The component that made the spec, or null - also once it has been freed. Attribute-based modifiers with [constant AttributeModifier.SOURCE] read it.
+			</description>
+		</method>
+		<method name="has_set_by_caller_magnitude" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="name" type="StringName" />
+			<description>
+				Whether a value was set under [param name].
+			</description>
+		</method>
+		<method name="set_set_by_caller_magnitude">
+			<return type="void" />
+			<param index="0" name="name" type="StringName" />
+			<param index="1" name="magnitude" type="float" />
+			<description>
+				Sets the value a [constant AttributeModifier.SET_BY_CALLER] modifier named [param name] reads.
+			</description>
+		</method>
+		<method name="set_source">
+			<return type="void" />
+			<param index="0" name="value" type="AbilitySystemComponent" />
+			<description>
+				Sets the source. Held by id, so a freed source reads as null rather than dangling.
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="context" type="Dictionary" setter="set_context" getter="get_context" default="{}">
+			Free-form data about this application - where it hit, with what. Nothing in the framework reads it; it is passed to gameplay cues as the [code]context[/code] parameter.
+		</member>
+		<member name="effect" type="GameplayEffect" setter="set_effect" getter="get_effect">
+			The effect being applied.
+		</member>
+		<member name="level" type="float" setter="set_level" getter="get_level" default="1.0">
+			The level [member AttributeModifier.level_curve] is sampled at.
+		</member>
+	</members>
+</class>

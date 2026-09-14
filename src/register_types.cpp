@@ -43,6 +43,9 @@
 #include "ability_system/gameplay_ability.h"
 #include "ability_system/gameplay_effect.h"
 #include "ability_system/active_gameplay_effect.h"
+#include "ability_system/gameplay_effect_spec.h"
+#include "ability_system/ability_task.h"
+#include "ability_system/gameplay_cue.h"
 #include "movement/movement_types.h"
 #include "movement/movement_mode.h"
 #include "movement/movement_backend.h"
@@ -61,6 +64,7 @@
 #include "movement/character_movement_component.h"
 #include "movement/modes/walking_mode_2d.h"
 #include "movement/character_movement_component_2d.h"
+#include "movement/predicted_movement_backend.h"
 
 #ifdef TOOLS_ENABLED
 #include "editor/gameplay_tag_editor_property.h"
@@ -108,6 +112,26 @@ static void register_gfgd_settings()
 	// order, and on a duplicate tag the table listed first wins.
 	register_gfgd_setting("application/game_framework/gameplay_tag_tables", PackedStringArray(), Variant::PACKED_STRING_ARRAY,
 		PROPERTY_HINT_TYPE_STRING, vformat("%d/%d:*.tres,*.res", Variant::STRING, PROPERTY_HINT_FILE));
+
+	// GameplayCueTable resources: cue tag -> GameplayCueNotify or PackedScene.
+	// Later tables win on a duplicate tag.
+	register_gfgd_setting("application/game_framework/gameplay_cue_tables", PackedStringArray(), Variant::PACKED_STRING_ARRAY,
+		PROPERTY_HINT_TYPE_STRING, vformat("%d/%d:*.tres,*.res", Variant::STRING, PROPERTY_HINT_FILE));
+
+	// Client prediction (CharacterMovementComponent.client_prediction). How many
+	// moves the server holds before consuming, to ride out jitter - every tick
+	// of it is a tick of added latency - and how many of a client's newest moves
+	// every packet repeats, which is what survives a lost packet.
+	register_gfgd_setting("application/game_framework/prediction/input_buffer_ticks", 2, Variant::INT, PROPERTY_HINT_RANGE, "0,16,1");
+	register_gfgd_setting("application/game_framework/prediction/max_moves_per_packet", 8, Variant::INT, PROPERTY_HINT_RANGE, "1,64,1");
+
+	// A delay-and-drop queue on the prediction traffic, both directions, because
+	// Godot's ENet binding has no way to simulate a bad network. Each side
+	// delays what it sends, so latency_ms is one way and a round trip is twice
+	// it. Read when a predicted character spawns; ignored in release builds.
+	register_gfgd_setting("application/game_framework/debug/network_latency_ms", 0, Variant::INT, PROPERTY_HINT_RANGE, "0,1000,1,suffix:ms");
+	register_gfgd_setting("application/game_framework/debug/network_jitter_ms", 0, Variant::INT, PROPERTY_HINT_RANGE, "0,500,1,suffix:ms");
+	register_gfgd_setting("application/game_framework/debug/network_packet_loss_percent", 0.0, Variant::FLOAT, PROPERTY_HINT_RANGE, "0,100,0.1,suffix:%");
 }
 
 void initialize_gdextension_types(ModuleInitializationLevel p_level)
@@ -166,6 +190,18 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level)
 	GDREGISTER_CLASS(AttributeSet);
 	GDREGISTER_CLASS(AttributeModifier);
 	GDREGISTER_CLASS(GameplayEffect);
+	GDREGISTER_CLASS(GameplayEffectSpec);
+	GDREGISTER_CLASS(GameplayCueNotify);
+	GDREGISTER_CLASS(GameplayCueTable);
+	GDREGISTER_CLASS(GameplayCueManager);
+	GDREGISTER_CLASS(AbilityTask);
+	GDREGISTER_CLASS(AbilityTaskWaitDelay);
+	GDREGISTER_CLASS(AbilityTaskWaitInput);
+	GDREGISTER_CLASS(AbilityTaskWaitTag);
+	GDREGISTER_CLASS(AbilityTaskWaitAttribute);
+	GDREGISTER_CLASS(AbilityTaskWaitEvent);
+	GDREGISTER_CLASS(AbilityTaskWaitGroup);
+	GDREGISTER_CLASS(AbilityTaskSyncData);
 	GDREGISTER_CLASS(ActiveGameplayEffect);
 	GDREGISTER_CLASS(GameplayAbility);
 	GDREGISTER_CLASS(AbilitySystemComponent);
@@ -179,6 +215,7 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level)
 	GDREGISTER_CLASS(MovementTickParams);
 	GDREGISTER_ABSTRACT_CLASS(MovementBackend);
 	GDREGISTER_CLASS(StandaloneMovementBackend);
+	GDREGISTER_CLASS(PredictedMovementBackend);
 	GDREGISTER_CLASS(MovementMode);
 	GDREGISTER_CLASS(NullMovementMode);
 	GDREGISTER_CLASS(WalkingMode);
@@ -217,6 +254,7 @@ void uninitialize_gdextension_types(ModuleInitializationLevel p_level) {
 	}
 	GameplayMessageRouter::destroy_singleton();
 	GameplayTagsManager::destroy_singleton();
+	GameplayCueManager::destroy_singleton();
 }
 
 extern "C"

@@ -2,5 +2,18 @@
 
 [resource]
 tags = Dictionary[StringName, String]({
-&"Ability.Test": "Test"
+&"Ability.Test": "Test",
+&"Ability.Sprint": "The online demo's predicted sprint",
+&"Ability.Shout": "The online demo's server-only shout",
+&"Cooldown.Sprint": "Granted by the sprint's cooldown effect",
+&"Cooldown.Test": "Cooldown used by tests/test_gas.gd",
+&"Cue.Hit": "Played where damage lands",
+&"Cue.Shout": "Played when the shout goes off",
+&"Cue.Burning": "Shown while a burn lasts",
+&"Cue.Test": "Cue used by tests/test_gas.gd",
+&"Effect.Buff": "An effect that makes things better",
+&"Event.Heal": "Triggers tests/gas_event_ability.tres",
+&"Event.Hit": "Something landed a hit",
+&"Event.Test": "Event used by tests/test_ability_tasks.gd",
+&"State.Sprinting": "Owned while sprinting"
 })

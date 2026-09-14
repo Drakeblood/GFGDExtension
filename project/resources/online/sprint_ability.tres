@@ -1,0 +1,21 @@
+[gd_resource type="GameplayAbility" format=3]
+
+[ext_resource type="Script" path="res://scripts/sprint_ability.gd" id="1_sprint"]
+[ext_resource type="GameplayEffect" path="res://resources/online/sprint_cost.tres" id="2_cost"]
+[ext_resource type="GameplayEffect" path="res://resources/online/sprint_cooldown.tres" id="3_cooldown"]
+
+[sub_resource type="GameplayTagContainer" id="GameplayTagContainer_ability"]
+tags = PackedStringArray("Ability.Sprint")
+
+[sub_resource type="GameplayTagContainer" id="GameplayTagContainer_owned"]
+tags = PackedStringArray("State.Sprinting")
+
+[resource]
+script = ExtResource("1_sprint")
+ability_name = &"Sprint"
+ability_tags = SubResource("GameplayTagContainer_ability")
+activation_owned_tags = SubResource("GameplayTagContainer_owned")
+input_action_name = &"activate_test"
+net_execution_policy = 1
+cost_effect = ExtResource("2_cost")
+cooldown_effect = ExtResource("3_cooldown")

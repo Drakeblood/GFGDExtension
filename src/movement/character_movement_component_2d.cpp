@@ -4,6 +4,8 @@
 #include <godot_cpp/classes/collision_shape2d.hpp>
 #include <godot_cpp/classes/shape2d.hpp>
 #include <godot_cpp/classes/engine.hpp>
+#include <godot_cpp/classes/multiplayer_api.hpp>
+#include <godot_cpp/classes/multiplayer_peer.hpp>
 #include <godot_cpp/classes/node2d.hpp>
 #include <godot_cpp/classes/physics_body2d.hpp>
 #include <godot_cpp/classes/physics_server2d.hpp>
@@ -19,6 +21,7 @@
 #include "movement/movement_backend.h"
 #include "movement/movement_mode.h"
 #include "movement/movement_mode_transition.h"
+#include "movement/predicted_movement_backend.h"
 #include "movement/water_movement_transition_2d.h"
 #include "movement/water_volume_2d.h"
 
@@ -41,6 +44,7 @@ CharacterMovementComponent2D::CharacterMovementComponent2D()
 	, has_queued_mode(false)
 	, jump_pressed_latch(false)
 	, crouch_latch(false)
+	, custom_input_flags_latch(0)
 	, up_direction(Vector2(0, -1))
 	, gravity(980.0f)
 	, gravity_scale(1.0f)
@@ -71,6 +75,9 @@ CharacterMovementComponent2D::CharacterMovementComponent2D()
 	, max_slides(4)
 	, move_with_base(true)
 	, impart_base_velocity(true)
+	, client_prediction(false)
+	, prediction_position_tolerance(3.0f)
+	, prediction_velocity_tolerance(30.0f)
 {
 	state.instantiate();
 	input.instantiate();
@@ -126,8 +133,22 @@ void CharacterMovementComponent2D::_ready()
 
 	if (backend == nullptr)
 	{
-		backend = memnew(StandaloneMovementBackend);
+		if (client_prediction)
+		{
+			backend = memnew(PredictedMovementBackend);
+		}
+		else
+		{
+			backend = memnew(StandaloneMovementBackend);
+		}
 	}
+
+	if (pawn != nullptr)
+	{
+		pawn->set_movement_predicted(client_prediction);
+	}
+
+	configure_rpcs();
 
 	state->set_movement_mode(find_mode(starting_mode).is_valid() ? starting_mode : StringName(MODE_NULL));
 
@@ -152,7 +173,7 @@ void CharacterMovementComponent2D::_physics_process(double delta)
 		return;
 	}
 
-	if (pawn != nullptr && !pawn->has_authority())
+	if (pawn != nullptr && !pawn->has_authority() && !pawn->is_locally_predicted())
 	{
 		return;
 	}
@@ -161,6 +182,18 @@ void CharacterMovementComponent2D::_physics_process(double delta)
 }
 
 void CharacterMovementComponent2D::simulate(double delta)
+{
+	simulate_internal(delta, Ref<MovementInput>());
+}
+
+void CharacterMovementComponent2D::simulate_with_input(const Ref<MovementInput>& given_input, double delta)
+{
+	ERR_FAIL_COND_MSG(given_input.is_null(), "GFGD: CharacterMovementComponent2D.simulate_with_input was given no input.");
+
+	simulate_internal(delta, given_input);
+}
+
+void CharacterMovementComponent2D::simulate_internal(double delta, const Ref<MovementInput>& given_input)
 {
 	if (delta <= 0.0 || updated_body == nullptr)
 	{
@@ -187,7 +220,19 @@ void CharacterMovementComponent2D::simulate(double delta)
 	// put the character.
 	update_based_movement();
 
-	gather_input(backend->get_sim_frame(), delta);
+	if (given_input.is_valid())
+	{
+		input->copy_from(given_input);
+	}
+	else
+	{
+		gather_input(backend != nullptr ? backend->get_sim_frame() : 0, delta);
+	}
+
+	if (input->get_custom_flags() != 0)
+	{
+		emit_signal("custom_input_flags", input->get_custom_flags());
+	}
 
 	update_crouch_state();
 
@@ -208,7 +253,108 @@ void CharacterMovementComponent2D::simulate(double delta)
 	save_base_location();
 
 	apply_state_to_body();
-	jump_pressed_latch = false;
+
+	if (given_input.is_null())
+	{
+		jump_pressed_latch = false;
+		custom_input_flags_latch = 0;
+	}
+}
+
+void CharacterMovementComponent2D::rollback_to_state(const Ref<MovementState>& new_state)
+{
+	ERR_FAIL_COND_MSG(new_state.is_null(), "GFGD: CharacterMovementComponent2D.rollback_to_state was given no state.");
+
+	const bool was_crouching = state->get_is_crouching();
+
+	state->copy_from(new_state);
+	state->clear_base();
+	has_base_last_transform = false;
+	has_queued_mode = false;
+
+	if (state->get_is_crouching() != was_crouching && capsule_shape.is_valid())
+	{
+		apply_capsule_half_height(state->get_is_crouching() ? MIN(crouched_half_height, standing_half_height) : standing_half_height);
+		emit_signal("crouch_changed", state->get_is_crouching());
+	}
+
+	if (updated_body == nullptr)
+	{
+		return;
+	}
+
+	apply_state_to_body();
+
+	current_floor->clear();
+	if (is_on_ground())
+	{
+		const Transform2D transform(0.0, MovementUtils2D::to_2d(state->get_position()));
+		MovementUtils2D::find_floor(body, transform, up_direction, floor_sweep_distance, floor_sweep_distance, get_ground_move_settings(), current_floor);
+	}
+}
+
+bool CharacterMovementComponent2D::is_replaying() const
+{
+	const PredictedMovementBackend* predicted = Object::cast_to<PredictedMovementBackend>(backend);
+	return predicted != nullptr && predicted->is_replaying();
+}
+
+void CharacterMovementComponent2D::add_custom_input_flags(int flags)
+{
+	custom_input_flags_latch |= flags & MovementInput::CUSTOM_FLAGS_MASK;
+}
+
+void CharacterMovementComponent2D::configure_rpcs()
+{
+	Dictionary from_owner;
+	from_owner["rpc_mode"] = MultiplayerAPI::RPC_MODE_ANY_PEER;
+	from_owner["transfer_mode"] = MultiplayerPeer::TRANSFER_MODE_UNRELIABLE_ORDERED;
+	from_owner["call_local"] = false;
+	from_owner["channel"] = 0;
+	rpc_config("server_receive_moves", from_owner);
+
+	Dictionary from_server;
+	from_server["rpc_mode"] = MultiplayerAPI::RPC_MODE_AUTHORITY;
+	from_server["transfer_mode"] = MultiplayerPeer::TRANSFER_MODE_UNRELIABLE_ORDERED;
+	from_server["call_local"] = false;
+	from_server["channel"] = 0;
+	rpc_config("client_receive_move_ack", from_server);
+}
+
+void CharacterMovementComponent2D::server_receive_moves(int64_t first_frame, const PackedVector3Array& move_inputs, const PackedInt32Array& flags)
+{
+	PredictedMovementBackend* predicted = Object::cast_to<PredictedMovementBackend>(backend);
+	if (predicted == nullptr || pawn == nullptr || !pawn->has_authority())
+	{
+		return;
+	}
+
+	Ref<MultiplayerAPI> multiplayer = get_multiplayer();
+	const int sender_id = multiplayer.is_valid() ? multiplayer->get_remote_sender_id() : 0;
+	if (sender_id != pawn->get_owner_peer_id())
+	{
+		return;
+	}
+
+	predicted->receive_moves(first_frame, move_inputs, flags);
+}
+
+void CharacterMovementComponent2D::client_receive_move_ack(int64_t frame, const Array& packed_state)
+{
+	PredictedMovementBackend* predicted = Object::cast_to<PredictedMovementBackend>(backend);
+	if (predicted == nullptr)
+	{
+		return;
+	}
+
+	const Ref<MovementState> authority_state = PredictedMovementBackend::unpack_state(packed_state);
+	if (authority_state.is_null())
+	{
+		WARN_PRINT_ONCE("GFGD: CharacterMovementComponent2D received a malformed movement acknowledgement; ignoring it.");
+		return;
+	}
+
+	predicted->receive_ack(frame, authority_state);
 }
 
 void CharacterMovementComponent2D::run_mode_tick(double delta)
@@ -455,6 +601,8 @@ void CharacterMovementComponent2D::gather_input(int64_t frame, double tick_delta
 	input->reset();
 	input->set_frame(frame);
 	input->set_want_jump(jump_pressed_latch);
+	input->set_want_crouch(crouch_latch);
+	input->set_custom_flags(custom_input_flags_latch);
 
 	if (pawn == nullptr)
 	{
@@ -587,7 +735,7 @@ void CharacterMovementComponent2D::update_crouch_state()
 		return;
 	}
 
-	const bool wants_crouch = input->get_want_crouch() || crouch_latch;
+	const bool wants_crouch = input->get_want_crouch();
 	const bool crouching = state->get_is_crouching();
 
 	if (wants_crouch == crouching)
@@ -937,6 +1085,13 @@ void CharacterMovementComponent2D::register_default_modes()
 void CharacterMovementComponent2D::_bind_methods()
 {
 	ClassDB::bind_method(D_METHOD("simulate", "delta"), &CharacterMovementComponent2D::simulate);
+	ClassDB::bind_method(D_METHOD("simulate_with_input", "input", "delta"), &CharacterMovementComponent2D::simulate_with_input);
+	ClassDB::bind_method(D_METHOD("rollback_to_state", "state"), &CharacterMovementComponent2D::rollback_to_state);
+	ClassDB::bind_method(D_METHOD("get_movement_backend"), &CharacterMovementComponent2D::get_movement_backend);
+	ClassDB::bind_method(D_METHOD("is_replaying"), &CharacterMovementComponent2D::is_replaying);
+	ClassDB::bind_method(D_METHOD("add_custom_input_flags", "flags"), &CharacterMovementComponent2D::add_custom_input_flags);
+	ClassDB::bind_method(D_METHOD("server_receive_moves", "first_frame", "move_inputs", "flags"), &CharacterMovementComponent2D::server_receive_moves);
+	ClassDB::bind_method(D_METHOD("client_receive_move_ack", "frame", "packed_state"), &CharacterMovementComponent2D::client_receive_move_ack);
 	ClassDB::bind_method(D_METHOD("queue_next_mode", "mode_name"), &CharacterMovementComponent2D::queue_next_mode);
 	ClassDB::bind_method(D_METHOD("find_mode", "mode_name"), &CharacterMovementComponent2D::find_mode);
 	ClassDB::bind_method(D_METHOD("get_movement_mode"), &CharacterMovementComponent2D::get_movement_mode);
@@ -1099,6 +1254,20 @@ void CharacterMovementComponent2D::_bind_methods()
 	ClassDB::bind_method(D_METHOD("set_braking_deceleration_falling", "value"), &CharacterMovementComponent2D::set_braking_deceleration_falling);
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "braking_deceleration_falling", PROPERTY_HINT_RANGE, "0,20000,1,or_greater,suffix:px/s²"), "set_braking_deceleration_falling", "get_braking_deceleration_falling");
 
+	ADD_GROUP("Networking", "");
+
+	ClassDB::bind_method(D_METHOD("get_client_prediction"), &CharacterMovementComponent2D::get_client_prediction);
+	ClassDB::bind_method(D_METHOD("set_client_prediction", "value"), &CharacterMovementComponent2D::set_client_prediction);
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "client_prediction"), "set_client_prediction", "get_client_prediction");
+
+	ClassDB::bind_method(D_METHOD("get_prediction_position_tolerance"), &CharacterMovementComponent2D::get_prediction_position_tolerance);
+	ClassDB::bind_method(D_METHOD("set_prediction_position_tolerance", "value"), &CharacterMovementComponent2D::set_prediction_position_tolerance);
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "prediction_position_tolerance", PROPERTY_HINT_RANGE, "0,100,0.1,or_greater,suffix:px"), "set_prediction_position_tolerance", "get_prediction_position_tolerance");
+
+	ClassDB::bind_method(D_METHOD("get_prediction_velocity_tolerance"), &CharacterMovementComponent2D::get_prediction_velocity_tolerance);
+	ClassDB::bind_method(D_METHOD("set_prediction_velocity_tolerance", "value"), &CharacterMovementComponent2D::set_prediction_velocity_tolerance);
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "prediction_velocity_tolerance", PROPERTY_HINT_RANGE, "0,1000,1,or_greater,suffix:px/s"), "set_prediction_velocity_tolerance", "get_prediction_velocity_tolerance");
+
 	ADD_GROUP("Moving Platforms", "");
 
 	ClassDB::bind_method(D_METHOD("get_move_with_base"), &CharacterMovementComponent2D::get_move_with_base);
@@ -1129,4 +1298,6 @@ void CharacterMovementComponent2D::_bind_methods()
 	ADD_SIGNAL(MethodInfo("crouch_changed", PropertyInfo(Variant::BOOL, "crouching")));
 	ADD_SIGNAL(MethodInfo("layered_move_started", PropertyInfo(Variant::OBJECT, "move", PROPERTY_HINT_RESOURCE_TYPE, "LayeredMove")));
 	ADD_SIGNAL(MethodInfo("layered_move_finished", PropertyInfo(Variant::OBJECT, "move", PROPERTY_HINT_RESOURCE_TYPE, "LayeredMove")));
+	ADD_SIGNAL(MethodInfo("custom_input_flags", PropertyInfo(Variant::INT, "flags")));
+	ADD_SIGNAL(MethodInfo("prediction_corrected", PropertyInfo(Variant::INT, "acked_frame"), PropertyInfo(Variant::INT, "replayed_ticks"), PropertyInfo(Variant::FLOAT, "position_error")));
 }

@@ -5,6 +5,8 @@
 #include <godot_cpp/core/binder_common.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/node_path.hpp>
+#include <godot_cpp/variant/packed_int32_array.hpp>
+#include <godot_cpp/variant/packed_vector3_array.hpp>
 #include <godot_cpp/variant/vector3.hpp>
 
 #include "movement/movement_types.h"
@@ -119,6 +121,10 @@ private:
 	// physics tick.
 	bool crouch_latch;
 
+	// add_custom_input_flags() between two ticks, OR-ed together and handed to
+	// the next one.
+	int custom_input_flags_latch;
+
 	// --- Settings -----------------------------------------------------------
 
 	Vector3 up_direction;
@@ -197,6 +203,16 @@ private:
 	// a pawn whose mode nothing outside the simulation has to know.
 	bool replicate_movement_mode;
 
+	// The owning client simulates its own character immediately instead of
+	// waiting a round trip for the server to. See PredictedMovementBackend.
+	bool client_prediction;
+
+	// How far a prediction may be from the server's answer before it is
+	// corrected. Too tight and the character twitches on every packet; too loose
+	// and a real disagreement is left standing.
+	float prediction_position_tolerance;
+	float prediction_velocity_tolerance;
+
 public:
 	CharacterMovementComponent();
 	~CharacterMovementComponent();
@@ -208,6 +224,40 @@ public:
 	// of them a frame gets - one when the server is simulating, several when a
 	// client is replaying inputs after a correction.
 	void simulate(double delta);
+
+	// One simulation step with an input that was already gathered: a move the
+	// server received, or one a predicting client is replaying. Nothing is read
+	// from the pawn or the latches.
+	void simulate_with_input(const Ref<MovementInput>& given_input, double delta);
+
+	// Makes new_state the present: the state, the body's transform, the capsule
+	// size and the cached floor all move together. What a prediction backend
+	// calls before replaying from a correction.
+	//
+	// The base is dropped rather than restored - it is a snapshot of where a
+	// platform was, and no rollback can put a platform back. The next tick
+	// finds it again.
+	void rollback_to_state(const Ref<MovementState>& new_state);
+
+	MovementBackend* get_movement_backend() const { return backend; }
+
+	// True while a predicting client is replaying moves after a correction. Every
+	// signal this component emits fires again for a replayed tick; a listener
+	// that should react once - a sound, a particle - checks this first.
+	bool is_replaying() const;
+
+	// --- Prediction wire ------------------------------------------------------
+
+	// Remote calls, sent by PredictedMovementBackend. Public because the
+	// multiplayer API calls them by name.
+	void server_receive_moves(int64_t first_frame, const PackedVector3Array& move_inputs, const PackedInt32Array& flags);
+	void client_receive_move_ack(int64_t frame, const Array& packed_state);
+
+	// What the movement mode replication reads and writes. The mode, except that
+	// a client predicting this character drops what arrives - it predicts its
+	// own mode, and the server's would arrive a round trip late.
+	StringName get_replicated_movement_mode() const { return get_movement_mode(); }
+	void set_replicated_movement_mode(const StringName& mode_name);
 
 	// --- Modes --------------------------------------------------------------
 
@@ -464,6 +514,22 @@ public:
 	void jump();
 	void stop_jumping();
 
+	// Sets custom bits on the next tick's input. They come back out through the
+	// custom_input_flags signal, inside that tick - on the predicting client, on
+	// the server that receives the move, and on every replay of it. That is the
+	// way to predict an action that changes movement: queue the dash from the
+	// signal, not from the button, and both sides start it on the same tick.
+	void add_custom_input_flags(int flags);
+
+	bool get_client_prediction() const { return client_prediction; }
+	void set_client_prediction(bool value) { client_prediction = value; }
+
+	float get_prediction_position_tolerance() const { return prediction_position_tolerance; }
+	void set_prediction_position_tolerance(float value) { prediction_position_tolerance = MAX(0.0f, value); }
+
+	float get_prediction_velocity_tolerance() const { return prediction_velocity_tolerance; }
+	void set_prediction_velocity_tolerance(float value) { prediction_velocity_tolerance = MAX(0.0f, value); }
+
 protected:
 	static void _bind_methods();
 
@@ -482,11 +548,17 @@ private:
 	// when both sides sit at the same path.
 	//
 	// Unreal replicates the same thing as ACharacter::ReplicatedMovementMode, but
-	// under COND_SimulatedOnly: an autonomous proxy there predicts its own mode,
-	// so sending it one would fight the prediction. Nothing here predicts yet, so
-	// the owning client is a receiver like everybody else and gets it too. That
-	// condition is what will have to be added along with prediction, not before.
+	// under COND_SimulatedOnly: an autonomous proxy predicts its own mode, so
+	// sending it one would fight the prediction. Here the owner still receives
+	// it and drops it - see set_replicated_movement_mode - because hiding the
+	// synchronizer from the owner would hide this node from the owner's remote
+	// calls, and the prediction's acknowledgements are sent to exactly that.
 	void setup_replication();
+	void configure_rpcs();
+
+	// simulate and simulate_with_input: the same tick, with the input either
+	// gathered here or handed in.
+	void simulate_internal(double delta, const Ref<MovementInput>& given_input);
 
 	// Moves the character by however much its base moved, by rebuilding the world
 	// transform from the base's current one and the stored relative offset.

@@ -31,9 +31,17 @@ private:
 
 	bool want_jump;
 
-	// Read by no mode yet; crouching arrives with the stance work. It is here
-	// because a mode written in GDScript should not have to wait for it.
+	// Whether the character wants to be crouched on this tick. A held state,
+	// not an event: CharacterMovementComponent::crouch() and un_crouch() set the
+	// latch this is read from.
 	bool want_crouch;
+
+	// Sixteen bits a game gives its own meaning - a dash, a sprint, a mantle.
+	// They travel with the input and come back out on the tick they belong to,
+	// on the client that predicted it, on the server and on every replay, which
+	// is what an action that changes movement needs in order to be predicted.
+	// See CharacterMovementComponent::add_custom_input_flags.
+	int custom_flags;
 
 	// The tick this input belongs to. Unused while the server is the only thing
 	// simulating, and the one field a client would have to send for a server to
@@ -57,7 +65,17 @@ public:
 	int64_t get_frame() const { return frame; }
 	void set_frame(int64_t value) { frame = value; }
 
+	int get_custom_flags() const { return custom_flags; }
+	void set_custom_flags(int value) { custom_flags = value & CUSTOM_FLAGS_MASK; }
+	bool has_custom_flag(int flag) const { return (custom_flags & flag) != 0; }
+
 	void reset();
+	void copy_from(const Ref<MovementInput>& other);
+	Ref<MovementInput> duplicate_input() const;
+
+	// Only this many bits are sent over the wire; anything above them is dropped
+	// here rather than silently lost later.
+	static constexpr int CUSTOM_FLAGS_MASK = 0xFFFF;
 
 protected:
 	static void _bind_methods();
@@ -98,10 +116,12 @@ private:
 	// running, and a rollback has to take back the ones that were queued after the
 	// point being rolled back to.
 	//
-	// Copied shallowly - the entries are shared, only the lists are new. Correct
-	// while time only moves forward, which is all that happens today; replaying a
-	// tick would need the moves themselves duplicated, because their start time is
-	// per-instance.
+	// Copied shallowly by default - the entries are shared, only the lists are
+	// new - which is right while time only moves forward, and keeps a move the
+	// game is holding a reference to the same object from tick to tick. A
+	// prediction history asks for a deep copy instead: a move's start time is
+	// per-instance, and a replay that restarted the live object would rewrite the
+	// history it is replaying from.
 	Array queued_layered_moves;
 	Array active_layered_moves;
 
@@ -150,13 +170,15 @@ public:
 	Array get_active_layered_moves() const { return active_layered_moves; }
 	void set_active_layered_moves(const Array& value) { active_layered_moves = value; }
 
-	void copy_from(const Ref<MovementState>& other);
-	Ref<MovementState> duplicate_state() const;
+	// deep_layered_moves duplicates every layered move as well as the lists
+	// holding them. Only a prediction history needs it; see above.
+	void copy_from(const Ref<MovementState>& other, bool deep_layered_moves = false);
+	Ref<MovementState> duplicate_state(bool deep_layered_moves = false) const;
 
 	// Whether a client holding this state would have to snap to authority_state
-	// and replay. Nothing calls it yet; it is the decision a predicted client
-	// makes, and it belongs on the state rather than in the netcode because only
-	// the state knows which of its fields matter.
+	// and replay. It is the decision a predicted client makes on every
+	// acknowledgement, and it belongs on the state rather than in the netcode
+	// because only the state knows which of its fields matter.
 	bool should_reconcile(const Ref<MovementState>& authority_state, float position_tolerance, float velocity_tolerance) const;
 
 protected:

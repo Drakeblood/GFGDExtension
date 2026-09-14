@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="AbilityTask" inherits="RefCounted" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Something an ability waits for, shaped for await - and cancelled with the ability.
+	</brief_description>
+	<description>
+		Unreal needs AbilityTasks because C++ and Blueprints have no coroutines: every "wait for X" is an object with callbacks. GDScript has [code]await[/code], so the waiting is free; a task adds the two things [code]await[/code] cannot do by itself.
+		[b]It dies with its ability.[/b] When the ability ends - finished, cancelled, or a prediction the server refused - every task it runs is cancelled, and a cancelled task never emits [signal completed]: its connections are dropped, so a coroutine suspended on it is released and the code after its [code]await[/code] never runs. No [code]if not get_is_active(): return[/code] to remember after every wait.
+		[b]Some waits cross the network.[/b] [method GameplayAbility.sync_target_data] carries a value from the predicting client to the server's copy of the same activation.
+		Made by [GameplayAbility]'s [code]wait_*[/code] methods:
+		[codeblock]
+		func _activate_ability() -&gt; void:
+		if not commit_ability():
+		end_ability(true)
+		return
+		# Released early, or held to the limit - whichever comes first.
+		var which: int = await wait_any([wait_input_release(), wait_delay(2.0)]).completed
+		var aim: Dictionary = await sync_target_data({ "dir": aim_direction() }).completed
+		...
+		end_ability(false)
+		[/codeblock]
+		For a task of your own, extend this class, override [method _activate] (and [method _tick] with [method set_ticking]), call [method finish] when done, and start it with [method GameplayAbility.run_task].
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_activate" qualifiers="virtual">
+			<return type="void" />
+			<description>
+				Called once when the task starts. Call [method finish] here if it is already done.
+			</description>
+		</method>
+		<method name="_on_end" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="was_cancelled" type="bool" />
+			<description>
+				Called once when the task finishes or is cancelled - where to disconnect anything it connected to.
+			</description>
+		</method>
+		<method name="_tick" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="delta" type="float" />
+			<description>
+				Called every physics frame while running, when [method set_ticking] is on.
+			</description>
+		</method>
+		<method name="cancel">
+			<return type="void" />
+			<description>
+				Ends the task without emitting. Whatever awaits it is released and never resumes.
+			</description>
+		</method>
+		<method name="finish">
+			<return type="void" />
+			<param index="0" name="result" type="Variant" default="null" />
+			<description>
+				Ends the task with [param result]. [signal completed] is emitted at once when something is awaiting it, and at the end of the frame otherwise - a task that finishes while it is being created (a tag that is already there) would otherwise emit before the [code]await[/code] for it began.
+			</description>
+		</method>
+		<method name="get_ability" qualifiers="const">
+			<return type="GameplayAbility" />
+			<description>
+				The ability running the task.
+			</description>
+		</method>
+		<method name="get_ability_system_component" qualifiers="const">
+			<return type="AbilitySystemComponent" />
+			<description>
+				That ability's component.
+			</description>
+		</method>
+		<method name="get_result" qualifiers="const">
+			<return type="Variant" />
+			<description>
+				What the task finished with.
+			</description>
+		</method>
+		<method name="get_ticking" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Whether [method _tick] is called.
+			</description>
+		</method>
+		<method name="is_cancelled" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Whether it was cancelled.
+			</description>
+		</method>
+		<method name="is_finished" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Whether it finished with a result.
+			</description>
+		</method>
+		<method name="is_running" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Started, and neither finished nor cancelled.
+			</description>
+		</method>
+		<method name="is_started" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Whether it has been started.
+			</description>
+		</method>
+		<method name="set_ticking">
+			<return type="void" />
+			<param index="0" name="value" type="bool" />
+			<description>
+				Turns [method _tick] on or off.
+			</description>
+		</method>
+	</methods>
+	<signals>
+		<signal name="completed">
+			<param index="0" name="result" type="Variant" />
+			<description>
+				Emitted once, with the result, when the task finishes - never when it is cancelled. [code]await task.completed[/code] evaluates to [param result].
+			</description>
+		</signal>
+	</signals>
+</class>

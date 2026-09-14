@@ -1,0 +1,8 @@
+[gd_resource type="AttributeSet" format=3]
+
+[resource]
+attributes = {
+&"health": 100.0,
+&"max_health": 100.0,
+&"stamina": 100.0
+}

@@ -16,16 +16,56 @@
 				Applies this modifier to [param input_value] alone. [AbilitySystemComponent] combines every active modifier instead; this is for computing a preview.
 			</description>
 		</method>
+		<method name="apply_magnitude" qualifiers="const">
+			<return type="float" />
+			<param index="0" name="input_value" type="float" />
+			<param index="1" name="with_magnitude" type="float" />
+			<description>
+				The operation applied to [param input_value] with a magnitude worked out elsewhere.
+			</description>
+		</method>
+		<method name="calculate_magnitude" qualifiers="const">
+			<return type="float" />
+			<param index="0" name="spec" type="GameplayEffectSpec" />
+			<param index="1" name="target" type="AbilitySystemComponent" />
+			<description>
+				The magnitude for one application, from [member magnitude_type]. Evaluated once, when the effect is applied: an attribute-based bonus is a snapshot of the attribute then, not a live link to it.
+			</description>
+		</method>
 	</methods>
 	<members>
 		<member name="attribute" type="StringName" setter="set_attribute" getter="get_attribute" default="&amp;&quot;&quot;">
 			The attribute this modifier changes, by name.
 		</member>
+		<member name="attribute_source" type="int" setter="set_attribute_source" getter="get_attribute_source" enum="AttributeModifier.AttributeSource" default="0">
+			Whose attribute an attribute-based magnitude reads: the spec's source, or the target it is applied to. With no source, the target stands in.
+		</member>
+		<member name="backing_attribute" type="StringName" setter="set_backing_attribute" getter="get_backing_attribute" default="&amp;&quot;&quot;">
+			The attribute an attribute-based magnitude reads.
+		</member>
+		<member name="coefficient" type="float" setter="set_coefficient" getter="get_coefficient" default="1.0">
+			Attribute based: [code](backing + pre_multiply_additive) * coefficient + post_multiply_additive[/code].
+		</member>
+		<member name="level_curve" type="Curve" setter="set_level_curve" getter="get_level_curve">
+			Scalable float: when set, [member magnitude] is multiplied by the curve sampled at the spec's level. Set the curve's domain to the levels used and its value range to the multipliers - a [Curve] clamps to its range.
+		</member>
 		<member name="magnitude" type="float" setter="set_magnitude" getter="get_magnitude" default="0.0">
 			The amount. What it means depends on [member operation]: an addend, a factor, or the value itself.
 		</member>
+		<member name="magnitude_type" type="int" setter="set_magnitude_type" getter="get_magnitude_type" enum="AttributeModifier.MagnitudeType" default="0">
+			Where the magnitude comes from.
+		</member>
 		<member name="operation" type="int" setter="set_operation" getter="get_operation" enum="AttributeModifier.Operation" default="0">
 			How [member magnitude] is combined with the attribute's value.
+		</member>
+		<member name="post_multiply_additive" type="float" setter="set_post_multiply_additive" getter="get_post_multiply_additive" default="0.0">
+			Attribute based: added after the coefficient.
+		</member>
+		<member name="pre_multiply_additive" type="float" setter="set_pre_multiply_additive" getter="get_pre_multiply_additive" default="0.0">
+			Attribute based: added to the attribute before the coefficient.
+		</member>
+		<member name="set_by_caller_name" type="StringName" setter="set_set_by_caller_name" getter="get_set_by_caller_name" default="&amp;&quot;&quot;">
+			Set by caller: the name the value is looked up under in the spec. When the spec has none, [member magnitude] is used and a warning printed.
 		</member>
 	</members>
 	<constants>
@@ -37,6 +77,21 @@
 		</constant>
 		<constant name="OVERRIDE" value="2" enum="Operation">
 			Replaces the value outright. A single [constant OVERRIDE] beats every [constant ADD] and [constant MULTIPLY] on that attribute.
+		</constant>
+		<constant name="SCALABLE_FLOAT" value="0" enum="MagnitudeType">
+			[member magnitude], scaled by [member level_curve] when there is one.
+		</constant>
+		<constant name="ATTRIBUTE_BASED" value="1" enum="MagnitudeType">
+			Computed from an attribute of the source or the target.
+		</constant>
+		<constant name="SET_BY_CALLER" value="2" enum="MagnitudeType">
+			Whatever the spec was given under [member set_by_caller_name].
+		</constant>
+		<constant name="SOURCE" value="0" enum="AttributeSource">
+			The component that made the spec.
+		</constant>
+		<constant name="TARGET" value="1" enum="AttributeSource">
+			The component the effect is applied to.
 		</constant>
 	</constants>
 </class>

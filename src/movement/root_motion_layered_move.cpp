@@ -123,6 +123,18 @@ void RootMotionLayeredMove::generate_move(const Ref<MovementTickParams>& params,
 	out_proposal->set_linear_velocity(world_delta / (float)delta);
 }
 
+Ref<LayeredMove> RootMotionLayeredMove::duplicate_move() const
+{
+	const Ref<RootMotionLayeredMove> copy = LayeredMove::duplicate_move();
+	if (copy.is_valid())
+	{
+		copy->mixer = mixer;
+		copy->last_consumed_frame = last_consumed_frame;
+	}
+
+	return copy;
+}
+
 void RootMotionLayeredMove::_bind_methods()
 {
 	ClassDB::bind_method(D_METHOD("get_animation_mixer_path"), &RootMotionLayeredMove::get_animation_mixer_path);

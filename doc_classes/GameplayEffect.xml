@@ -25,6 +25,12 @@
 		<member name="effect_tags" type="GameplayTagContainer" setter="set_effect_tags" getter="get_effect_tags">
 			What this effect [i]is[/i]. Other effects and abilities match against these - notably [member remove_effects_with_tags].
 		</member>
+		<member name="execute_period_on_application" type="bool" setter="set_execute_period_on_application" getter="get_execute_period_on_application" default="false">
+			A periodic effect ticks once the moment it is applied, not only after its first period - a poison that bites at once.
+		</member>
+		<member name="gameplay_cue_tags" type="GameplayTagContainer" setter="set_gameplay_cue_tags" getter="get_gameplay_cue_tags">
+			Cues for the presentation layer, fired on every peer: executed for an instant effect and each period tick, added and removed with a duration or infinite one. See [signal AbilitySystemComponent.gameplay_cue].
+		</member>
 		<member name="granted_tags" type="GameplayTagContainer" setter="set_granted_tags" getter="get_granted_tags">
 			Tags the owner holds while this effect is active. Reference counted, so two effects granting the same tag both have to end before it goes away.
 		</member>
@@ -37,6 +43,18 @@
 		<member name="remove_effects_with_tags" type="GameplayTagContainer" setter="set_remove_effects_with_tags" getter="get_remove_effects_with_tags">
 			Applying this effect strips every active effect whose [member effect_tags] match - a cleanse, or a buff that replaces a weaker one.
 		</member>
+		<member name="stack_duration_refresh" type="bool" setter="set_stack_duration_refresh" getter="get_stack_duration_refresh" default="true">
+			Whether another application of a stacking effect starts its duration over.
+		</member>
+		<member name="stack_expiration" type="int" setter="set_stack_expiration" getter="get_stack_expiration" enum="GameplayEffect.StackExpiration" default="0">
+			What a stacking effect does when its duration runs out.
+		</member>
+		<member name="stack_limit" type="int" setter="set_stack_limit" getter="get_stack_limit" default="0">
+			The most stacks an aggregate effect holds; 0 is no limit. Applications past the limit still refresh the duration when [member stack_duration_refresh] is on.
+		</member>
+		<member name="stacking_type" type="int" setter="set_stacking_type" getter="get_stacking_type" enum="GameplayEffect.StackingType" default="0">
+			What applying this effect again, while it is active on the same target, does. Stacks scale every modifier: an ADD counts once per stack, a MULTIPLY is raised to the stack count, an OVERRIDE is unchanged.
+		</member>
 	</members>
 	<constants>
 		<constant name="INSTANT" value="0" enum="DurationPolicy">
@@ -47,6 +65,18 @@
 		</constant>
 		<constant name="HAS_DURATION" value="2" enum="DurationPolicy">
 			Lasts [member duration] seconds, then removes itself.
+		</constant>
+		<constant name="STACKING_NONE" value="0" enum="StackingType">
+			Every application is its own active effect.
+		</constant>
+		<constant name="STACKING_AGGREGATE" value="1" enum="StackingType">
+			Applications on one target share one active effect and add to its stack count. Unreal's AggregateByTarget.
+		</constant>
+		<constant name="CLEAR_ENTIRE_STACK" value="0" enum="StackExpiration">
+			The whole stack goes when the duration ends.
+		</constant>
+		<constant name="REMOVE_SINGLE_AND_REFRESH" value="1" enum="StackExpiration">
+			One stack goes and the duration starts over for the rest - a poison wearing off a dose at a time.
 		</constant>
 	</constants>
 </class>

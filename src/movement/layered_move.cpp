@@ -70,6 +70,20 @@ Vector3 LayeredMove::apply_finish_velocity(const Vector3& velocity) const
 	}
 }
 
+Ref<LayeredMove> LayeredMove::duplicate_move() const
+{
+	Ref<LayeredMove> copy = duplicate(false);
+	ERR_FAIL_COND_V_MSG(copy.is_null(), Ref<LayeredMove>(), "GFGD: LayeredMove.duplicate_move could not duplicate the move.");
+
+	copy->start_time_ms = start_time_ms;
+	copy->started = started;
+
+	// A script's chance to carry over what Resource.duplicate() cannot see.
+	GDVIRTUAL_CALL(_duplicate_move, copy);
+
+	return copy;
+}
+
 void LayeredMove::_bind_methods()
 {
 	BIND_ENUM_CONSTANT(KEEP_VELOCITY);
@@ -103,10 +117,12 @@ void LayeredMove::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_start_time_ms"), &LayeredMove::get_start_time_ms);
 	ClassDB::bind_method(D_METHOD("get_elapsed", "sim_time_ms"), &LayeredMove::get_elapsed);
 	ClassDB::bind_method(D_METHOD("is_finished", "sim_time_ms"), &LayeredMove::is_finished);
+	ClassDB::bind_method(D_METHOD("duplicate_move"), &LayeredMove::duplicate_move);
 
 	GDVIRTUAL_BIND(_on_start, "params");
 	GDVIRTUAL_BIND(_generate_move, "params", "out_proposal");
 	GDVIRTUAL_BIND(_is_finished, "sim_time_ms");
+	GDVIRTUAL_BIND(_duplicate_move, "copy");
 }
 
 // --- LinearVelocityLayeredMove ----------------------------------------------

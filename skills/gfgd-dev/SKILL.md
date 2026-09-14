@@ -16,7 +16,8 @@ src/
   register_types.cpp/.h   entry point: class registration + project settings
   core/                   assert, assertion_exception, assertion_messages, project_statics
   movement/               movement_types, movement_utils, movement_mode(+_transition),
-                          layered_move, movement_backend, character_movement_component,
+                          layered_move, movement_backend, predicted_movement_backend,
+                          character_movement_component,
                           modes/{walking,falling,flying}_mode
   framework/              world, game_instance, local_player, player_input, input_router,
                           input_component, game_state_base, player_state, game_mode_base,
@@ -26,7 +27,8 @@ src/
                           gameplay_message_router, save_game
   gameplay_tags/          gameplay_tag(+_container, _count_container, _table), _manager
   ability_system/         attribute_set, attribute_modifier, gameplay_effect,
-                          active_gameplay_effect, gameplay_ability, ability_system_component
+                          gameplay_effect_spec, active_gameplay_effect, gameplay_ability,
+                          ability_system_component
   editor/                 #ifdef TOOLS_ENABLED only
   gen/                    doc_data.gen.cpp (generated, gitignored)
 project/           the demo Godot project; builds install the library into its addon
@@ -220,13 +222,14 @@ both guarantees unconditional and costs nothing.
 Binaries are gitignored in both `bin/` trees (folder structure kept via `.gitkeep`), so the addon in
 git is text only and the libraries are build output.
 
-## Design notes kept for later
+## Design notes
 
-`references/client-prediction.md` — the plan for client-side prediction, written down while the
-movement work was fresh. Read it before touching `PlayerController`'s input path or
-`MovementBackend`; several hooks in `src/movement/` exist only to serve it, and the one rule that
-keeps them valid (nothing in a tick reads the body's transform, nothing that survives a tick lives on
-the component) fails silently rather than loudly when broken.
+`references/client-prediction.md` — how client-side prediction is built: where each piece lives, how
+the original plan came out, why the owning client drops replicated values instead of being filtered
+out of them, and what is still missing. Read it before touching `PlayerController`'s input path,
+`Pawn`'s replication, `MovementBackend`, or anything a movement tick reads. The one rule that keeps
+it correct — nothing in a tick reads the body's transform, nothing that survives a tick lives on the
+component — no longer fails silently: `test_replay.gd` catches it.
 
 ## Testing a change
 
@@ -271,9 +274,68 @@ tree's, so input set there lands on the tick about to run), and assert on printe
 the solver directly — `find_floor_at()`, `sweep_from()`, `slide_move_from()` all take the transform
 to work from — when a static answer is sharper than a dynamic one.
 
+`test_replay.gd` is the rule client prediction rests on: three seconds of walking, jumping,
+crouching, a layered move with its own state and a wall, in 3D and 2D, rolled back to five points
+and replayed twice each, to 1e-5. Leaving the body out of `rollback_to_state` turns all ten 3D
+replays red; making the history's layered moves shallow turns four in each dimension red.
+
+`test_prediction.gd` is the only test that is not one process. It starts a dedicated server and a
+client of the demo over ENet on loopback, with `tests/prediction_probe.gd` loaded into both through
+`--probe`, and the client's exit code is the verdict. It checks the promises prediction makes -
+moving on the tick the key goes down, no correction at all over a scripted stretch of play, one
+correction of the right size after the server moves the character - on a clean loopback and through
+the debug delay-and-drop queue at 50 ms, 10 ms jitter and 5 % loss. About 25 seconds. Letting the
+owner apply the replicated transform, dropping custom flags on the server, and rolling back without
+replaying each turn it red.
+
+`test_gas.gd` pins the ability system's rules on one machine: the attribute formula, aggregate
+stacking (limits, MULTIPLY raised to the stack, removing single stacks, one dose expiring at a time),
+the three magnitude types, effects applied to a target, periodic ticks on application, cues, and an
+ability's cost and cooldown with the reason it was refused. Ignoring the stack count turns three of
+its checks red; never checking the cooldown turns two.
+
+`test_ability_tasks.gd` pins ability tasks: each wait resumes with the right value at the right
+time, `wait_any`/`wait_all` combine them, a task already satisfied at creation still resumes, a GDScript
+`AbilityTask` subclass ticks - and, the point of them, an ability cancelled mid-wait never runs the
+line after its `await`, and the task is freed rather than leaked. Cancellation works by disconnecting
+every connection to `completed`: the connection held the only reference to the suspended
+coroutine's state, so dropping it frees the coroutine without resuming it (verified with a
+prototype on 4.7 before the API was built on it). Cancelling without disconnecting turns the leak
+check red; always emitting at once, instead of deferring when nothing awaits yet, turns two red.
+
+`test_gameplay_cues.gd` pins cue handlers: resolution with the parent-tag fallback, a
+`GameplayCueNotify` called once per lasting cue however many sources add it, a scene instanced under
+the character and freed or faded on removal, an executed scene placed at its `location`, effect cue
+parameters, and an ability's cue removed when it ends. Dropping the parent fallback turns two red.
+
+`test_gas_replication.gd` runs a dedicated server, an owning client and an observer client - three
+processes - with `tests/gas_replication_probe.gd` in each. The owner checks that the server's
+attributes, tags, effects (one built in code, so rebuilt from what was sent), cues and abilities
+arrive; that a predicted sprint starts on its button press as a prediction and is paid for by the
+server; that a server-only ability runs there and is heard here; that a refused prediction is taken
+back; and that one press activates an instant ability once, although it reaches the server both as
+a request and as replicated action state; and that `sync_target_data` gives the server the client's
+value (the server ignoring it turns that red), and that an event sent only on the client triggers a
+predicted ability whose payload reaches the server (dropping the payload turns that red), and that a
+predicted ability's cue is heard once by the client that predicted it (sending it back to that client
+turns that red). The observer checks it sees the owner's state and none of
+its abilities. Letting the server listen to a remote player's action-state input, letting clients
+apply effects, and sending abilities to everyone each turn it red.
+
+**How ability replication is built.** Everything goes through `AbilitySystemComponent`'s own RPCs,
+reliable, on channel 0 - the channel the NetDriver spawns nodes on, so nothing arrives for a node the
+client has not built. Server-side calls are queued and flushed at the end of the frame (tags, then
+attributes, then the queue in order): a component applies its startup effects inside `add_child`,
+before the NetDriver has told any client the node exists. A client asks for the full state from its
+own `_ready`, which is also what makes a late join, a level change and a level-placed component the
+same case. Owned tags on a client are the server's counts plus the client's own (predicted abilities'
+tags), applied as deltas.
+
 `project/` is a working demo: 4 game modes (`demo`, `coop`, `main_menu`, `online`), 4 levels, 3 pawn
 scenes, GAS resources and tag tables. CLI flags: `--server --port N`, `--host`, `--join <addr>`,
-`--level <path>`, `--auto-move`, `--travel-after N`.
+`--level <path>`, `--auto-move`, `--travel-after N`, `--net-latency MS --net-jitter MS --net-loss PCT`
+(the prediction traffic's debug delay-and-drop queue), `--probe <script>` (a node under the root, for
+tests). The online pawn has `client_prediction` on.
 
 **The editor binary loads the `.editor` library even when running a game.**
 `godot --path project` from an editor build matches the `.editor` manifest slot, not

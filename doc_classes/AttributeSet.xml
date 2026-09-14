@@ -30,6 +30,15 @@
 				Override to clamp. [b]Return the value to actually store[/b] - this is the hook where [code]health[/code] gets held between zero and [code]max_health[/code]. Called before the change is written, so [method get_current_value] still reads the old one.
 			</description>
 		</method>
+		<method name="apply_replicated_value">
+			<return type="void" />
+			<param index="0" name="attribute_name" type="StringName" />
+			<param index="1" name="base_value" type="float" />
+			<param index="2" name="current_value" type="float" />
+			<description>
+				Writes a value the server already worked out: no [method _pre_attribute_change] (the server clamped it) and no [method _post_attribute_change] (whatever that does - dying, above all - happened on the server). The change signals still fire. What a replicated [AbilitySystemComponent] calls on a client.
+			</description>
+		</method>
 		<method name="define_attribute">
 			<return type="void" />
 			<param index="0" name="attribute_name" type="StringName" />

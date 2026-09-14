@@ -1,0 +1,8 @@
+[gd_resource type="GameplayAbility" format=3]
+
+[ext_resource type="Script" path="res://tests/gas_cue_ability.gd" id="1_cue"]
+
+[resource]
+script = ExtResource("1_cue")
+ability_name = &"CueOnce"
+net_execution_policy = 1

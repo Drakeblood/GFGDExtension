@@ -1,0 +1,12 @@
+[gd_resource type="GameplayAbility" format=3]
+
+[ext_resource type="Script" path="res://tests/gas_event_ability.gd" id="1_event"]
+
+[sub_resource type="GameplayTagContainer" id="GameplayTagContainer_trigger"]
+tags = PackedStringArray("Event.Heal")
+
+[resource]
+script = ExtResource("1_event")
+ability_name = &"EventHeal"
+net_execution_policy = 1
+trigger_event_tags = SubResource("GameplayTagContainer_trigger")

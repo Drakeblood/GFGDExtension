@@ -10,6 +10,10 @@ extends GameInstance
 ##   ... --port 7777 --auto-move                 for a run with nobody at the keyboard
 ##   --level res://levels/test_level.tscn        skip the menu and open a level
 ##   --travel-after 10                           server travels again after 10s
+##   --net-latency 60 --net-jitter 10 --net-loss 2
+##                                               a worse network for the predicted
+##                                               movement traffic (debug builds)
+##   --probe res://tests/prediction_probe.gd     add a test probe under the root
 
 const ONLINE_LEVEL := "res://levels/online_level.tscn"
 
@@ -21,6 +25,19 @@ func _on_init(world: World) -> void:
 
 	var args: PackedStringArray = OS.get_cmdline_user_args()
 	auto_move = args.has("--auto-move")
+
+	# Godot's ENet has no way to make a network worse, so GFGD has its own
+	# delay-and-drop queue on the prediction traffic. Set before any pawn exists,
+	# because a predicted pawn reads these once, when it spawns.
+	_apply_int_setting(args, "--net-latency", "application/game_framework/debug/network_latency_ms")
+	_apply_int_setting(args, "--net-jitter", "application/game_framework/debug/network_jitter_ms")
+	_apply_int_setting(args, "--net-loss", "application/game_framework/debug/network_packet_loss_percent")
+
+	var probe_path: String = _string_argument(args, "--probe", "")
+	if not probe_path.is_empty():
+		var probe: Node = (load(probe_path) as GDScript).new()
+		probe.name = "Probe"
+		world.root.add_child.call_deferred(probe)
 
 	if args.has("--server") or args.has("--host") or args.has("--join"):
 		# The first level has to be up before anything can host or travel, and
@@ -75,6 +92,12 @@ func _string_argument(args: PackedStringArray, name: String, fallback: String) -
 		return args[index + 1]
 
 	return fallback
+
+
+func _apply_int_setting(args: PackedStringArray, name: String, setting: String) -> void:
+	var value: int = _int_argument(args, name, -1)
+	if value >= 0:
+		ProjectSettings.set_setting(setting, value)
 
 
 func _int_argument(args: PackedStringArray, name: String, fallback: int) -> int:

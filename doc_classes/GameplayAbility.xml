@@ -47,10 +47,39 @@
 				Override to set the ability up when it is granted - before it ever activates. Runs once per granted instance.
 			</description>
 		</method>
+		<method name="_on_remove_ability" qualifiers="virtual">
+			<return type="void" />
+			<description>
+				Called when the ability is removed from its component.
+			</description>
+		</method>
+		<method name="_should_respond_to_event" qualifiers="virtual">
+			<return type="bool" />
+			<param index="0" name="event_tag" type="StringName" />
+			<param index="1" name="payload" type="Dictionary" />
+			<description>
+				Asked before an event in [member trigger_event_tags] activates the ability; return false to ignore this one - a hit for no damage, say. Not asked on the server for a predicted activation the client already started.
+			</description>
+		</method>
 		<method name="activate_ability">
 			<return type="void" />
 			<description>
 				Starts the ability: grants [member activation_owned_tags], cancels what [member cancel_abilities_with_tag] names, and calls [method _activate_ability]. It does [b]not[/b] re-check [method can_activate_ability], so call that first unless you mean to force it.
+			</description>
+		</method>
+		<method name="add_gameplay_cue">
+			<return type="void" />
+			<param index="0" name="cue_tag" type="StringName" />
+			<param index="1" name="parameters" type="Dictionary" default="{}" />
+			<description>
+				Starts a lasting cue from this ability; it is removed when the ability ends (Unreal's default too). See [method execute_gameplay_cue] for why this and not the component's.
+			</description>
+		</method>
+		<method name="apply_effect_spec_to_owner">
+			<return type="int" />
+			<param index="0" name="spec" type="GameplayEffectSpec" />
+			<description>
+				Applies a spec to the owning component.
 			</description>
 		</method>
 		<method name="apply_effect_to_owner">
@@ -60,10 +89,49 @@
 				Applies [param effect] to the component that owns this ability, returning the same handle as [method AbilitySystemComponent.apply_gameplay_effect_to_self]. This is how an ability spends a cost or applies its own buff.
 			</description>
 		</method>
+		<method name="apply_effect_to_target">
+			<return type="int" />
+			<param index="0" name="effect" type="GameplayEffect" />
+			<param index="1" name="target" type="AbilitySystemComponent" />
+			<description>
+				Applies an effect at this ability's level, with the owner as source, to another component - what an ability that hits something calls.
+			</description>
+		</method>
 		<method name="can_activate_ability">
 			<return type="bool" />
 			<description>
 				Checks the tag gates - [member activation_required_tags], [member activation_blocked_tags], and whether another ability is blocking this one - and then [method _can_activate_ability]. Both have to pass.
+			</description>
+		</method>
+		<method name="check_cooldown" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Whether none of the cooldown effect's granted tags are owned.
+			</description>
+		</method>
+		<method name="check_cost" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Whether the cost could be paid: applying the cost effect would leave no attribute below zero. Unreal's CanApplyAttributeModifiers. On a client, it is checked against the values the server last sent.
+			</description>
+		</method>
+		<method name="commit_ability">
+			<return type="bool" />
+			<description>
+				Checks cost and cooldown again and, where effects may be applied, applies both. Returns false - and applies nothing - if either fails. Call it from [method _activate_ability] at the point the ability has really happened, and end the ability if it returns false.
+				On a predicting client it only checks: the cost and the cooldown are applied by the server, and arrive a round trip later.
+			</description>
+		</method>
+		<method name="commit_ability_cooldown">
+			<return type="bool" />
+			<description>
+				Applies only the cooldown.
+			</description>
+		</method>
+		<method name="commit_ability_cost">
+			<return type="bool" />
+			<description>
+				Applies only the cost.
 			</description>
 		</method>
 		<method name="end_ability">
@@ -73,16 +141,60 @@
 				Ends the ability, releasing its owned tags and calling [method _end_ability]. Pass [code]true[/code] for [param was_canceled] when something interrupted it rather than it finishing. [b]An ability that never calls this stays active and keeps blocking.[/b]
 			</description>
 		</method>
+		<method name="execute_gameplay_cue">
+			<return type="void" />
+			<param index="0" name="cue_tag" type="StringName" />
+			<param index="1" name="parameters" type="Dictionary" default="{}" />
+			<description>
+				Fires a one-off cue from this ability. Use this rather than the component's methods inside an ability: on the server's copy of a predicted activation it leaves the owning client out of what is sent - that client already played the cue when it predicted, and through the component directly it would hear it twice. It also adds the avatar as [code]source_path[/code].
+			</description>
+		</method>
 		<method name="get_ability_id" qualifiers="const">
 			<return type="int" />
 			<description>
 				This instance's id, unique across every ability granted this run. Granting the same template twice yields two instances with different ids.
 			</description>
 		</method>
+		<method name="get_ability_level" qualifiers="const">
+			<return type="float" />
+			<description>
+				The level the ability was granted at; its specs carry it, so level-curve modifiers scale with it.
+			</description>
+		</method>
 		<method name="get_ability_system_component" qualifiers="const">
 			<return type="AbilitySystemComponent" />
 			<description>
 				The component this ability was granted to.
+			</description>
+		</method>
+		<method name="get_active_tasks" qualifiers="const">
+			<return type="Array" />
+			<description>
+				The tasks this activation is running.
+			</description>
+		</method>
+		<method name="get_avatar" qualifiers="const">
+			<return type="Node" />
+			<description>
+				The node the ability system component hangs off - the pawn root, placed the usual way.
+			</description>
+		</method>
+		<method name="get_cooldown_tags" qualifiers="const">
+			<return type="GameplayTagContainer" />
+			<description>
+				The cooldown effect's granted tags.
+			</description>
+		</method>
+		<method name="get_cooldown_time_remaining" qualifiers="const">
+			<return type="float" />
+			<description>
+				Seconds left on this ability's cooldown; 0 when it is ready.
+			</description>
+		</method>
+		<method name="get_handle" qualifiers="const">
+			<return type="int" />
+			<description>
+				The id the server gave this ability when it was granted - the same on the server and the owning client, unlike [method get_ability_id].
 			</description>
 		</method>
 		<method name="get_id_counter" qualifiers="static">
@@ -103,10 +215,34 @@
 				Whether the input driving this ability is currently held. Maintained by [method input_pressed] and [method input_released].
 			</description>
 		</method>
+		<method name="get_last_failure_reason" qualifiers="const">
+			<return type="StringName" />
+			<description>
+				Why the last activation was refused: [code]&amp;"active"[/code], [code]&amp;"no_owner"[/code], [code]&amp;"blocked"[/code], [code]&amp;"tags"[/code], [code]&amp;"cooldown"[/code], [code]&amp;"cost"[/code], [code]&amp;"script"[/code], or [code]&amp;"rejected"[/code] when the server refused a predicted activation. Empty after a success.
+			</description>
+		</method>
 		<method name="get_source_object" qualifiers="const">
 			<return type="Variant" />
 			<description>
 				Whatever was passed to [method AbilitySystemComponent.give_ability] as the source - the weapon, item or actor that granted the ability. Null when nothing was given.
+			</description>
+		</method>
+		<method name="get_time_active" qualifiers="const">
+			<return type="float" />
+			<description>
+				Seconds since the ability was activated; 0 when it is not active.
+			</description>
+		</method>
+		<method name="get_trigger_event_data" qualifiers="const">
+			<return type="Dictionary" />
+			<description>
+				The payload of the event that started the current activation, or an empty [Dictionary]. On the server's copy of a predicted activation it is what the client sent - check it before trusting it.
+			</description>
+		</method>
+		<method name="get_trigger_event_tag" qualifiers="const">
+			<return type="StringName" />
+			<description>
+				The tag of the event that started the current activation, or empty.
 			</description>
 		</method>
 		<method name="increment_id_counter" qualifiers="static">
@@ -127,10 +263,51 @@
 				Tells the ability its input came up; calls [method _input_released].
 			</description>
 		</method>
+		<method name="is_predicting" qualifiers="const">
+			<return type="bool" />
+			<description>
+				True on a client between starting a [constant LOCAL_PREDICTED] activation and the server's answer.
+			</description>
+		</method>
+		<method name="is_triggered_by" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="event_tag" type="StringName" />
+			<description>
+				Whether an event with this tag activates the ability: the tag, or a child of it, is in [member trigger_event_tags].
+			</description>
+		</method>
+		<method name="make_outgoing_spec" qualifiers="const">
+			<return type="GameplayEffectSpec" />
+			<param index="0" name="effect" type="GameplayEffect" />
+			<description>
+				A spec for [param effect] at this ability's level, with the owner as its source.
+			</description>
+		</method>
 		<method name="on_give_ability">
 			<return type="void" />
 			<description>
 				Runs the grant-time hook. Called by [method AbilitySystemComponent.give_ability]; override [method _on_give_ability] instead of calling this.
+			</description>
+		</method>
+		<method name="remove_gameplay_cue">
+			<return type="void" />
+			<param index="0" name="cue_tag" type="StringName" />
+			<description>
+				Removes a cue this ability added before it ends.
+			</description>
+		</method>
+		<method name="run_task">
+			<return type="AbilityTask" />
+			<param index="0" name="task" type="AbilityTask" />
+			<description>
+				Starts a task of your own - an [AbilityTask] subclass - for this activation, and returns it to await. A task started while the ability is not active comes back cancelled, since nothing would ever end it.
+			</description>
+		</method>
+		<method name="set_ability_level">
+			<return type="void" />
+			<param index="0" name="value" type="float" />
+			<description>
+				Sets the level. Not replicated after the grant.
 			</description>
 		</method>
 		<method name="set_is_input_pressed">
@@ -146,6 +323,75 @@
 			<param index="1" name="source_object" type="Variant" default="null" />
 			<description>
 				Binds a freshly granted instance to its component and source. [method AbilitySystemComponent.give_ability] calls this; a project does not.
+			</description>
+		</method>
+		<method name="sync_target_data">
+			<return type="AbilityTask" />
+			<param index="0" name="data" type="Dictionary" />
+			<description>
+				Carries a value from the predicting client to the server's copy of the same activation - an aim, a chosen target. On the predicting client: sends [param data] and completes with it at once. On the server's copy of an activation that client asked for: completes with what the client sent, and [param data] is ignored. Anywhere else (offline, the host's own pawn, an activation the server started): completes with [param data].
+				The server's result came from a client: check it before trusting it. Calls are matched in order within an activation, so call it the same number of times on both sides.
+			</description>
+		</method>
+		<method name="wait_all">
+			<return type="AbilityTask" />
+			<param index="0" name="tasks" type="Array" />
+			<description>
+				Completes when every task in [param tasks] has, with an [Array] of their results in order.
+			</description>
+		</method>
+		<method name="wait_any">
+			<return type="AbilityTask" />
+			<param index="0" name="tasks" type="Array" />
+			<description>
+				Completes when the first task in [param tasks] does, with its index; the others are cancelled. Its result is on the task itself.
+			</description>
+		</method>
+		<method name="wait_attribute_change">
+			<return type="AbilityTask" />
+			<param index="0" name="attribute_name" type="StringName" />
+			<description>
+				Completes the next time the attribute changes, with a [Dictionary] holding [code]old_value[/code] and [code]new_value[/code].
+			</description>
+		</method>
+		<method name="wait_delay">
+			<return type="AbilityTask" />
+			<param index="0" name="seconds" type="float" />
+			<description>
+				Completes after [param seconds] of physics ticks - the simulation clock, which pauses with the game.
+			</description>
+		</method>
+		<method name="wait_gameplay_event">
+			<return type="AbilityTask" />
+			<param index="0" name="event_tag" type="StringName" />
+			<description>
+				Completes on the next [method AbilitySystemComponent.send_gameplay_event] with this tag, with its payload.
+			</description>
+		</method>
+		<method name="wait_gameplay_tag_added">
+			<return type="AbilityTask" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+				Completes when the owner has the tag (or a child of it) - on the next frame if it already has.
+			</description>
+		</method>
+		<method name="wait_gameplay_tag_removed">
+			<return type="AbilityTask" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+				Completes when the owner no longer has the tag - on the next frame if it already does not.
+			</description>
+		</method>
+		<method name="wait_input_press">
+			<return type="AbilityTask" />
+			<description>
+				Completes when the ability's input is pressed, with the seconds waited. On the server's copy of a remote player's ability, presses arrive through the component's own request.
+			</description>
+		</method>
+		<method name="wait_input_release">
+			<return type="AbilityTask" />
+			<description>
+				Completes when the ability's input is released, with how long it was held - what a charge attack wants.
 			</description>
 		</method>
 	</methods>
@@ -171,8 +417,21 @@
 		<member name="cancel_abilities_with_tag" type="GameplayTagContainer" setter="set_cancel_abilities_with_tag" getter="get_cancel_abilities_with_tag">
 			Activating this ability cancels every active ability whose [member ability_tags] match.
 		</member>
+		<member name="cooldown_effect" type="GameplayEffect" setter="set_cooldown_effect" getter="get_cooldown_effect">
+			A duration effect whose [member GameplayEffect.granted_tags] are the cooldown. The ability cannot activate while its owner has any of them; [method commit_ability] applies it.
+		</member>
+		<member name="cost_effect" type="GameplayEffect" setter="set_cost_effect" getter="get_cost_effect">
+			An instant effect, normally a negative ADD on a resource attribute. [method can_activate_ability] refuses when it cannot be paid; [method commit_ability] pays it.
+		</member>
 		<member name="input_action_name" type="StringName" setter="set_input_action_name" getter="get_input_action_name" default="&amp;&quot;&quot;">
 			The input action [method AbilitySystemComponent.ability_local_input_pressed] routes to this ability. Bind the action on the [Pawn] and forward it; the ability never reads input itself.
+		</member>
+		<member name="net_execution_policy" type="int" setter="set_net_execution_policy" getter="get_net_execution_policy" enum="GameplayAbility.NetExecutionPolicy" default="1">
+			Where the ability runs when a networked game activates it. Only matters on a replicated [AbilitySystemComponent]; offline every ability runs where it is activated.
+		</member>
+		<member name="trigger_event_tags" type="GameplayTagContainer" setter="set_trigger_event_tags" getter="get_trigger_event_tags">
+			Gameplay events that activate this ability by themselves - Unreal's AbilityTriggers with a GameplayEvent source. [method AbilitySystemComponent.send_gameplay_event] with a matching tag (or a child of one: [code]Event.Hit[/code] is triggered by [code]Event.Hit.Head[/code]) activates the ability with the event's payload, readable through [method get_trigger_event_data].
+			Events are local to a machine, so where a trigger fires follows Unreal's rule: a [constant LOCAL_PREDICTED] or [constant LOCAL_ONLY] ability is triggered on the machine that controls its owner, a [constant SERVER_ONLY] one on the server. A predicted activation carries the payload to the server with its request, so the server's copy runs with the same data though it never saw the event; an activation claiming an event the ability is not triggered by is refused there.
 		</member>
 	</members>
 	<signals>
@@ -183,4 +442,15 @@
 			</description>
 		</signal>
 	</signals>
+	<constants>
+		<constant name="LOCAL_ONLY" value="0" enum="NetExecutionPolicy">
+			Runs only on the machine that activated it; the server never hears of it. For purely cosmetic abilities.
+		</constant>
+		<constant name="LOCAL_PREDICTED" value="1" enum="NetExecutionPolicy">
+			The default. The owning client runs it at once and asks the server, which runs it too and confirms - or refuses, and the client's copy is cancelled with [code]&amp;"rejected"[/code]. Its tags are owned on the client at once; its cost and cooldown arrive from the server. When either side ends it, the other side's copy ends too.
+		</constant>
+		<constant name="SERVER_ONLY" value="2" enum="NetExecutionPolicy">
+			The owning client only asks; the server runs it, and the client learns that it is active - its script does not run there. For anything a client must not be trusted to start by itself.
+		</constant>
+	</constants>
 </class>

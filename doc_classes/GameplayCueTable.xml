@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="GameplayCueTable" inherits="Resource" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Gameplay cue tag to handler.
+	</brief_description>
+	<description>
+		Each entry maps a cue tag to a [GameplayCueNotify] or a [PackedScene]. List tables in the [code]application/game_framework/gameplay_cue_tables[/code] project setting, or add one at runtime with [method GameplayCueManager.add_table]. A tag with no entry uses its nearest parent's: [code]Cue.Hit.Fire[/code] plays [code]Cue.Hit[/code]'s handler until it has its own.
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="cues" type="Dictionary" setter="set_cues" getter="get_cues" default="{}">
+			Cue tag ([StringName]) to handler ([GameplayCueNotify] or [PackedScene]).
+		</member>
+	</members>
+</class>
