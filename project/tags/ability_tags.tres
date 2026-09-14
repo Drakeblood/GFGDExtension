@@ -2,5 +2,31 @@
 
 [resource]
 tags = Dictionary[StringName, String]({
-&"Ability.Test": "Test"
+&"Ability.Test": "Test",
+&"Ability.Sprint": "The online demo's predicted sprint",
+&"Ability.Shout": "The online demo's server-only shout",
+&"Ability.Strike": "The 3D playground's charged strike",
+&"Ability.HitReact": "The training dummy's reaction to Event.Hit",
+&"Cooldown.Sprint": "Granted by the sprint's cooldown effect",
+&"Cooldown.Strike": "Granted by the strike's cooldown effect",
+&"Cooldown.Test": "Cooldown used by tests/test_gas.gd",
+&"Cue.Charging": "Shown while the strike is being charged",
+&"Cue.Haste": "Shown while hasted",
+&"Cue.Heal": "Shown while standing on a heal pad",
+&"Cue.Hit": "Played where damage lands",
+&"Cue.Shout": "Played when the shout goes off",
+&"Cue.Burning": "Shown while a burn lasts",
+&"Cue.Test": "Cue used by tests/test_gas.gd",
+&"Effect.Buff": "An effect that makes things better",
+&"Effect.Buff.Haste": "Faster walking, from the haste pickup",
+&"Effect.Damage": "An effect that hurts",
+&"Effect.Damage.Fire": "Damage over time from the fire zone",
+&"Event.Heal": "Triggers tests/gas_event_ability.tres",
+&"Event.Hit": "Something landed a hit",
+&"Event.Test": "Event used by tests/test_ability_tasks.gd",
+&"State.Burning": "Granted while a burn lasts",
+&"State.Down": "The training dummy is knocked out",
+&"State.Healing": "Granted while standing on a heal pad",
+&"State.Hasted": "Granted by the haste pickup",
+&"State.Sprinting": "Owned while sprinting"
 })

@@ -12,6 +12,12 @@ extends Level
 ## cares about. The walkway is 10 m wide, z from -5 to 5, and where a station has
 ## something you cannot get past it is put off to one side so the tour never dead
 ## ends.
+##
+## Beside the start, to the right, is the ability yard: the gameplay ability
+## system rather than movement. A heal pad, a fire that sets you burning, a haste
+## pickup that speeds up your walk through the move_speed attribute, and a
+## training dummy with its own AbilitySystemComponent to try the charged strike
+## (Q) on. The HUD lists what the character's component holds.
 
 const GROUND := Color(0.20, 0.22, 0.26)
 const PROP := Color(0.32, 0.35, 0.40)
@@ -19,6 +25,20 @@ const BLOCKER := Color(0.44, 0.27, 0.27)
 const PLATFORM := Color(0.34, 0.42, 0.30)
 const WATER := Color(0.16, 0.38, 0.52, 0.45)
 const UPDRAFT := Color(0.42, 0.36, 0.16, 0.28)
+
+const HEAL := Color(0.25, 0.62, 0.36)
+const FIRE := Color(0.78, 0.32, 0.12)
+const HASTE := Color(0.30, 0.62, 0.95)
+const DUMMY := Color(0.70, 0.62, 0.45)
+
+const GAS_PAD := preload("res://scripts/gas_pad.gd")
+
+## The ability yard's stations, all at z = YARD_Z.
+const YARD_Z := 11.0
+const HEAL_PAD := Vector3(-8.0, 0.0, YARD_Z)
+const FIRE_PAD := Vector3(-3.0, 0.0, YARD_Z)
+const HASTE_PICKUP := Vector3(2.0, 0.9, YARD_Z)
+const DUMMY_AT := Vector3(8.0, 1.0, YARD_Z)
 
 ## Anything below this has fallen off the map.
 const RESPAWN_BELOW := -12.0
@@ -72,6 +92,9 @@ const SLABS: Array = [
 	# 8 - the updraft, and the shelf only flying reaches.
 	[Vector3(130.0, -0.5, 0.0), Vector3(16.0, 1.0, 10.0), GROUND],
 	[Vector3(133.0, 6.0, 0.0), Vector3(6.0, 0.4, 10.0), PROP],
+
+	# 9 - the ability yard, alongside station 1 on the right.
+	[Vector3(0.0, -0.5, 11.0), Vector3(24.0, 1.0, 12.0), GROUND],
 ]
 
 ## Ramps, given as the segment their top face runs along in the XY plane, plus
@@ -98,7 +121,12 @@ const SIGNS: Array = [
 	[Vector3(84.5, 3.2, -4.0), "6 - Platforms\nRide across, then take the\nlift. Stepping off a moving\none keeps its momentum."],
 	[Vector3(107.5, 2.6, -4.0), "7 - Water\nWalk in to swim.\nSpace jumps out."],
 	[Vector3(123.0, 4.2, -4.0), "8 - Flying\nThe updraft switches the\nmode. Leave it and you fall.\nThe shelf is only reachable\nthat way."],
-	[Vector3(-8.0, 1.2, 4.0), "F dashes.\nE is the ability demo."],
+	[Vector3(-8.0, 1.2, 4.0), "F dashes.\nE is the ability demo.\nThe ability yard is to\nyour right (D)."],
+
+	[Vector3(-8.0, 2.8, 15.5), "9a - Heal pad\nAn INFINITE effect with a\nperiod: +4 health every 0.5 s\nwhile you stand here,\nremoved when you leave."],
+	[Vector3(-3.0, 2.8, 15.5), "9b - Fire\nApplies a burn every 0.5 s.\nIt stacks to 3 and outlasts\nthe fire, a stack at a time."],
+	[Vector3(2.0, 2.8, 15.5), "9c - Haste\nx1.25 move_speed for 6 s,\nstacks twice. The pawn turns\nmove_speed into walk speed."],
+	[Vector3(8.0, 3.2, 15.5), "9d - Training dummy\nQ strikes, hold to charge:\n10 to 40 damage, 10 mana.\nAt 0 health it goes down\n- an ability Event.Hit\ntriggers on the dummy."],
 ]
 
 var _shuttle: AnimatableBody3D
@@ -107,6 +135,9 @@ var _elapsed := 0.0
 
 var _hud: Label
 var _movement: CharacterMovementComponent
+var _abilities: AbilitySystemComponent
+var _dummy: StaticBody3D
+var _dummy_label: Label3D
 var _start_position := Vector3.ZERO
 
 
@@ -127,6 +158,7 @@ func _ready() -> void:
 
 	_add_water(Vector3(116.0, -2.0, 0.0), Vector3(10.0, 4.0, 10.0))
 	_add_updraft()
+	_add_yard()
 
 	_hud = get_node_or_null(^"UI/HUD")
 	var start: Node3D = get_node_or_null(^"PlayerStart")
@@ -163,6 +195,7 @@ func attach_to(movement: CharacterMovementComponent) -> void:
 		return
 
 	_movement = movement
+	_abilities = movement.get_parent().get_node_or_null(^"AbilitySystemComponent")
 	print("GFGD demo: >> %s took over the pawn's CharacterMovementComponent" % name)
 
 	var transitions: Array = movement.transitions
@@ -206,6 +239,10 @@ func _physics_process(delta: float) -> void:
 	if _lift != null:
 		_lift.position.y = -0.2 + 2.1 * (1.0 - cos(_elapsed * 0.7))
 
+	var pickup: Node3D = get_node_or_null(^"HastePickup")
+	if pickup != null:
+		pickup.rotation.y = _elapsed * 2.0
+
 
 func _process(_delta: float) -> void:
 	if _hud == null or _movement == null or not is_instance_valid(_movement):
@@ -222,7 +259,7 @@ func _process(_delta: float) -> void:
 	var floor_result: FloorResult = _movement.get_current_floor()
 	var velocity: Vector3 = _movement.get_velocity()
 
-	_hud.text = "\n".join([
+	var lines: Array[String] = [
 		"mode      %s" % _movement.get_movement_mode(),
 		"position  (%.1f, %.1f, %.1f)" % [body.position.x, body.position.y, body.position.z],
 		"velocity  (%.1f, %.1f, %.1f)   speed %.1f" % [velocity.x, velocity.y, velocity.z, velocity.length()],
@@ -234,9 +271,54 @@ func _process(_delta: float) -> void:
 		"immersion %.2f   base %s" % [
 			_movement.get_immersion_depth_at(Transform3D(Basis(), body.position)),
 			_movement.get_state().has_base()],
+	]
+	lines.append_array(_ability_lines())
+	lines.append_array([
 		"",
-		"WASD move   Space jump   C crouch   F dash   E ability demo",
+		"WASD move   Space jump   C crouch   F dash   E ability demo   Q strike (hold)",
 	])
+	_hud.text = "\n".join(lines)
+
+
+## What the character's AbilitySystemComponent holds, for the HUD: attributes,
+## owned tags, and the active effects with their stacks and time left.
+func _ability_lines() -> Array[String]:
+	if _abilities == null or not is_instance_valid(_abilities):
+		return []
+
+	var tags := PackedStringArray()
+	var owned: GameplayTagContainer = _abilities.get_owned_gameplay_tags()
+	for i in owned.get_length():
+		tags.append(str(owned.get_tag(i).tag_name))
+
+	var effects := PackedStringArray()
+	for active: ActiveGameplayEffect in _abilities.get_active_effects():
+		var label: String = active.get_effect().resource_path.get_file().get_basename()
+		if active.get_stack_count() > 1:
+			label += " x%d" % active.get_stack_count()
+		if active.get_duration() > 0.0:
+			label += " %.1fs" % active.get_remaining_time()
+		effects.append(label)
+
+	return [
+		"",
+		"health    %.0f / %.0f   mana %.0f / %.0f   move_speed %.2f" % [
+			_abilities.get_attribute_value(&"health"), _abilities.get_attribute_value(&"max_health"),
+			_abilities.get_attribute_value(&"mana"), _abilities.get_attribute_value(&"max_mana"),
+			_abilities.get_attribute_value(&"move_speed")],
+		"tags      %s" % ", ".join(tags),
+		"effects   %s" % ", ".join(effects),
+	]
+
+
+## Shows the dummy's state: its health over its head, and knocked down by
+## tipping over.
+func _refresh_dummy(asc: AbilitySystemComponent, visual: Node3D) -> void:
+	var down := asc.get_gameplay_tag_count(_tag(&"State.Down")) > 0
+	_dummy_label.text = "DOWN" if down else "%.0f / %.0f" % [
+		asc.get_attribute_value(&"health"), asc.get_attribute_value(&"max_health")]
+	visual.rotation.z = -PI * 0.5 if down else 0.0
+	visual.position.y = -0.5 if down else 0.0
 
 
 # --- Building ----------------------------------------------------------------
@@ -387,6 +469,100 @@ func _add_sign(at: Vector3, text: String) -> void:
 	label.outline_size = 20
 	label.outline_modulate = Color(0.04, 0.05, 0.07, 0.9)
 	add_child(label)
+
+
+# --- The ability yard -------------------------------------------------------
+
+func _add_yard() -> void:
+	_add_pad("HealPad", HEAL_PAD, Vector3(3.0, 0.1, 3.0), HEAL,
+		preload("res://resources/gas/heal_zone.tres"), GAS_PAD.Mode.WHILE_INSIDE)
+	_add_pad("FirePad", FIRE_PAD, Vector3(3.0, 0.1, 3.0), FIRE,
+		preload("res://resources/gas/burning.tres"), GAS_PAD.Mode.PULSE)
+	_add_pad("HastePickup", HASTE_PICKUP, Vector3(0.6, 0.6, 0.6), HASTE,
+		preload("res://resources/gas/haste.tres"), GAS_PAD.Mode.PICKUP)
+	_add_dummy()
+
+
+## A GameplayEffect on a patch of floor - see gas_pad.gd. The trigger volume is
+## 2 m tall whatever the visual, so a capsule standing on a flat pad is inside it.
+func _add_pad(node_name: String, centre: Vector3, size: Vector3, colour: Color,
+		effect: GameplayEffect, mode: int) -> Area3D:
+	var pad: Area3D = GAS_PAD.new()
+	pad.name = node_name
+	pad.position = centre
+	pad.effect = effect
+	pad.mode = mode
+
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(size.x, 2.0, size.z)
+	shape.shape = box
+	shape.position.y = 1.0
+	pad.add_child(shape)
+
+	var visual := MeshInstance3D.new()
+	var mesh := BoxMesh.new()
+	mesh.size = size
+	visual.mesh = mesh
+	visual.position.y = size.y * 0.5 if size.y < 0.5 else 0.0
+	visual.material_override = _material(colour)
+	pad.add_child(visual)
+
+	add_child(pad)
+	return pad
+
+
+## Something to hit: a body with an AbilitySystemComponent of its own - health,
+## and a HitReact ability that Event.Hit triggers. In the gas_targets group,
+## which is where the strike looks.
+func _add_dummy() -> void:
+	_dummy = StaticBody3D.new()
+	_dummy.name = "TrainingDummy"
+	_dummy.position = DUMMY_AT
+	_dummy.add_to_group(&"gas_targets")
+
+	var capsule := CapsuleShape3D.new()
+	var shape := CollisionShape3D.new()
+	shape.shape = capsule
+	_dummy.add_child(shape)
+
+	var visual := MeshInstance3D.new()
+	visual.name = "Mesh"
+	visual.mesh = CapsuleMesh.new()
+	visual.material_override = _material(DUMMY)
+	_dummy.add_child(visual)
+
+	_dummy_label = Label3D.new()
+	_dummy_label.position = Vector3(0.0, 1.5, 0.0)
+	_dummy_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_dummy_label.font_size = 64
+	_dummy_label.pixel_size = 0.008
+	_dummy_label.outline_size = 16
+	_dummy.add_child(_dummy_label)
+
+	var asc := AbilitySystemComponent.new()
+	asc.name = "AbilitySystemComponent"
+	asc.attribute_set = preload("res://resources/gas/dummy_attributes.tres")
+	asc.startup_abilities = [preload("res://resources/gas/hit_react_ability.tres")]
+	_dummy.add_child(asc)
+
+	# The label is the dummy's HUD, and a HUD is what AbilityAsync is for:
+	# waiting on a component from outside any ability. Nothing keeps these in a
+	# variable - the component holds them - and the label is their owner, so
+	# they end when it goes. Down is a tag, so whatever puts it there counts.
+	var refresh := func(_result: Variant) -> void: _refresh_dummy(asc, visual)
+	AbilityAsync.wait_attribute_change(asc, &"health", _dummy_label).triggered.connect(refresh)
+	AbilityAsync.wait_gameplay_tag_added(asc, &"State.Down", _dummy_label).triggered.connect(refresh)
+	AbilityAsync.wait_gameplay_tag_removed(asc, &"State.Down", _dummy_label).triggered.connect(refresh)
+
+	add_child(_dummy)
+	_refresh_dummy(asc, visual)
+
+
+func _tag(tag_name: StringName) -> GameplayTag:
+	var tag := GameplayTag.new()
+	tag.tag_name = tag_name
+	return tag
 
 
 # --- The updraft -------------------------------------------------------------

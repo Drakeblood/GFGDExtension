@@ -1,0 +1,8 @@
+[gd_resource type="GameplayEffect" load_steps=2 format=3]
+
+[sub_resource type="AttributeModifier" id="Mod_0"]
+attribute = &"mana"
+magnitude = -10.0
+
+[resource]
+modifiers = Array[AttributeModifier]([SubResource("Mod_0")])

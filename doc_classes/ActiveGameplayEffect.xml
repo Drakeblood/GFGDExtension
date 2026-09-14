@@ -15,16 +15,54 @@
 				The handle [method AbilitySystemComponent.apply_gameplay_effect_to_self] returned, and what [method AbilitySystemComponent.remove_active_gameplay_effect] takes.
 			</description>
 		</method>
+		<method name="get_duration" qualifiers="const">
+			<return type="float" />
+			<description>
+				The full duration, in seconds; 0 for an infinite effect.
+			</description>
+		</method>
 		<method name="get_effect" qualifiers="const">
 			<return type="GameplayEffect" />
 			<description>
 				The [GameplayEffect] this instance was applied from - the shared template, not a copy.
 			</description>
 		</method>
+		<method name="get_level" qualifiers="const">
+			<return type="float" />
+			<description>
+				The level of the spec it was applied with.
+			</description>
+		</method>
 		<method name="get_remaining_time" qualifiers="const">
 			<return type="float" />
 			<description>
 				Seconds left, for a [constant GameplayEffect.HAS_DURATION] effect. Meaningless for the other policies.
+			</description>
+		</method>
+		<method name="get_spec" qualifiers="const">
+			<return type="GameplayEffectSpec" />
+			<description>
+				The spec it was applied with. Null on a client's mirror.
+			</description>
+		</method>
+		<method name="get_stack_count" qualifiers="const">
+			<return type="int" />
+			<description>
+				How many stacks it has; 1 unless it stacks.
+			</description>
+		</method>
+		<method name="get_stacked_magnitude" qualifiers="const">
+			<return type="float" />
+			<param index="0" name="modifier_index" type="int" />
+			<param index="1" name="operation" type="int" />
+			<description>
+				A modifier's magnitude as it applies now: calculated at application and scaled by the stack count.
+			</description>
+		</method>
+		<method name="is_replicated" qualifiers="const">
+			<return type="bool" />
+			<description>
+				True for a client's mirror of an effect active on the server. Its effect is loaded from the server's resource path, or rebuilt from timing and tags when the effect was built in code.
 			</description>
 		</method>
 	</methods>

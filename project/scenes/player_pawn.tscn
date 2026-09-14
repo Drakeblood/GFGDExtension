@@ -1,8 +1,10 @@
-[gd_scene load_steps=8 format=3 uid="uid://bgt4e44svq5co"]
+[gd_scene load_steps=10 format=3 uid="uid://bgt4e44svq5co"]
 
 [ext_resource type="Script" path="res://scripts/demo_pawn.gd" id="1_pawn"]
 [ext_resource type="AttributeSet" uid="uid://b813xtrmo2duf" path="res://resources/demo_attributes.tres" id="2_attrs"]
 [ext_resource type="GameplayAbility" uid="uid://smjy818n4l0" path="res://resources/test_ability.tres" id="3_ability"]
+[ext_resource type="GameplayAbility" path="res://resources/gas/strike_ability.tres" id="4_strike"]
+[ext_resource type="GameplayEffect" path="res://resources/gas/mana_regen.tres" id="5_regen"]
 
 [sub_resource type="GameplayTag" id="GameplayTag_hwd6g"]
 tag_name = &"Ability"
@@ -35,5 +37,6 @@ surface_material_override/0 = SubResource("StandardMaterial3D_pawn")
 transform = Transform3D(0, 0, -1, -0.406737, 0.913545, 0, 0.913545, 0.406737, 0, -9, 4.5, 0)
 
 [node name="AbilitySystemComponent" type="AbilitySystemComponent" parent="."]
-startup_abilities = [ExtResource("3_ability")]
+startup_abilities = [ExtResource("3_ability"), ExtResource("4_strike")]
+startup_effects = [ExtResource("5_regen")]
 attribute_set = ExtResource("2_attrs")

@@ -160,8 +160,44 @@ everywhere.
   and play never mutates it.
 - **Owned tags are reference counted.** Two sources granting the same tag both have to release it.
   One ability ending does not strip a tag another still grants.
-- **The ability system is not replicated.** Activate abilities where the pawn is authoritative and
-  let the results reach clients through what you replicate on the pawn or its player state.
+- **On a client, a replicated component applies no effects, grants no abilities and sets no base
+  values** - it warns once and ignores them; the server's results arrive by themselves. A HUD that
+  "applies a preview effect" on the client sees nothing happen. `replication_mode` defaults to
+  `REPLICATION_FULL`; `REPLICATION_NONE` gives every peer its own component again.
+- **A pawn with an `AbilitySystemComponent` runs its input bindings on the owning client too** - the
+  component replicates by default, and ability input has to leave from the client. A binding that
+  changes game state without a `has_authority()` (or `wants_movement_input()`) guard now runs on both
+  machines: the symptom is an action that happens twice, or once on a client that should never have
+  done it. Guard it, or set the component's `replication_mode` to `REPLICATION_NONE`.
+- **An ability that awaits a timer or a signal directly wakes up after it was cancelled.** `await
+  get_tree().create_timer(1.0).timeout` knows nothing about the ability; the line after it runs on a
+  dead ability - applying the effect of a cast that was interrupted. Await a task instead
+  (`await wait_delay(1.0).completed`): it is cancelled with the ability and never resumes.
+- **A HUD connected straight to a component's signals outlives the HUD's interest in it** — or, with
+  a lambda, keeps firing into a freed widget's captured state. Use `AbilityAsync` with the widget as
+  owner: it ends when the widget leaves the tree. And `AbilityAsync`'s default repeats: `await
+  AbilityAsync.wait_x(...).triggered` resumes on the first trigger but leaves it running — pass
+  `only_trigger_once = true` for a one-off.
+- **A gameplay event sent on the server does not trigger a remote player's predicted ability.**
+  Events are local (as in Unreal) and a `LOCAL_PREDICTED` ability is triggered only where its owner
+  is controlled - the client. Send the event where the thing happens on the owner's machine (an
+  animation's hit frame plays there too), or make the ability `SERVER_ONLY`.
+- **A periodic effect's cue executes on every tick.** With a scene handler for that tag, the ticks go
+  to the instance the effect added, as `_on_execute` - so a looping aura that wants to pulse per
+  tick implements it, and one that does not simply ignores the ticks. (Before this was routed, every
+  tick instanced a new aura that nothing ever freed.)
+- **A predicted ability's sound or spark plays twice on the player's own screen.** It was fired
+  through the component (`asc.execute_gameplay_cue`), so the client played it when it predicted and
+  again when the server's copy sent it. Fire cues through the ability - `execute_gameplay_cue(&"Cue.X")`
+  on the `GameplayAbility` - which leaves the predicting client out.
+- **A predicted ability's cost and cooldown arrive a round trip later.** `commit_ability()` on the
+  client only checks them. A second press inside that round trip is sent and refused by the server
+  (`ability_activation_failed`, `&"rejected"`), which cancels the client's copy.
+- **`_pre_attribute_change` clamps the current value, not the base.** A periodic heal adds to the
+  base, so a heal pad stood on for a minute banks health far over `max_health` under a bar that
+  still reads 100 - and the next ten hits come out of that, unseen. Clamp the base as well, from
+  `base_value_changed` connected in the set's `_init` (the component plays with a copy, and a copy
+  runs `_init` again). `project/scripts/demo_attribute_set.gd` does both.
 - **Attributes do not exist until something defines them.** Whatever assigns the `AttributeSet` —
   usually the pawn root in its `_ready` — runs *after* its own children's `_ready`, so a child
   reading an attribute there gets `0.0` and no warning. Read attributes at the point of use, and
@@ -185,6 +221,23 @@ everywhere.
   The router iterates backwards so it can drop freed listeners as it goes. Never encode a dependency
   in registration order: if B needs what A produced, A should broadcast a second channel when the
   result exists, and B should listen on that.
+
+## Client prediction
+
+- **Turning on `client_prediction` makes an online character stop moving altogether.** The pawn script
+  still guards its input with `has_authority()`, which is false on the owning client — so the client
+  predicts standing still and sends that, and the server, which now moves the character only by the
+  client's moves, faithfully agrees. Guard movement input and movement buttons with
+  `Pawn.wants_movement_input()`; it answers like `has_authority()` when prediction is off.
+- **A predicted dash, knockback or sprint snaps back a moment later, every time.** It was started from
+  a button handler or a script outside the movement tick, so it began on the client at once and on the
+  server whenever the action state arrived — or never. Set a bit with `add_custom_input_flags()` and
+  queue the move from the `custom_input_flags` signal: it fires inside the tick carrying the bit, on
+  both machines and on every replay.
+- **On a predicting client, sounds and effects tied to movement signals play twice.** A correction
+  replays ticks, and a replayed tick emits `movement_mode_changed`, `crouch_changed`,
+  `layered_move_started` and `custom_input_flags` again. Check `is_replaying()` in a listener that
+  should react once — but never in one that changes the simulation, or the replay stops matching.
 
 ## Saves and builds
 

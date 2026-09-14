@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="AbilityAsyncWaitTag" inherits="AbilityAsync" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		The async behind wait_gameplay_tag_added and wait_gameplay_tag_removed.
+	</brief_description>
+	<description>
+		Made by [method AbilityAsync.wait_gameplay_tag_added] and [method AbilityAsync.wait_gameplay_tag_removed]; not built by hand.
+	</description>
+	<tutorials>
+	</tutorials>
+</class>

@@ -1,0 +1,10 @@
+[gd_resource type="AttributeSet" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/demo_attribute_set.gd" id="1_clamp"]
+
+[resource]
+script = ExtResource("1_clamp")
+attributes = {
+&"health": 100.0,
+&"max_health": 100.0
+}

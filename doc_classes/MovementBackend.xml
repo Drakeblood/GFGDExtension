@@ -4,8 +4,8 @@
 		Decides when a movement simulation runs, and how many times.
 	</brief_description>
 	<description>
-		This is the seam client prediction plugs into, and it exists now for one reason: it cannot be added afterwards. A component that ticks itself has the number of steps per frame baked into it, and replaying three inputs after a server correction means exactly that number changing. Splitting it costs one small class and saves rewriting every [MovementMode] later.
-		[StandaloneMovementBackend] runs one step per physics frame and nothing else. A predicted backend would implement the same handful of methods, call [method CharacterMovementComponent.simulate] once per unacknowledged input after a correction, and answer [method should_resim] with true - without a single line changing in any movement mode.
+		This is the seam client prediction plugs into, and it existed before prediction did for one reason: it cannot be added afterwards. A component that ticks itself has the number of steps per frame baked into it, and replaying three inputs after a server correction means exactly that number changing. Splitting it cost one small class and saved rewriting every [MovementMode].
+		[StandaloneMovementBackend] runs one step per physics frame and nothing else. [PredictedMovementBackend] implements the same handful of methods, calls [method CharacterMovementComponent.simulate_with_input] once per unacknowledged input after a correction, and answers [method should_resim] with true - without a single line changing in any movement mode.
 	</description>
 	<tutorials>
 	</tutorials>

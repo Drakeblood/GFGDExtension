@@ -189,8 +189,11 @@ func _process(delta: float) -> void:
 | `PlayerInput` | That human's own action state, filtered by the devices they own. |
 | `InputRouter` | Sends each raw event to the player who owns the device it came from. |
 | `InputComponent` | Binds input actions to callables, reading the owning player's `PlayerInput`. |
-| `AbilitySystemComponent` | Abilities, owned tags, effects, attributes. |
+| `AbilitySystemComponent` | Abilities, owned tags, effects, attributes, cues. Replicates from the server. |
 | `GameplayAbility` / `GameplayEffect` | Authorable ability and effect resources. |
+| `GameplayEffectSpec` | One application of an effect: level, source, set-by-caller values. |
+| `AbilityTask` | What an ability awaits; cancelled, never resumed, when the ability ends. |
+| `AbilityAsync` | A wait on a component from outside any ability (a HUD); held by its target, ended with it or with an owner node. |
 | `AttributeSet` / `AttributeModifier` | Named numeric attributes and the changes applied to them. |
 | `GameplayTag` / `GameplayTagContainer` | A hierarchical tag, and a set of them. |
 | `GameplayTagTable` / `GameplayTagsManager` | Tag declarations, and the merged runtime lookup. |

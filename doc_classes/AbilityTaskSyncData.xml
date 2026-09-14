@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="AbilityTaskSyncData" inherits="AbilityTask" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		The task behind sync_target_data.
+	</brief_description>
+	<description>
+		Made by [method GameplayAbility.sync_target_data]; not built by hand.
+	</description>
+	<tutorials>
+	</tutorials>
+</class>

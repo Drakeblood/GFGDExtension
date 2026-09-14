@@ -19,6 +19,8 @@ Pawn::Pawn()
 	auto_manage_camera = true;
 	auto_possess_player = AUTO_POSSESS_DISABLED;
 	replicate_transform = true;
+	movement_predicted = false;
+	abilities_replicated = false;
 	player_id = 0;
 }
 
@@ -69,11 +71,25 @@ void Pawn::setup_replication()
 	// because a node may not be given a child while it is still starting up.
 	if (replicate_transform && get_pawn_root() != nullptr)
 	{
-		PackedStringArray transform_properties;
-		transform_properties.push_back("position");
-		transform_properties.push_back("rotation");
+		// Through this node's replicated_* properties rather than the root's own,
+		// so a client predicting the pawn can drop what arrives - decided when it
+		// arrives, because the movement component that marks the pawn predicted
+		// may be readied after this node, and ownership follows possession.
+		PackedStringArray root_properties;
+		root_properties.push_back("position");
+		root_properties.push_back("rotation");
 
-		Replication::attach(this, get_pawn_root(), Replication::validate_properties(get_pawn_root(), transform_properties), World::SERVER_PEER_ID, "TransformReplication");
+		// Checked against the root, so a root without them still gets the
+		// warning it always did; each one that exists is mirrored through its
+		// proxy on this node.
+		const PackedStringArray present = Replication::validate_properties(get_pawn_root(), root_properties);
+		PackedStringArray transform_properties;
+		for (int i = 0; i < present.size(); i++)
+		{
+			transform_properties.push_back("replicated_" + present[i]);
+		}
+
+		Replication::attach(this, this, transform_properties, World::SERVER_PEER_ID, "TransformReplication");
 	}
 
 	PackedStringArray script_properties;
@@ -146,6 +162,59 @@ bool Pawn::has_authority() const
 	return world == nullptr || world->has_authority();
 }
 
+bool Pawn::wants_movement_input() const
+{
+	if (is_locally_predicted()) { return true; }
+	if (!has_authority()) { return false; }
+	if (!movement_predicted) { return true; }
+
+	// The same test PredictedMovementBackend makes: a remote owner means the
+	// moves come from that owner.
+	World* world = get_world();
+	if (world == nullptr || !world->is_networked()) { return true; }
+
+	const int owner_peer = get_owner_peer_id();
+	return owner_peer == World::SERVER_PEER_ID || owner_peer == world->get_local_peer_id();
+}
+
+bool Pawn::runs_input_locally() const
+{
+	return (movement_predicted || abilities_replicated) && !has_authority() && is_locally_controlled();
+}
+
+bool Pawn::is_locally_predicted() const
+{
+	return movement_predicted && !has_authority() && is_locally_controlled();
+}
+
+Variant Pawn::get_replicated_position() const
+{
+	const Node* root = get_pawn_root();
+	return root != nullptr ? root->get("position") : Variant();
+}
+
+void Pawn::set_replicated_position(const Variant& value)
+{
+	Node* root = get_pawn_root();
+	if (root == nullptr || is_locally_predicted()) { return; }
+
+	root->set("position", value);
+}
+
+Variant Pawn::get_replicated_rotation() const
+{
+	const Node* root = get_pawn_root();
+	return root != nullptr ? root->get("rotation") : Variant();
+}
+
+void Pawn::set_replicated_rotation(const Variant& value)
+{
+	Node* root = get_pawn_root();
+	if (root == nullptr || is_locally_predicted()) { return; }
+
+	root->set("rotation", value);
+}
+
 int Pawn::get_local_role() const
 {
 	World* world = get_world();
@@ -193,6 +262,20 @@ void Pawn::_bind_methods()
 	ClassDB::bind_method(D_METHOD("is_player_controlled"), &Pawn::is_player_controlled);
 	ClassDB::bind_method(D_METHOD("is_bot_controlled"), &Pawn::is_bot_controlled);
 	ClassDB::bind_method(D_METHOD("has_authority"), &Pawn::has_authority);
+	ClassDB::bind_method(D_METHOD("wants_movement_input"), &Pawn::wants_movement_input);
+	ClassDB::bind_method(D_METHOD("is_locally_predicted"), &Pawn::is_locally_predicted);
+	ClassDB::bind_method(D_METHOD("get_movement_predicted"), &Pawn::get_movement_predicted);
+	ClassDB::bind_method(D_METHOD("get_abilities_replicated"), &Pawn::get_abilities_replicated);
+	ClassDB::bind_method(D_METHOD("runs_input_locally"), &Pawn::runs_input_locally);
+
+	// Not for scripts - they are what the transform replication reads and
+	// writes. No usage flags, so they are never saved into a scene.
+	ClassDB::bind_method(D_METHOD("get_replicated_position"), &Pawn::get_replicated_position);
+	ClassDB::bind_method(D_METHOD("set_replicated_position", "value"), &Pawn::set_replicated_position);
+	ADD_PROPERTY(PropertyInfo(Variant::NIL, "replicated_position", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NIL_IS_VARIANT), "set_replicated_position", "get_replicated_position");
+	ClassDB::bind_method(D_METHOD("get_replicated_rotation"), &Pawn::get_replicated_rotation);
+	ClassDB::bind_method(D_METHOD("set_replicated_rotation", "value"), &Pawn::set_replicated_rotation);
+	ADD_PROPERTY(PropertyInfo(Variant::NIL, "replicated_rotation", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NIL_IS_VARIANT), "set_replicated_rotation", "get_replicated_rotation");
 	ClassDB::bind_method(D_METHOD("get_local_role"), &Pawn::get_local_role);
 	ClassDB::bind_method(D_METHOD("get_remote_role"), &Pawn::get_remote_role);
 	ClassDB::bind_method(D_METHOD("get_owner_peer_id"), &Pawn::get_owner_peer_id);

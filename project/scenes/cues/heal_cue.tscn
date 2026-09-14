@@ -1,0 +1,27 @@
+[gd_scene load_steps=3 format=3]
+
+[sub_resource type="StandardMaterial3D" id="Mat_Sparkles"]
+shading_mode = 0
+albedo_color = Color(0.4, 1, 0.5, 1)
+
+[sub_resource type="SphereMesh" id="Mesh_Sparkles"]
+material = SubResource("Mat_Sparkles")
+radius = 0.05
+height = 0.1
+radial_segments = 8
+rings = 4
+
+[node name="HealCue" type="Node3D"]
+
+[node name="Sparkles" type="CPUParticles3D" parent="."]
+amount = 16
+lifetime = 1.0
+mesh = SubResource("Mesh_Sparkles")
+emission_shape = 1
+emission_sphere_radius = 0.6
+direction = Vector3(0, 1, 0)
+spread = 25.0
+gravity = Vector3(0, 0, 0)
+initial_velocity_min = 0.8
+initial_velocity_max = 1.4
+position = Vector3(0, -0.5, 0)

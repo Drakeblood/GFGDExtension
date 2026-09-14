@@ -7,6 +7,8 @@
 		The hub of the ability system. Grants and activates [GameplayAbility] resources, applies [GameplayEffect]s, counts owned gameplay tags and holds an [AttributeSet].
 		The attribute set is duplicated at runtime, so the resource on disk is a template and is never mutated by play.
 		Owned tags are reference counted: the same tag granted by two sources needs both to release it before it is gone. That is why one ability ending does not strip a tag another ability still grants.
+		[b]Networked, the server's component is the truth.[/b] Under [member replication_mode] every client's component is a mirror of it: attributes, owned tags and gameplay cues reach every peer; active effects reach the owner, or everyone; the granted abilities reach the owner, who asks the server to activate them - and runs a [constant GameplayAbility.LOCAL_PREDICTED] one at once, without waiting. On a replicated client effects are not applied, abilities are not granted and base values are not set: all three arrive from the server. A client that joins, or whose pawn spawns, is handed the whole state once ([signal replicated_state_received]), and changes after that.
+		The owner is whoever owns the [Pawn] beside this node - or the [PlayerState] above it - and ability requests from any other peer are dropped.
 		C# scripts cannot inherit GDExtension classes, so consume this compositionally - place the node, author the resources, call the methods and connect to the signals.
 	</description>
 	<tutorials>
@@ -26,11 +28,67 @@
 				The release half of [method ability_local_input_pressed].
 			</description>
 		</method>
+		<method name="add_gameplay_cue">
+			<return type="void" />
+			<param index="0" name="cue_tag" type="GameplayTag" />
+			<param index="1" name="parameters" type="Dictionary" default="{}" />
+			<description>
+				Starts a persistent cue - a status shown for as long as something lasts - on every peer, with [param parameters]. Counted: added twice, it has to be removed twice. A peer that joins while it runs is handed it. Duration and infinite effects add and remove their [member GameplayEffect.gameplay_cue_tags] through this.
+			</description>
+		</method>
+		<method name="add_gameplay_cue_by_name">
+			<return type="void" />
+			<param index="0" name="cue_tag" type="StringName" />
+			<param index="1" name="parameters" type="Dictionary" default="{}" />
+			<param index="2" name="skip_owner" type="bool" default="false" />
+			<description>
+				[method add_gameplay_cue], by tag name. [param skip_owner] leaves the owning client out of what the server sends, for a cue it already played itself - see [method GameplayAbility.add_gameplay_cue], which sets it for you.
+			</description>
+		</method>
+		<method name="add_loose_gameplay_tag">
+			<return type="void" />
+			<param index="0" name="tag" type="GameplayTag" />
+			<param index="1" name="count" type="int" default="1" />
+			<description>
+				Adds [param count] to a tag's count with no effect or ability behind it - a "Stunned" set from a script. It counts like any other source, so remove it with [method remove_loose_gameplay_tag] the same number of times. On the server it replicates like every owned tag.
+			</description>
+		</method>
+		<method name="apply_gameplay_effect_spec_to_self">
+			<return type="int" />
+			<param index="0" name="spec" type="GameplayEffectSpec" />
+			<description>
+				Applies an effect as described by [param spec] - its level, source and set-by-caller values. Returns -1 when application was blocked (or refused because this is a replicated client), 0 for an instant effect, and the active effect's id otherwise. An aggregate-stacking effect that is already active returns that effect's id, one stack higher.
+			</description>
+		</method>
+		<method name="apply_gameplay_effect_spec_to_target">
+			<return type="int" />
+			<param index="0" name="spec" type="GameplayEffectSpec" />
+			<param index="1" name="target" type="AbilitySystemComponent" />
+			<description>
+				Applies [param spec] to another component, with this one as its source if the spec has none yet. What an ability hitting something calls.
+			</description>
+		</method>
 		<method name="apply_gameplay_effect_to_self">
 			<return type="int" />
 			<param index="0" name="effect" type="GameplayEffect" />
+			<param index="1" name="level" type="float" default="1.0" />
 			<description>
 				Applies [param effect]. Returns [code]-1[/code] when the tag gates blocked it, [code]0[/code] for an instant effect, and the active id (above zero) for a duration or infinite one - keep that to remove it later.
+			</description>
+		</method>
+		<method name="apply_gameplay_effect_to_target">
+			<return type="int" />
+			<param index="0" name="effect" type="GameplayEffect" />
+			<param index="1" name="target" type="AbilitySystemComponent" />
+			<param index="2" name="level" type="float" default="1.0" />
+			<description>
+				A spec at [param level] with this component as the source, applied to [param target]. Attribute-based modifiers reading the source read this component.
+			</description>
+		</method>
+		<method name="can_apply_effects" qualifiers="const">
+			<return type="bool" />
+			<description>
+				False on a replicated client, where effects arrive from the server instead of being applied.
 			</description>
 		</method>
 		<method name="cancel_abilities_with_tags">
@@ -40,6 +98,12 @@
 				Ends every active ability whose [member GameplayAbility.ability_tags] match [param tag_container], as a cancellation.
 			</description>
 		</method>
+		<method name="cancel_all_abilities">
+			<return type="void" />
+			<description>
+				Ends every active ability as cancelled.
+			</description>
+		</method>
 		<method name="clear_ability">
 			<return type="void" />
 			<param index="0" name="ability" type="GameplayAbility" />
@@ -47,10 +111,172 @@
 				Removes a granted ability. Ends it first if it is running.
 			</description>
 		</method>
+		<method name="clear_all_abilities">
+			<return type="void" />
+			<description>
+				Cancels and removes every granted ability.
+			</description>
+		</method>
+		<method name="client_ability_activated">
+			<return type="void" />
+			<param index="0" name="handle" type="int" />
+			<description>
+				Remote call, sent by the component itself; not for game code. From the server to a client.
+			</description>
+		</method>
+		<method name="client_ability_ended">
+			<return type="void" />
+			<param index="0" name="handle" type="int" />
+			<param index="1" name="was_canceled" type="bool" />
+			<description>
+				Remote call, sent by the component itself; not for game code. From the server to a client.
+			</description>
+		</method>
+		<method name="client_ability_given">
+			<return type="void" />
+			<param index="0" name="data" type="Dictionary" />
+			<description>
+				Remote call, sent by the component itself; not for game code. From the server to a client.
+			</description>
+		</method>
+		<method name="client_ability_removed">
+			<return type="void" />
+			<param index="0" name="handle" type="int" />
+			<description>
+				Remote call, sent by the component itself; not for game code. From the server to a client.
+			</description>
+		</method>
+		<method name="client_activation_confirmed">
+			<return type="void" />
+			<param index="0" name="handle" type="int" />
+			<param index="1" name="prediction_key" type="int" />
+			<description>
+				Remote call, sent by the component itself; not for game code. From the server to a client.
+			</description>
+		</method>
+		<method name="client_activation_rejected">
+			<return type="void" />
+			<param index="0" name="handle" type="int" />
+			<param index="1" name="prediction_key" type="int" />
+			<description>
+				Remote call, sent by the component itself; not for game code. From the server to a client.
+			</description>
+		</method>
+		<method name="client_effect_added">
+			<return type="void" />
+			<param index="0" name="data" type="Dictionary" />
+			<description>
+				Remote call, sent by the component itself; not for game code. From the server to a client.
+			</description>
+		</method>
+		<method name="client_effect_removed">
+			<return type="void" />
+			<param index="0" name="active_id" type="int" />
+			<description>
+				Remote call, sent by the component itself; not for game code. From the server to a client.
+			</description>
+		</method>
+		<method name="client_effect_updated">
+			<return type="void" />
+			<param index="0" name="active_id" type="int" />
+			<param index="1" name="duration" type="float" />
+			<param index="2" name="remaining_time" type="float" />
+			<param index="3" name="stack_count" type="int" />
+			<description>
+				Remote call, sent by the component itself; not for game code. From the server to a client.
+			</description>
+		</method>
+		<method name="client_gameplay_cue">
+			<return type="void" />
+			<param index="0" name="cue_tag_name" type="StringName" />
+			<param index="1" name="event_type" type="int" />
+			<param index="2" name="parameters" type="Dictionary" />
+			<description>
+				Remote call, sent by the component itself; not for game code. From the server to a client.
+			</description>
+		</method>
+		<method name="client_receive_full_state">
+			<return type="void" />
+			<param index="0" name="state" type="Dictionary" />
+			<description>
+				Remote call, sent by the component itself; not for game code. From the server to a client.
+			</description>
+		</method>
+		<method name="client_update_attributes">
+			<return type="void" />
+			<param index="0" name="names" type="PackedStringArray" />
+			<param index="1" name="base_values" type="PackedFloat64Array" />
+			<param index="2" name="current_values" type="PackedFloat64Array" />
+			<description>
+				Remote call, sent by the component itself; not for game code. From the server to a client.
+			</description>
+		</method>
+		<method name="client_update_tags">
+			<return type="void" />
+			<param index="0" name="names" type="PackedStringArray" />
+			<param index="1" name="counts" type="PackedInt32Array" />
+			<description>
+				Remote call, sent by the component itself; not for game code. From the server to a client.
+			</description>
+		</method>
+		<method name="execute_gameplay_cue">
+			<return type="void" />
+			<param index="0" name="cue_tag" type="GameplayTag" />
+			<param index="1" name="parameters" type="Dictionary" default="{}" />
+			<description>
+				Fires a one-off cue - a sound, a hit spark - with [param parameters]. On the server it goes to every peer; on a replicated client it plays only here. Every peer that hears a cue emits [signal gameplay_cue] and runs the cue's handler from the [GameplayCueTable]s ([GameplayCueNotify] or a scene), except a dedicated server, which only sends it.
+				Instant effects and period ticks execute their [member GameplayEffect.gameplay_cue_tags] through this with [code]level[/code], [code]stack_count[/code], [code]magnitude[/code] (the first modifier's, stacks included), [code]source_path[/code] (the source's avatar), [code]effect_path[/code], the spec's [code]context[/code], and [code]location[/code]/[code]normal[/code] lifted out of it.
+				Inside an ability use [method GameplayAbility.execute_gameplay_cue] instead: through the component, a predicted ability's cue is heard twice by the client that predicted it.
+			</description>
+		</method>
+		<method name="execute_gameplay_cue_by_name">
+			<return type="void" />
+			<param index="0" name="cue_tag" type="StringName" />
+			<param index="1" name="parameters" type="Dictionary" default="{}" />
+			<param index="2" name="skip_owner" type="bool" default="false" />
+			<description>
+				[method execute_gameplay_cue], by tag name; [param skip_owner] as in [method add_gameplay_cue_by_name].
+			</description>
+		</method>
+		<method name="find_ability_by_handle" qualifiers="const">
+			<return type="GameplayAbility" />
+			<param index="0" name="handle" type="int" />
+			<description>
+				The granted ability with this handle, or null. Handles are the same on the server and on the owning client.
+			</description>
+		</method>
+		<method name="find_ability_by_name" qualifiers="const">
+			<return type="GameplayAbility" />
+			<param index="0" name="ability_name" type="StringName" />
+			<description>
+				The granted ability with this [member GameplayAbility.ability_name], or null.
+			</description>
+		</method>
 		<method name="get_activatable_abilities" qualifiers="const">
 			<return type="Array" />
 			<description>
 				Every ability currently granted to this component.
+			</description>
+		</method>
+		<method name="get_active_effect" qualifiers="const">
+			<return type="ActiveGameplayEffect" />
+			<param index="0" name="active_id" type="int" />
+			<description>
+				The active effect with this id, or null.
+			</description>
+		</method>
+		<method name="get_active_effect_remaining_time" qualifiers="const">
+			<return type="float" />
+			<param index="0" name="active_id" type="int" />
+			<description>
+				Seconds left on the active effect with this id; 0 when it has no duration or is gone. On a client the mirror counts down locally between the server's updates.
+			</description>
+		</method>
+		<method name="get_active_effect_stack_count" qualifiers="const">
+			<return type="int" />
+			<param index="0" name="active_id" type="int" />
+			<description>
+				The stack count of the active effect with this id; 0 when it is gone.
 			</description>
 		</method>
 		<method name="get_active_effects" qualifiers="const">
@@ -85,18 +311,93 @@
 				The tags currently blocking abilities from activating.
 			</description>
 		</method>
+		<method name="get_effects_time_remaining_with_granted_tags" qualifiers="const">
+			<return type="float" />
+			<param index="0" name="tag_container" type="GameplayTagContainer" />
+			<description>
+				The longest time left among active duration effects granting any of these tags - which, given an ability's cooldown tags, is how long its cooldown has to go.
+			</description>
+		</method>
+		<method name="get_gameplay_tag_count" qualifiers="const">
+			<return type="int" />
+			<param index="0" name="tag" type="GameplayTag" />
+			<description>
+				How many sources currently grant this exact tag.
+			</description>
+		</method>
 		<method name="get_owned_gameplay_tags" qualifiers="const">
 			<return type="GameplayTagContainer" />
 			<description>
 				The tags this component currently holds, from abilities, effects and [method update_tag_map] together. Query it with [method GameplayTagContainer.has_tag], which matches hierarchically.
 			</description>
 		</method>
+		<method name="get_owner_peer_id" qualifiers="const">
+			<return type="int" />
+			<description>
+				The peer that owns this component: the owner of the [Pawn] beside it, or of the [PlayerState] above it; the server otherwise.
+			</description>
+		</method>
 		<method name="give_ability">
-			<return type="void" />
+			<return type="int" />
 			<param index="0" name="ability_template" type="GameplayAbility" />
 			<param index="1" name="source_object" type="Variant" default="null" />
+			<param index="2" name="level" type="float" default="1.0" />
 			<description>
 				Grants a copy of [param ability_template] and calls its [method GameplayAbility._on_give_ability]. [param source_object] is remembered as the ability's source - the weapon or item it came from - and read back with [method GameplayAbility.get_source_object].
+			</description>
+		</method>
+		<method name="has_all_matching_gameplay_tags" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="tag_container" type="GameplayTagContainer" />
+			<description>
+				Whether the owner has every tag in the container, parents matching children.
+			</description>
+		</method>
+		<method name="has_any_matching_gameplay_tags" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="tag_container" type="GameplayTagContainer" />
+			<description>
+				Whether the owner has any tag in the container, parents matching children.
+			</description>
+		</method>
+		<method name="has_authority" qualifiers="const">
+			<return type="bool" />
+			<description>
+				True wherever this component is its own truth: offline, on the server, and for a component that does not replicate.
+			</description>
+		</method>
+		<method name="has_matching_gameplay_tag" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="tag" type="GameplayTag" />
+			<description>
+				Whether the owner has this tag, or a child of it.
+			</description>
+		</method>
+		<method name="is_gameplay_cue_active" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="cue_tag_name" type="StringName" />
+			<description>
+				Whether a persistent cue is running.
+			</description>
+		</method>
+		<method name="is_replicated_client" qualifiers="const">
+			<return type="bool" />
+			<description>
+				True on a client whose component mirrors the server's.
+			</description>
+		</method>
+		<method name="is_replication_state_received" qualifiers="const">
+			<return type="bool" />
+			<description>
+				On a replicated client, whether the server's full state has arrived. Before it, attributes are the template's and nothing is granted.
+			</description>
+		</method>
+		<method name="make_outgoing_spec">
+			<return type="GameplayEffectSpec" />
+			<param index="0" name="effect" type="GameplayEffect" />
+			<param index="1" name="level" type="float" default="1.0" />
+			<description>
+				A [GameplayEffectSpec] for [param effect] at [param level], with this component as its source - to set set-by-caller values or context on before applying it.
 			</description>
 		</method>
 		<method name="register_gameplay_tag_event">
@@ -117,8 +418,89 @@
 		<method name="remove_active_gameplay_effect">
 			<return type="bool" />
 			<param index="0" name="active_id" type="int" />
+			<param index="1" name="stacks_to_remove" type="int" default="-1" />
 			<description>
 				Removes the effect with [param active_id], releasing its granted tags and modifiers. Returns whether one was found.
+			</description>
+		</method>
+		<method name="remove_gameplay_cue">
+			<return type="void" />
+			<param index="0" name="cue_tag" type="GameplayTag" />
+			<description>
+				Removes one count of a persistent cue; it ends on every peer when the last is gone.
+			</description>
+		</method>
+		<method name="remove_gameplay_cue_by_name">
+			<return type="void" />
+			<param index="0" name="cue_tag" type="StringName" />
+			<param index="1" name="skip_owner" type="bool" default="false" />
+			<description>
+				[method remove_gameplay_cue], by tag name; [param skip_owner] as in [method add_gameplay_cue_by_name].
+			</description>
+		</method>
+		<method name="remove_loose_gameplay_tag">
+			<return type="void" />
+			<param index="0" name="tag" type="GameplayTag" />
+			<param index="1" name="count" type="int" default="1" />
+			<description>
+				Removes [param count] from a tag added with [method add_loose_gameplay_tag].
+			</description>
+		</method>
+		<method name="runs_ability_logic" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="ability" type="GameplayAbility" />
+			<description>
+				Whether an ability's script and tags run on this machine - everywhere except a replicated client for a [constant GameplayAbility.SERVER_ONLY] ability, which is only marked active there.
+			</description>
+		</method>
+		<method name="send_gameplay_event">
+			<return type="void" />
+			<param index="0" name="event_tag" type="StringName" />
+			<param index="1" name="payload" type="Dictionary" default="{}" />
+			<description>
+				Tells this component's abilities that something happened - an animation reaching its hit frame, a projectile landing - with [param payload]. Running abilities waiting in [method GameplayAbility.wait_gameplay_event] hear it first; then every ability whose [member GameplayAbility.trigger_event_tags] match it is activated, where it may be triggered. Local to this machine: the event itself is not replicated - as in Unreal - but a predicted activation it triggers takes the payload to the server.
+			</description>
+		</method>
+		<method name="server_ability_input">
+			<return type="void" />
+			<param index="0" name="handle" type="int" />
+			<param index="1" name="pressed" type="bool" />
+			<description>
+				Remote call, sent by the component itself; not for game code. From the owning client to the server; dropped from anyone else.
+			</description>
+		</method>
+		<method name="server_ability_target_data">
+			<return type="void" />
+			<param index="0" name="handle" type="int" />
+			<param index="1" name="prediction_key" type="int" />
+			<param index="2" name="sequence" type="int" />
+			<param index="3" name="data" type="Dictionary" />
+			<description>
+				Remote call, sent by the component itself; not for game code. From the owning client to the server, for [method GameplayAbility.sync_target_data].
+			</description>
+		</method>
+		<method name="server_end_ability">
+			<return type="void" />
+			<param index="0" name="handle" type="int" />
+			<param index="1" name="was_canceled" type="bool" />
+			<description>
+				Remote call, sent by the component itself; not for game code. From the owning client to the server; dropped from anyone else.
+			</description>
+		</method>
+		<method name="server_request_full_state">
+			<return type="void" />
+			<description>
+				Remote call, sent by the component itself; not for game code. A client asking for the whole state, from its [code]_ready[/code].
+			</description>
+		</method>
+		<method name="server_try_activate_ability">
+			<return type="void" />
+			<param index="0" name="handle" type="int" />
+			<param index="1" name="prediction_key" type="int" />
+			<param index="2" name="event_tag" type="StringName" />
+			<param index="3" name="event_data" type="Dictionary" />
+			<description>
+				Remote call, sent by the component itself; not for game code. From the owning client to the server; dropped from anyone else.
 			</description>
 		</method>
 		<method name="set_attribute_base_value">
@@ -134,6 +516,13 @@
 			<param index="0" name="ability_name" type="StringName" />
 			<description>
 				Finds the granted ability called [param ability_name] and activates it if [method GameplayAbility.can_activate_ability] passes. Returns whether it started.
+			</description>
+		</method>
+		<method name="try_activate_ability_by_handle">
+			<return type="bool" />
+			<param index="0" name="handle" type="int" />
+			<description>
+				[method try_activate_ability], by handle.
 			</description>
 		</method>
 		<method name="update_blocked_ability_tags">
@@ -157,6 +546,9 @@
 		<member name="attribute_set" type="AttributeSet" setter="set_attribute_set_template" getter="get_attribute_set_template">
 			The [AttributeSet] template. It is [b]duplicated at runtime[/b], so the resource on disk is never mutated by play and the same set can be shared by every pawn of a kind.
 		</member>
+		<member name="replication_mode" type="int" setter="set_replication_mode" getter="get_replication_mode" enum="AbilitySystemComponent.ReplicationMode" default="3">
+			How much of this component a client is sent. [constant REPLICATION_FULL] by default. Ignored offline. Read on every peer, so it must be the same on the server and the clients - set it in the scene, not at runtime.
+		</member>
 		<member name="startup_abilities" type="Array" setter="set_startup_abilities" getter="get_startup_abilities" default="[]">
 			Abilities granted when the component is ready.
 		</member>
@@ -171,11 +563,24 @@
 				An ability started.
 			</description>
 		</signal>
+		<signal name="ability_activation_failed">
+			<param index="0" name="ability" type="GameplayAbility" />
+			<param index="1" name="reason" type="StringName" />
+			<description>
+				Emitted when an activation is refused, with why - see [method GameplayAbility.get_last_failure_reason]. On a predicting client, [code]&amp;"rejected"[/code] means the server refused an activation the client had already started; the ability has been cancelled.
+			</description>
+		</signal>
 		<signal name="ability_ended">
 			<param index="0" name="ability" type="GameplayAbility" />
 			<param index="1" name="was_canceled" type="bool" />
 			<description>
 				An ability ended; [param was_canceled] says whether it was interrupted.
+			</description>
+		</signal>
+		<signal name="ability_given">
+			<param index="0" name="ability" type="GameplayAbility" />
+			<description>
+				Emitted when an ability is granted - on the server, and on the owning client when the grant arrives.
 			</description>
 		</signal>
 		<signal name="attribute_changed">
@@ -184,6 +589,14 @@
 			<param index="2" name="new_value" type="float" />
 			<description>
 				A current attribute value changed, after modifiers. This is what UI should listen to.
+			</description>
+		</signal>
+		<signal name="gameplay_cue">
+			<param index="0" name="cue_tag" type="StringName" />
+			<param index="1" name="event_type" type="int" />
+			<param index="2" name="parameters" type="Dictionary" />
+			<description>
+				Emitted for a gameplay cue, on every peer that hears it: [param event_type] is a [enum CueEvent]. The presentation layer listens here - never game logic.
 			</description>
 		</signal>
 		<signal name="gameplay_effect_applied">
@@ -200,6 +613,21 @@
 				An effect ended, expired or was removed.
 			</description>
 		</signal>
+		<signal name="gameplay_effect_stack_changed">
+			<param index="0" name="effect" type="GameplayEffect" />
+			<param index="1" name="active_id" type="int" />
+			<param index="2" name="stack_count" type="int" />
+			<description>
+				Emitted when an aggregate-stacking effect gains or loses a stack.
+			</description>
+		</signal>
+		<signal name="gameplay_event">
+			<param index="0" name="event_tag" type="StringName" />
+			<param index="1" name="payload" type="Dictionary" />
+			<description>
+				Emitted by [method send_gameplay_event].
+			</description>
+		</signal>
 		<signal name="owned_tag_changed">
 			<param index="0" name="tag_name" type="StringName" />
 			<param index="1" name="new_count" type="int" />
@@ -207,5 +635,33 @@
 				An owned tag's reference count changed. [param new_count] of zero means the component no longer has the tag.
 			</description>
 		</signal>
+		<signal name="replicated_state_received">
+			<description>
+				Emitted on a replicated client when the server's full state has been applied - the moment a HUD can read real values.
+			</description>
+		</signal>
 	</signals>
+	<constants>
+		<constant name="REPLICATION_NONE" value="0" enum="ReplicationMode">
+			Nothing is sent, and every peer runs its own component - what every component did before replication.
+		</constant>
+		<constant name="REPLICATION_MINIMAL" value="1" enum="ReplicationMode">
+			Attributes, owned tags and gameplay cues to every peer, the ability list to the owner, active effects to nobody.
+		</constant>
+		<constant name="REPLICATION_MIXED" value="2" enum="ReplicationMode">
+			As minimal, and active effects to the owner - a player's HUD shows their own buffs. Unreal's recommendation for player-controlled characters.
+		</constant>
+		<constant name="REPLICATION_FULL" value="3" enum="ReplicationMode">
+			As minimal, and active effects to every peer - an enemy's buffs can be shown above its head.
+		</constant>
+		<constant name="CUE_EXECUTED" value="0" enum="CueEvent">
+			Something happened once.
+		</constant>
+		<constant name="CUE_ADDED" value="1" enum="CueEvent">
+			Something started and lasts until [constant CUE_REMOVED].
+		</constant>
+		<constant name="CUE_REMOVED" value="2" enum="CueEvent">
+			Something that was added has ended.
+		</constant>
+	</constants>
 </class>

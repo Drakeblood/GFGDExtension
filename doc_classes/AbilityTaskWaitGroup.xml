@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="AbilityTaskWaitGroup" inherits="AbilityTask" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		The task behind wait_any and wait_all.
+	</brief_description>
+	<description>
+		Made by [method GameplayAbility.wait_any] and [method GameplayAbility.wait_all]; not built by hand.
+	</description>
+	<tutorials>
+	</tutorials>
+</class>

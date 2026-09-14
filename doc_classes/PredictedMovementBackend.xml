@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="PredictedMovementBackend" inherits="MovementBackend" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Client-side prediction for one character, and the server half that feeds it.
+	</brief_description>
+	<description>
+		Created by [CharacterMovementComponent] and [CharacterMovementComponent2D] when [member CharacterMovementComponent.client_prediction] is on; never instanced by hand. The same object runs on every peer and decides from the [Pawn] which job it has, every tick - see [enum PredictionRole].
+		On the [b]owning client[/b] it simulates each tick the moment the input is sampled, keeps the input and the resulting [MovementState] of every tick the server has not acknowledged yet, and sends the newest [code]application/game_framework/prediction/max_moves_per_packet[/code] of those inputs on every physics tick, unreliably - so each input rides in several packets and one lost packet costs nothing. When an acknowledgement arrives it compares its own prediction for that tick with the server's answer using [method MovementState.should_reconcile]; within tolerance, nothing happens. Otherwise it restores the server's state with [method CharacterMovementComponent.rollback_to_state] and replays every unacknowledged input with [method CharacterMovementComponent.simulate_with_input], in one physics tick.
+		On the [b]server[/b] it queues what arrives, waits for [code]application/game_framework/prediction/input_buffer_ticks[/code] moves before starting to consume, then consumes one per tick - two while the queue is well past the buffer, so a clump of packets does not become permanent latency. A move lost despite the redundancy is filled in by repeating the one before it without its jump or custom flags, which keeps the server on the client's timeline. After a quarter of a second with nothing from the client it simulates the character with no input, so gravity still applies. Every tick that consumed something is answered with the last frame consumed and the state it produced.
+		Movement modes know none of this: a mode runs once per [method CharacterMovementComponent.simulate] call, and this class only decides how many calls there are and which state they start from.
+		[b]What a replay cannot do.[/b] It collides against the world as it is now, not as it was: other characters and moving platforms have moved on, so a character replayed while standing on a fast platform drifts a little and is corrected by the next acknowledgement. The movement base is dropped on a rollback and found again on the next tick. Layered moves are not sent over the wire; the client keeps its own and the server's word is taken for everything else. There is no clock synchronisation and no speed-hack detection: a client that sends moves faster than real time is only held back by the queue limit and the two-per-tick drain.
+		The debug settings under [code]application/game_framework/debug/network_*[/code] put a delay-and-drop queue on this traffic, in both directions, in debug builds only.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="get_ack_count" qualifiers="const">
+			<return type="int" />
+			<description>
+				Owning client: how many acknowledgements have been processed.
+			</description>
+		</method>
+		<method name="get_correction_count" qualifiers="const">
+			<return type="int" />
+			<description>
+				Owning client: how many acknowledgements disagreed with the prediction by more than the tolerance and were corrected.
+			</description>
+		</method>
+		<method name="get_forced_update_count" qualifiers="const">
+			<return type="int" />
+			<description>
+				Server: how many ticks the character was simulated with no input because its client had sent nothing for a quarter of a second.
+			</description>
+		</method>
+		<method name="get_last_ack_error" qualifiers="const">
+			<return type="float" />
+			<description>
+				Owning client: how far, in the component's units, the prediction was from the server at the last acknowledgement - corrected or not. Zero for as long as prediction is exact, which is what a test watches.
+			</description>
+		</method>
+		<method name="get_last_acked_frame" qualifiers="const">
+			<return type="int" />
+			<description>
+				Owning client: the newest frame the server has acknowledged, or -1 before the first.
+			</description>
+		</method>
+		<method name="get_last_consumed_frame" qualifiers="const">
+			<return type="int" />
+			<description>
+				Server: the newest of the client's frames that has been simulated, or -1 before the first.
+			</description>
+		</method>
+		<method name="get_last_correction_error" qualifiers="const">
+			<return type="float" />
+			<description>
+				Owning client: the position error of the last correction.
+			</description>
+		</method>
+		<method name="get_last_replayed_ticks" qualifiers="const">
+			<return type="int" />
+			<description>
+				Owning client: how many ticks the last correction replayed. About a round trip's worth, plus the server's input buffer.
+			</description>
+		</method>
+		<method name="get_pending_move_count" qualifiers="const">
+			<return type="int" />
+			<description>
+				Owning client: how many predicted ticks are waiting to be acknowledged.
+			</description>
+		</method>
+		<method name="get_queued_move_count" qualifiers="const">
+			<return type="int" />
+			<description>
+				Server: how many received moves are waiting to be simulated.
+			</description>
+		</method>
+		<method name="get_role" qualifiers="const">
+			<return type="int" enum="PredictedMovementBackend.PredictionRole" />
+			<description>
+				Which job this backend has on this peer, as of the last tick.
+			</description>
+		</method>
+		<method name="get_starved_tick_count" qualifiers="const">
+			<return type="int" />
+			<description>
+				Server: how many ticks found no move from the client to consume.
+			</description>
+		</method>
+		<method name="get_synthesized_move_count" qualifiers="const">
+			<return type="int" />
+			<description>
+				Server: how many lost moves were filled in by repeating the one before.
+			</description>
+		</method>
+		<method name="get_total_replayed_ticks" qualifiers="const">
+			<return type="int" />
+			<description>
+				Owning client: the sum of every correction's replayed ticks.
+			</description>
+		</method>
+		<method name="is_replaying" qualifiers="const">
+			<return type="bool" />
+			<description>
+				True while a correction's ticks are being replayed. See [method CharacterMovementComponent.is_replaying].
+			</description>
+		</method>
+	</methods>
+	<constants>
+		<constant name="PREDICTION_ROLE_NONE" value="0" enum="PredictionRole">
+			Nothing to simulate on this peer: a simulated proxy, whose transform arrives through the [Pawn]'s replication.
+		</constant>
+		<constant name="PREDICTION_ROLE_LOCAL" value="1" enum="PredictionRole">
+			One step per physics frame, exactly like [StandaloneMovementBackend]: no network, or a pawn the server drives itself - the host's own, a bot, an unpossessed pawn.
+		</constant>
+		<constant name="PREDICTION_ROLE_AUTONOMOUS_PROXY" value="2" enum="PredictionRole">
+			The owning client, predicting.
+		</constant>
+		<constant name="PREDICTION_ROLE_SERVER" value="3" enum="PredictionRole">
+			The server, simulating the moves a remote client sends.
+		</constant>
+	</constants>
+</class>

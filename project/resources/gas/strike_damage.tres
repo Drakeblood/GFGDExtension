@@ -1,0 +1,22 @@
+[gd_resource type="GameplayEffect" load_steps=5 format=3]
+
+[sub_resource type="AttributeModifier" id="Mod_0"]
+attribute = &"health"
+magnitude = -10.0
+magnitude_type = 2
+set_by_caller_name = &"Damage"
+
+[sub_resource type="GameplayTagContainer" id="Tags_effect_tags"]
+tags = PackedStringArray("Effect.Damage")
+
+[sub_resource type="GameplayTagContainer" id="Tags_gameplay_cue_tags"]
+tags = PackedStringArray("Cue.Hit")
+
+[sub_resource type="GameplayTagContainer" id="Tags_application_blocked_tags"]
+tags = PackedStringArray("State.Down")
+
+[resource]
+modifiers = Array[AttributeModifier]([SubResource("Mod_0")])
+effect_tags = SubResource("Tags_effect_tags")
+gameplay_cue_tags = SubResource("Tags_gameplay_cue_tags")
+application_blocked_tags = SubResource("Tags_application_blocked_tags")

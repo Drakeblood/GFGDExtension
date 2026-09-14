@@ -12,7 +12,8 @@ crouch tunnel, moving platforms, water, an updraft that switches to flying — w
 mode, velocity, floor and immersion live. WASD moves, Space jumps, C crouches, F dashes. Where a
 station has something you cannot get past, it sits on one side of the walkway so the tour never dead
 ends. The geometry is a table at the top of `project/scripts/demo_level_3d.gd`, so moving a platform
-is editing a row; `project/tests/test_playground_3d.gd` holds every station to its numbers.
+is editing a row; `project/tests/test_playground_3d.gd` holds every station to its numbers. To the
+right of the start is an ability yard for the gameplay ability system - see *ability-system.md*.
 
 ## Setting one up
 
@@ -69,6 +70,11 @@ the **server**, out of the action state that player's machine sent — and there
 `is_locally_controlled()` is false, so the pawn would never accumulate anything. This is the same
 guard the demo pawns use, and it is what makes the code identical in every net mode.
 
+A pawn with `client_prediction` on uses `wants_movement_input()` instead: its movement runs on the
+owning client and the server is fed that client's moves, so the input has to be read there and not on
+the server. It answers exactly as `has_authority()` does when prediction is off, so it is the better
+guard for any pawn that might be predicted — see *Client prediction* below.
+
 ### The body may be any `PhysicsBody3D`
 
 Nothing here calls `move_and_slide()`, so `CharacterBody3D` is a sensible default rather than a
@@ -79,9 +85,9 @@ is what a resimulation is, and therefore what client prediction needs.
 
 ## Where it runs
 
-**Only where the pawn has authority.** On a client, movement still arrives through the transform
-replication the `Pawn` sets up, exactly as it did before — see `references/networking.md`. There is
-still no client-side prediction; the architecture is shaped so it can be added, not so that it is.
+**Where the pawn has authority — and, with `client_prediction` on, on the owning client too.**
+Everywhere else movement arrives through the transform replication the `Pawn` sets up — see
+`references/networking.md`. Prediction has its own section below: *Client prediction*.
 
 Two things reach a client, not one. The transform, through the `Pawn`'s synchronizer, and
 **`movement_mode`**, through the component's own. The second one matters more than it looks: a
@@ -90,11 +96,10 @@ question an animation graph asks first. Without it a client has to guess the mod
 vertical velocity, which is wrong at the top of a jump and wrong on a ramp.
 
 Unreal replicates the same thing as `ACharacter::ReplicatedMovementMode`, but under
-`COND_SimulatedOnly` — an autonomous proxy there predicts its own mode, so sending it one would
-fight the prediction. Nothing here predicts yet, so the owning client is a receiver like everybody
-else and gets it too. That condition is what has to be added alongside prediction, not before it.
-Set `replicate_movement_mode = false` for a pawn whose mode nothing outside the simulation cares
-about.
+`COND_SimulatedOnly` — an autonomous proxy predicts its own mode, so sending it one would fight the
+prediction. Here the owner of a predicted character still receives it and drops it on arrival; a
+character nobody predicts has its owner receive it like everybody else. Set
+`replicate_movement_mode = false` for a pawn whose mode nothing outside the simulation cares about.
 
 React to it with the `movement_mode_changed` signal, which fires on every peer:
 
@@ -287,11 +292,17 @@ func _generate_move(params: MovementTickParams, out: ProposedMove) -> void:
 	out.mix_mode = mix_mode
 ```
 
-One thing to know before relying on this over the network: **active layered moves live on the
-component, not in `MovementState`.** It is the one place the "no simulation state on the node" rule
-is bent, because deep-copying a list of instanced Resources twice per substep is not free and nothing
-replays a tick yet. Client prediction will have to move them into the state; that is a known cost of
-that work rather than an oversight.
+Active and queued moves live in `MovementState`, so a rollback takes them back with everything
+else. The state copies them shallowly on every substep — the lists are new, the moves are shared —
+and only a prediction history asks for a deep copy (`duplicate_state(true)`, which calls
+`LayeredMove.duplicate_move()`), because a replay restarting the live object would rewrite the clock
+of the move it is replaying. A move written in GDScript that keeps state of its own must keep it in
+`@export` or `@export_storage` properties, or override `_duplicate_move`, or a replay will start it
+from wherever the live one had got to.
+
+**Over the network, queue a move from inside the tick.** A dash queued from a button handler starts
+on the client straight away and on the server whenever the action state arrives, and the two
+disagree by the difference. Send it as a custom input flag instead — see *Client prediction*.
 
 ### Transitions
 
@@ -568,12 +579,98 @@ position back to the body, so there is no character rotation for a platform to t
 perch — `perch_radius_threshold` and friends are a 3D capsule's answer to standing half off a corner,
 and a 2D capsule has no corners to be off.
 
+## Client prediction
+
+Without it, a client's own character moves a round trip after the key goes down. With it, the
+owning client simulates its character on the tick the key goes down, sends the server what it
+pressed, and is corrected only if the server disagrees. It does nothing for how *other* players look
+on your screen — that is proxy smoothing, below, and a separate job.
+
+Turning it on is one property and one habit:
+
+```gdscript
+# The pawn scene: on the CharacterMovementComponent (or CharacterMovementComponent2D)
+#   client_prediction = true
+
+# The pawn script: gate movement input with wants_movement_input(), not has_authority().
+func _gather_movement_input(_delta: float) -> void:
+	if _input_component == null or not wants_movement_input():
+		return
+	var move: Vector2 = _input_component.get_vector(&"move_left", &"move_right", &"move_forward", &"move_back")
+	add_movement_input(Vector3(move.x, 0.0, move.y))
+
+func _on_jump() -> void:
+	if _movement != null and wants_movement_input():
+		_movement.jump()
+```
+
+`wants_movement_input()` is true where what is read actually drives the character: the owning
+client when it predicts, the server when nobody does. On the server, a predicted pawn is driven by
+the moves its client sends, so input read there would go nowhere. With prediction off it answers
+exactly as `has_authority()` did, so the same script works both ways — `project/scripts/online_pawn.gd`
+is written like this.
+
+What changes when it is on:
+
+- **The owning client runs the pawn's input bindings.** It used to only send its action state; now
+  it also pumps its `InputComponent`, because a jump bound to a button has to reach the simulation
+  it is predicting. The action state is still sent — the server uses it for everything that is not
+  movement. A binding that must only run on the server keeps its `has_authority()` check.
+- **Moves travel with a tick number.** Every physics tick the client sends its newest unacknowledged
+  moves (`application/game_framework/prediction/max_moves_per_packet`, 8 by default), unreliably, so
+  a lost packet costs nothing. The server buffers `input_buffer_ticks` of them (2) against jitter,
+  consumes one per tick, and answers with the tick it reached and the state it ended in.
+- **A correction is a rollback and a replay.** If the answer differs from what the client predicted
+  for that tick by more than `prediction_position_tolerance` / `prediction_velocity_tolerance`, or in
+  mode or crouch, the client takes the server's state and replays every move since, in one tick.
+  Otherwise nothing happens at all.
+- **The replicated transform and mode are dropped by the owner.** They keep arriving — hiding them
+  from the owner would hide the nodes from the owner's remote calls too — and are ignored.
+
+**Anything that changes movement has to travel with the input.** `jump()` and `crouch()` already do.
+For a game's own actions there are sixteen custom bits:
+
+```gdscript
+const FLAG_DASH := 1 << 0
+
+func _possessed(_controller: Controller) -> void:   # on every peer that simulates the pawn
+	if not _movement.custom_input_flags.is_connected(_on_custom_input_flags):
+		_movement.custom_input_flags.connect(_on_custom_input_flags)
+
+func _on_dash() -> void:                          # the button
+	if wants_movement_input():
+		_movement.add_custom_input_flags(FLAG_DASH)
+
+func _on_custom_input_flags(flags: int) -> void:  # inside the tick, everywhere
+	if flags & FLAG_DASH:
+		_movement.queue_layered_move(make_dash())
+```
+
+The signal fires inside the tick that carries the bits — on the predicting client, on the server and
+on every replay — so the dash starts on the same tick everywhere. Done from the button instead, it
+starts at different times on the two machines and is corrected every time.
+
+**Every signal fires again on a replay.** `movement_mode_changed`, `crouch_changed`,
+`layered_move_started`, `custom_input_flags` — a replayed tick is a tick. A listener that plays a
+sound checks `is_replaying()` first; one that changes the simulation, like the dash above, must not.
+
+**What is not predicted, and is corrected instead:** anything the server does to the character on
+its own (a respawn, a knockback, `set_velocity` from a script), root motion (it reads the animation
+as it is now), and standing on a fast moving platform (a replay collides against the world as it is
+now, not as it was, and cannot put a platform back). All three settle on the next acknowledgement.
+
+**Tuning and testing.** `prediction_corrected(acked_frame, replayed_ticks, position_error)` fires on
+each correction; a steady stream means something in the simulation differs between the machines.
+`get_movement_backend()` returns the `PredictedMovementBackend`, whose counters say how many acks,
+corrections, replayed ticks, starved and synthesized moves there have been. For a bad network on
+purpose, the debug settings `application/game_framework/debug/network_latency_ms`,
+`network_jitter_ms` and `network_packet_loss_percent` delay and drop the prediction traffic in both
+directions (debug builds only); the demo takes them as `--net-latency 60 --net-jitter 10 --net-loss 2`.
+How it *feels* at 120 ms is still something only a person at a window can judge.
+
 ## Not in yet
 
-Client prediction. `MovementBackend` is the seam it plugs into, and
-`skills/gfgd-dev/references/client-prediction.md` is the plan for it.
-
-A simulated proxy also does not extrapolate: it follows the replicated transform and nothing else.
+A simulated proxy does not extrapolate: it follows the replicated transform and nothing else.
 Unreal's proxies run `SimulateMovement()` between updates — applying velocity, gravity and floor
 checks — with the replicated mode telling them which physics to run, and smooth the visible mesh
 separately from the snapping capsule. That is the other reason the mode is worth having on a client,

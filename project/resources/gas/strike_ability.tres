@@ -1,0 +1,16 @@
+[gd_resource type="GameplayAbility" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/strike_ability.gd" id="1_strike"]
+[ext_resource type="GameplayEffect" path="res://resources/gas/strike_cost.tres" id="2_cost"]
+[ext_resource type="GameplayEffect" path="res://resources/gas/strike_cooldown.tres" id="3_cooldown"]
+
+[sub_resource type="GameplayTagContainer" id="Tags_ability"]
+tags = PackedStringArray("Ability.Strike")
+
+[resource]
+script = ExtResource("1_strike")
+ability_name = &"Strike"
+ability_tags = SubResource("Tags_ability")
+input_action_name = &"strike"
+cost_effect = ExtResource("2_cost")
+cooldown_effect = ExtResource("3_cooldown")

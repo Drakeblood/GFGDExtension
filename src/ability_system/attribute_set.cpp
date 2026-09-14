@@ -67,6 +67,25 @@ PackedStringArray AttributeSet::get_attribute_names() const
 	return names;
 }
 
+void AttributeSet::apply_replicated_value(const StringName& attribute_name, double base_value, double current_value)
+{
+	const double old_base = get_base_value(attribute_name);
+	const bool had_base = attributes.has(attribute_name);
+	attributes[attribute_name] = base_value;
+	if (!had_base || old_base != base_value)
+	{
+		emit_signal("base_value_changed", attribute_name, old_base, base_value);
+	}
+
+	const double old_current = get_current_value(attribute_name);
+	const bool had_current = current_values.has(attribute_name);
+	current_values[attribute_name] = current_value;
+	if (!had_current || old_current != current_value)
+	{
+		emit_signal("attribute_changed", attribute_name, old_current, current_value);
+	}
+}
+
 void AttributeSet::init_current_from_base()
 {
 	current_values = attributes.duplicate();
@@ -82,6 +101,7 @@ void AttributeSet::_bind_methods()
 	ClassDB::bind_method(D_METHOD("set_current_value", "attribute_name", "value"), &AttributeSet::set_current_value);
 	ClassDB::bind_method(D_METHOD("get_attribute_names"), &AttributeSet::get_attribute_names);
 	ClassDB::bind_method(D_METHOD("init_current_from_base"), &AttributeSet::init_current_from_base);
+	ClassDB::bind_method(D_METHOD("apply_replicated_value", "attribute_name", "base_value", "current_value"), &AttributeSet::apply_replicated_value);
 
 	ClassDB::bind_method(D_METHOD("set_attributes", "value"), &AttributeSet::set_attributes);
 	ClassDB::bind_method(D_METHOD("get_attributes"), &AttributeSet::get_attributes);

@@ -5,6 +5,8 @@
 #include <godot_cpp/core/binder_common.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/node_path.hpp>
+#include <godot_cpp/variant/packed_int32_array.hpp>
+#include <godot_cpp/variant/packed_vector3_array.hpp>
 #include <godot_cpp/variant/transform2d.hpp>
 #include <godot_cpp/variant/vector2.hpp>
 
@@ -94,6 +96,7 @@ private:
 	bool has_queued_mode;
 	bool jump_pressed_latch;
 	bool crouch_latch;
+	int custom_input_flags_latch;
 
 	// Scratch each layered move writes its proposal into, so mixing does not
 	// allocate per move per tick.
@@ -150,6 +153,12 @@ private:
 	// jump from a moving lift keeps the lift's momentum.
 	bool impart_base_velocity;
 
+	// The owning client simulates its own character immediately instead of
+	// waiting a round trip for the server to. See PredictedMovementBackend.
+	bool client_prediction;
+	float prediction_position_tolerance;
+	float prediction_velocity_tolerance;
+
 public:
 	CharacterMovementComponent2D();
 	~CharacterMovementComponent2D();
@@ -158,6 +167,21 @@ public:
 	virtual void _physics_process(double delta) override;
 
 	void simulate(double delta);
+
+	// The same tick with an input gathered elsewhere - received by the server or
+	// replayed by a predicting client. See CharacterMovementComponent.
+	void simulate_with_input(const Ref<MovementInput>& given_input, double delta);
+
+	// Makes new_state the present: state, body, capsule and cached floor
+	// together. The base is dropped; the next tick finds it again.
+	void rollback_to_state(const Ref<MovementState>& new_state);
+
+	MovementBackend* get_movement_backend() const { return backend; }
+	bool is_replaying() const;
+
+	// Remote calls, sent by PredictedMovementBackend.
+	void server_receive_moves(int64_t first_frame, const PackedVector3Array& move_inputs, const PackedInt32Array& flags);
+	void client_receive_move_ack(int64_t frame, const Array& packed_state);
 
 	void queue_next_mode(const StringName& mode_name);
 	StringName get_movement_mode() const;
@@ -328,6 +352,19 @@ public:
 	void jump();
 	void stop_jumping();
 
+	// Custom bits for the next tick's input, handed back through the
+	// custom_input_flags signal inside that tick on every machine that runs it.
+	void add_custom_input_flags(int flags);
+
+	bool get_client_prediction() const { return client_prediction; }
+	void set_client_prediction(bool value) { client_prediction = value; }
+
+	float get_prediction_position_tolerance() const { return prediction_position_tolerance; }
+	void set_prediction_position_tolerance(float value) { prediction_position_tolerance = MAX(0.0f, value); }
+
+	float get_prediction_velocity_tolerance() const { return prediction_velocity_tolerance; }
+	void set_prediction_velocity_tolerance(float value) { prediction_velocity_tolerance = MAX(0.0f, value); }
+
 protected:
 	static void _bind_methods();
 
@@ -350,6 +387,8 @@ private:
 	void retire_finished_layered_moves();
 	void resolve_queued_mode();
 	void apply_state_to_body();
+	void configure_rpcs();
+	void simulate_internal(double delta, const Ref<MovementInput>& given_input);
 };
 }
 

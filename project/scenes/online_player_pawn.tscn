@@ -1,6 +1,9 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/online_pawn.gd" id="1_pawn"]
+[ext_resource type="AttributeSet" path="res://resources/online/online_attributes.tres" id="2_attributes"]
+[ext_resource type="GameplayAbility" path="res://resources/online/sprint_ability.tres" id="3_sprint"]
+[ext_resource type="GameplayAbility" path="res://resources/online/shout_ability.tres" id="4_shout"]
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_pawn"]
 
@@ -19,6 +22,7 @@ camera_path = NodePath("../Camera")
 script = ExtResource("1_pawn")
 
 [node name="CharacterMovementComponent" type="CharacterMovementComponent" parent="."]
+client_prediction = true
 
 [node name="Mesh" type="MeshInstance3D" parent="."]
 mesh = SubResource("CapsuleMesh_pawn")
@@ -26,3 +30,7 @@ surface_material_override/0 = SubResource("StandardMaterial3D_pawn")
 
 [node name="Camera" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.866025, 0.5, 0, -0.5, 0.866025, 0, 8, 12)
+
+[node name="AbilitySystemComponent" type="AbilitySystemComponent" parent="."]
+attribute_set = ExtResource("2_attributes")
+startup_abilities = [ExtResource("3_sprint"), ExtResource("4_shout")]

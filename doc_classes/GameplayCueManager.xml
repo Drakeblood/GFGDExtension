@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="GameplayCueManager" inherits="Object" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Finds the handler for a gameplay cue tag.
+	</brief_description>
+	<description>
+		Unreal's GameplayCueManager, minus the asset scanning: the handlers are whatever the cue tables name. Loads the tables in [code]application/game_framework/gameplay_cue_tables[/code] on the first cue, and caches every answer. A C++ singleton, not an autoload.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="add_table">
+			<return type="void" />
+			<param index="0" name="table" type="GameplayCueTable" />
+			<description>
+				Adds a table at runtime, on top of what the project setting listed; later tables win on a duplicate tag. Clears the cache.
+			</description>
+		</method>
+		<method name="clear">
+			<return type="void" />
+			<description>
+				Forgets every table, including the project's - for tests, or a game swapping its whole set of cues.
+			</description>
+		</method>
+		<method name="find_handler">
+			<return type="Resource" />
+			<param index="0" name="cue_tag" type="StringName" />
+			<description>
+				The handler for this tag, or its nearest parent that has one; null when none does.
+			</description>
+		</method>
+		<method name="get_singleton" qualifiers="static">
+			<return type="GameplayCueManager" />
+			<description>
+				The manager.
+			</description>
+		</method>
+	</methods>
+</class>

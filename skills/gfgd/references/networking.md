@@ -103,8 +103,16 @@ A client sends what its player is holding and the server writes it into that con
 `PlayerInput`, so from the input component down the server runs exactly the code a local player
 runs. `PlayerController.replicated_actions` (a `PackedStringArray`) selects which actions are sent.
 
-**There is no client-side prediction and no rollback**: movement costs a round trip. A game that
-needs a snappier feel adds prediction on top, and the pieces to do it with are already here.
+By default movement costs a round trip: the client's own character moves when the server's answer
+comes back. `CharacterMovementComponent.client_prediction` removes that for the character a client
+drives — it simulates on the tick the key goes down, sends its moves with tick numbers, and is
+corrected when the server disagrees. It asks one thing of the pawn script: gate movement input with
+`Pawn.wants_movement_input()` instead of `has_authority()`, and send movement-changing actions as
+custom input flags. The whole of it is in `references/movement.md`, *Client prediction*.
+
+The ability system replicates on its own: attributes, owned tags and cues to everyone, active
+effects to the owner or everyone, granted abilities to the owner, activation requested by the owner
+and predicted for `LOCAL_PREDICTED` abilities. See `references/ability-system.md`, *Networking*.
 
 ## Game state and player state
 

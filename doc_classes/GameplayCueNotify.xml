@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="GameplayCueNotify" inherits="Resource" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		A gameplay cue handler with no instance of its own.
+	</brief_description>
+	<description>
+		Unreal's GameplayCueNotify_Static. One resource answers every cue with its tag on every character, so it keeps no state of its own: play a sound at the target, flash its material, spawn something that looks after itself. Map a cue tag to it in a [GameplayCueTable].
+		For a cue that needs a node living as long as the cue is active - a fire burning on the character, a shield bubble - map the tag to a [PackedScene] instead: it is instanced under the character on [constant AbilitySystemComponent.CUE_ADDED] (its root's [code]_on_active(parameters)[/code] is called if it has one) and on [constant AbilitySystemComponent.CUE_REMOVED] its [code]_on_removed(parameters)[/code] is called - and it must free itself - or, without one, it is freed at once. An executed cue's scene is instanced too, and calls [code]_on_execute(parameters)[/code]; with a [code]location[/code] parameter it goes into the world at that point rather than under the character, and it must free itself when done. An executed scene must have [code]_on_execute[/code] and free itself; one without it is freed at once, with a warning. An execute of a cue that is already added - a periodic effect's tick - is not instanced again: it goes to the running instance's [code]_on_execute[/code], if it has one.
+		Handlers run on every peer that hears the cue, except a dedicated server.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_on_active" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="target" type="Node" />
+			<param index="1" name="parameters" type="Dictionary" />
+			<description>
+				A lasting cue started - once, however many sources add it.
+			</description>
+		</method>
+		<method name="_on_execute" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="target" type="Node" />
+			<param index="1" name="parameters" type="Dictionary" />
+			<description>
+				A one-off cue: an instant effect, a period tick, [method AbilitySystemComponent.execute_gameplay_cue]. [param target] is the node the component hangs off.
+			</description>
+		</method>
+		<method name="_on_removed" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="target" type="Node" />
+			<param index="1" name="parameters" type="Dictionary" />
+			<description>
+				A lasting cue ended - when its last source removed it.
+			</description>
+		</method>
+	</methods>
+</class>

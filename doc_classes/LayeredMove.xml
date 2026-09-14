@@ -11,6 +11,13 @@
 	<tutorials>
 	</tutorials>
 	<methods>
+		<method name="_duplicate_move" qualifiers="virtual const">
+			<return type="void" />
+			<param index="0" name="copy" type="LayeredMove" />
+			<description>
+				Called on the original with the fresh [param copy] made by [method duplicate_move], to carry over anything [method Resource.duplicate] cannot see.
+			</description>
+		</method>
 		<method name="_generate_move" qualifiers="virtual">
 			<return type="void" />
 			<param index="0" name="params" type="MovementTickParams" />
@@ -31,6 +38,12 @@
 			<param index="0" name="params" type="MovementTickParams" />
 			<description>
 				Called once, on the tick the move first runs.
+			</description>
+		</method>
+		<method name="duplicate_move" qualifiers="const">
+			<return type="LayeredMove" />
+			<description>
+				A copy that can run on its own: the settings, plus the start time and started flag, which are per-instance and are not properties. A prediction history holds these, so that a replay from an earlier tick does not rewrite the clock of the move still running live. A move written in GDScript with state of its own has that state copied only if it is a stored property - [code]@export[/code] or [code]@export_storage[/code] - because that is all [method Resource.duplicate] copies; anything else belongs in [method _duplicate_move].
 			</description>
 		</method>
 		<method name="get_elapsed" qualifiers="const">

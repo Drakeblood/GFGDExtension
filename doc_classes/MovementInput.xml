@@ -9,6 +9,26 @@
 	<tutorials>
 	</tutorials>
 	<methods>
+		<method name="copy_from">
+			<return type="void" />
+			<param index="0" name="other" type="MovementInput" />
+			<description>
+				Overwrites this input with another.
+			</description>
+		</method>
+		<method name="duplicate_input" qualifiers="const">
+			<return type="MovementInput" />
+			<description>
+				An independent copy of this input. What a prediction history keeps for every tick it may have to replay.
+			</description>
+		</method>
+		<method name="has_custom_flag" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="flag" type="int" />
+			<description>
+				Whether any bit of [param flag] is set in [member custom_flags].
+			</description>
+		</method>
 		<method name="reset">
 			<return type="void" />
 			<description>
@@ -17,14 +37,17 @@
 		</method>
 	</methods>
 	<members>
+		<member name="custom_flags" type="int" setter="set_custom_flags" getter="get_custom_flags" default="0">
+			Sixteen bits a game gives its own meaning - a dash, a sprint, a mantle. They travel with the input, so an action carried in them happens on the same tick on the client that predicts it, on the server and on every replay. Set them with [method CharacterMovementComponent.add_custom_input_flags] and act on them from [signal CharacterMovementComponent.custom_input_flags]. Bits above the sixteenth are dropped.
+		</member>
 		<member name="frame" type="int" setter="set_frame" getter="get_frame" default="0">
-			The tick this input belongs to. Unused while the server is the only thing simulating, and the one field a client would have to send for a server to be able to say which inputs it has processed - which is the whole basis of reconciliation.
+			The tick this input belongs to, on the clock of the machine that gathered it. A predicting client numbers its moves with it, and the server answers with the last one it simulated - which is the whole basis of reconciliation.
 		</member>
 		<member name="move_input" type="Vector3" setter="set_move_input" getter="get_move_input" default="Vector3(0, 0, 0)">
 			World space direction, length clamped to 1. The clamp matters: the [Pawn] accumulates input on the render frame and the simulation consumes it on the physics frame, so at 144Hz render and 60Hz physics the vector has been added twice and is twice as long. Left alone, walking speed would rise with the frame rate.
 		</member>
 		<member name="want_crouch" type="bool" setter="set_want_crouch" getter="get_want_crouch" default="false">
-			Whether a crouch was asked for. Read by no built-in mode yet; it is here so a mode written in GDScript does not have to wait for the stance work.
+			Whether the character wants to be crouched on this tick - a held state, not an event. [method CharacterMovementComponent.crouch] and [method CharacterMovementComponent.un_crouch] set the latch this is read from, and it travels with the input, so a replayed or received move crouches by itself.
 		</member>
 		<member name="want_jump" type="bool" setter="set_want_jump" getter="get_want_jump" default="false">
 			Whether a jump was asked for this tick.

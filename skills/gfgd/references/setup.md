@@ -31,6 +31,10 @@ In Project Settings → Application → Game Framework:
 | `application/game_framework/default_port` | Port your menus and helpers default to. Defaults to `7777`. |
 | `application/game_framework/gameplay_tag_tables` | `GameplayTagTable` resources, in merge order. Empty is fine to start with. |
 | `application/game_framework/save_encryption_key` | Key for encrypted saves. **Ships with a default that is public in the GFGD repository — replace it before release.** |
+| `application/game_framework/gameplay_cue_tables` | `GameplayCueTable` resources mapping cue tags to handlers. Empty is fine: cues still fire the `gameplay_cue` signal. |
+| `application/game_framework/prediction/input_buffer_ticks` | Moves the server holds from a predicting client before consuming them, against jitter. Every one is a tick of latency. Defaults to `2`. |
+| `application/game_framework/prediction/max_moves_per_packet` | How many of its newest unacknowledged moves a predicting client repeats in every packet. Defaults to `8`. |
+| `application/game_framework/debug/network_latency_ms` / `network_jitter_ms` / `network_packet_loss_percent` | A delay-and-drop queue on client-prediction traffic, both directions — for testing a bad network. Latency is one way. **Debug builds only**; `0` by default. |
 
 The extension registers all of these on load, so they appear in the editor UI. Godot does not write
 out settings that still hold their default, so a fresh install adds nothing to `project.godot` until

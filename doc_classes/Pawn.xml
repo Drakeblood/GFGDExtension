@@ -66,6 +66,12 @@
 				Calls [method _gather_movement_input]. Invoked by [CharacterMovementComponent] once per simulated step; a game has no reason to call it.
 			</description>
 		</method>
+		<method name="get_abilities_replicated" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Whether an [AbilitySystemComponent] beside this pawn replicates. Set by the component at [code]_ready[/code].
+			</description>
+		</method>
 		<method name="get_controller" qualifiers="const">
 			<return type="Controller" />
 			<description>
@@ -76,6 +82,12 @@
 			<return type="int" />
 			<description>
 				What this peer may do with this pawn - see [enum World.NetRole]. Note that [b]authority is not ownership[/b]: the server has authority over every pawn, including one a client owns.
+			</description>
+		</method>
+		<method name="get_movement_predicted" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Whether a movement component on this pawn has [member CharacterMovementComponent.client_prediction] on. Set by the component at [code]_ready[/code].
 			</description>
 		</method>
 		<method name="get_owner_peer_id" qualifiers="const">
@@ -132,10 +144,22 @@
 				True where the human driving this pawn is sitting - [b]the only place that may read input for it[/b].
 			</description>
 		</method>
+		<method name="is_locally_predicted" qualifiers="const">
+			<return type="bool" />
+			<description>
+				True on the owning client of a pawn whose movement it predicts.
+			</description>
+		</method>
 		<method name="is_player_controlled" qualifiers="const">
 			<return type="bool" />
 			<description>
 				Whether a [PlayerController] drives this pawn rather than an [AIController].
+			</description>
+		</method>
+		<method name="runs_input_locally" qualifiers="const">
+			<return type="bool" />
+			<description>
+				True on the owning client when something on this pawn needs its input bindings run there - predicted movement, or replicated abilities. The [PlayerController] then pumps the bindings on the client as well as sending the action state.
 			</description>
 		</method>
 		<method name="setup_input_component">
@@ -143,6 +167,20 @@
 			<param index="0" name="input_component" type="InputComponent" />
 			<description>
 				Runs the input-binding hook. The [PlayerController] calls this on possession; override [method _setup_input_component] instead of calling it.
+			</description>
+		</method>
+		<method name="wants_movement_input" qualifiers="const">
+			<return type="bool" />
+			<description>
+				True where the movement component uses what [method add_movement_input], [method CharacterMovementComponent.jump] and the other movement requests are given: on the server for a pawn nobody predicts, and on the owning client for one it does. On the server, a pawn a remote client predicts is driven by the moves that client sends, and input read there would go nowhere.
+				Gate input that drives movement with this rather than with [method has_authority], and the same script works whether prediction is on or off:
+				[codeblock]
+				func _gather_movement_input(_delta: float) -&gt; void:
+				if _input_component == null or not wants_movement_input():
+				return
+				var move := _input_component.get_vector(&amp;"move_left", &amp;"move_right", &amp;"move_forward", &amp;"move_back")
+				add_movement_input(Vector3(move.x, 0.0, move.y))
+				[/codeblock]
 			</description>
 		</method>
 	</methods>
@@ -160,7 +198,13 @@
 			Set when the framework spawns the pawn, and part of its node name, so the same pawn is addressed the same way on every peer.
 		</member>
 		<member name="replicate_transform" type="bool" setter="set_replicate_transform" getter="get_replicate_transform" default="true">
-			Mirrors the root's position and rotation from the server. Turn it off for a pawn whose movement is driven some other way.
+			Mirrors the root's position and rotation from the server. Turn it off for a pawn whose movement is driven some other way. The owning client of a pawn whose movement it predicts ignores what arrives.
+		</member>
+		<member name="replicated_position" type="Variant" setter="set_replicated_position" getter="get_replicated_position">
+			What the transform replication reads and writes: the root's [code]position[/code], except that a client predicting this pawn drops what arrives. A property of this node rather than the root's own, and dropped on arrival rather than filtered on the server, because a synchronizer hidden from a peer hides its root node from that peer's remote calls too. Not for game code.
+		</member>
+		<member name="replicated_rotation" type="Variant" setter="set_replicated_rotation" getter="get_replicated_rotation">
+			The root's [code]rotation[/code], on the same terms as [member replicated_position].
 		</member>
 	</members>
 	<signals>

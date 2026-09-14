@@ -1,0 +1,8 @@
+[gd_resource type="GameplayEffect" format=3]
+
+[sub_resource type="AttributeModifier" id="AttributeModifier_cost"]
+attribute = &"stamina"
+magnitude = -20.0
+
+[resource]
+modifiers = Array[AttributeModifier]([SubResource("AttributeModifier_cost")])

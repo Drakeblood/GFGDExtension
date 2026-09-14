@@ -1,0 +1,18 @@
+[gd_resource type="GameplayEffect" load_steps=4 format=3]
+
+[sub_resource type="AttributeModifier" id="Mod_0"]
+attribute = &"health"
+magnitude = 4.0
+
+[sub_resource type="GameplayTagContainer" id="Tags_granted_tags"]
+tags = PackedStringArray("State.Healing")
+
+[sub_resource type="GameplayTagContainer" id="Tags_gameplay_cue_tags"]
+tags = PackedStringArray("Cue.Heal")
+
+[resource]
+duration_policy = 1
+period = 0.5
+modifiers = Array[AttributeModifier]([SubResource("Mod_0")])
+granted_tags = SubResource("Tags_granted_tags")
+gameplay_cue_tags = SubResource("Tags_gameplay_cue_tags")

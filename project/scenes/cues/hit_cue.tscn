@@ -1,0 +1,42 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/cues/hit_cue.gd" id="1_cue"]
+
+[sub_resource type="StandardMaterial3D" id="Mat_Burst"]
+shading_mode = 0
+albedo_color = Color(1, 0.9, 0.4, 1)
+
+[sub_resource type="SphereMesh" id="Mesh_Burst"]
+material = SubResource("Mat_Burst")
+radius = 0.06
+height = 0.12
+radial_segments = 8
+rings = 4
+
+[node name="HitCue" type="Node3D"]
+script = ExtResource("1_cue")
+
+[node name="Burst" type="CPUParticles3D" parent="."]
+amount = 20
+lifetime = 0.4
+emitting = false
+one_shot = true
+explosiveness = 1.0
+mesh = SubResource("Mesh_Burst")
+emission_shape = 1
+emission_sphere_radius = 0.2
+direction = Vector3(0, 1, 0)
+spread = 180.0
+gravity = Vector3(0, 0, 0)
+initial_velocity_min = 3.0
+initial_velocity_max = 5.0
+
+[node name="Number" type="Label3D" parent="."]
+position = Vector3(0, 0.6, 0)
+billboard = 1
+no_depth_test = true
+modulate = Color(1, 0.85, 0.3, 1)
+font_size = 72
+outline_size = 16
+pixel_size = 0.008
+text = "0"

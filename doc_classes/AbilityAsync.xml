@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="AbilityAsync" inherits="RefCounted" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		A wait on an [AbilitySystemComponent] from outside any ability - a HUD, a quest, a door. Unreal's UAbilityAsync.
+	</brief_description>
+	<description>
+		An [AbilityTask] belongs to an ability and dies with it. An AbilityAsync belongs to the component it watches, its target: the target keeps it alive, so nothing has to hold a variable for it. It ends when the target is freed, when the optional owner node leaves the tree or is freed, when [method end_action] is called, or - with [code]only_trigger_once[/code] - after it first triggers. Ended, it never triggers again, and a coroutine awaiting [signal triggered] is released without resuming.
+		[codeblock]
+		# A health bar: every change, for as long as the bar is in the tree.
+		AbilityAsync.wait_attribute_change(asc, &amp;"health", self).triggered.connect(_on_health_changed)
+		# Once, awaited.
+		await AbilityAsync.wait_gameplay_tag_removed(asc, &amp;"State.Stunned", self, true).triggered
+		[/codeblock]
+		Something already true when it starts - a tag already owned - is delivered at the end of the frame, after the caller has connected. On a replicated client it hears the server's state as it arrives, which is what a client's HUD needs.
+		To write your own, extend it, connect to [method get_ability_system_component] in [method _activate], call [method broadcast] when the thing happens, disconnect in [method _on_end], and start it with [method activate].
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_activate" qualifiers="virtual">
+			<return type="void" />
+			<description>
+				Called once from [method activate], with the target set. Connect to the target here.
+			</description>
+		</method>
+		<method name="_on_end" qualifiers="virtual">
+			<return type="void" />
+			<description>
+				Called once when the async ends, for whatever reason - the target is still there if it is being freed. Disconnect from it here.
+			</description>
+		</method>
+		<method name="activate">
+			<return type="AbilityAsync" />
+			<param index="0" name="target" type="AbilitySystemComponent" />
+			<param index="1" name="owner" type="Node" default="null" />
+			<param index="2" name="only_trigger_once" type="bool" default="false" />
+			<description>
+				Starts watching [param target]. [param owner], when given, ends the async when it leaves the tree. With [param only_trigger_once], the async ends after its first trigger. Returns itself, to chain.
+			</description>
+		</method>
+		<method name="broadcast">
+			<return type="void" />
+			<param index="0" name="result" type="Variant" default="null" />
+			<description>
+				Reports that the thing waited for happened: emits [signal triggered] with [param result] at once when something is connected, otherwise at the end of the frame. With only_trigger_once, it ends the async.
+			</description>
+		</method>
+		<method name="end_action">
+			<return type="void" />
+			<description>
+				Ends the async for good: no further triggers, every connection to [signal triggered] dropped - a coroutine awaiting it is released without resuming - and the target lets go of it.
+			</description>
+		</method>
+		<method name="get_ability_system_component" qualifiers="const">
+			<return type="AbilitySystemComponent" />
+			<description>
+				The target, or [code]null[/code] once it has been freed.
+			</description>
+		</method>
+		<method name="get_only_trigger_once" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Whether the async ends after its first trigger.
+			</description>
+		</method>
+		<method name="get_owner_node" qualifiers="const">
+			<return type="Node" />
+			<description>
+				The owner node given to [method activate], or [code]null[/code].
+			</description>
+		</method>
+		<method name="has_ended" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Whether the async has ended - by [method end_action], its owner, its target, or a single trigger.
+			</description>
+		</method>
+		<method name="is_active" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Whether it has started and not ended.
+			</description>
+		</method>
+		<method name="wait_attribute_change" qualifiers="static">
+			<return type="AbilityAsync" />
+			<param index="0" name="target" type="AbilitySystemComponent" />
+			<param index="1" name="attribute" type="StringName" />
+			<param index="2" name="owner" type="Node" default="null" />
+			<param index="3" name="only_trigger_once" type="bool" default="false" />
+			<description>
+				Triggers on every change to [param attribute]'s current value on [param target], with [code]{ old_value, new_value }[/code].
+			</description>
+		</method>
+		<method name="wait_gameplay_effect_applied" qualifiers="static">
+			<return type="AbilityAsync" />
+			<param index="0" name="target" type="AbilitySystemComponent" />
+			<param index="1" name="effect_tag" type="StringName" default="&amp;&quot;&quot;" />
+			<param index="2" name="owner" type="Node" default="null" />
+			<param index="3" name="only_trigger_once" type="bool" default="false" />
+			<description>
+				Triggers when an effect is applied to [param target] - every effect, or only those whose [member GameplayEffect.effect_tags] match [param effect_tag] - with [code]{ effect, active_id }[/code].
+			</description>
+		</method>
+		<method name="wait_gameplay_event" qualifiers="static">
+			<return type="AbilityAsync" />
+			<param index="0" name="target" type="AbilitySystemComponent" />
+			<param index="1" name="event_tag" type="StringName" />
+			<param index="2" name="owner" type="Node" default="null" />
+			<param index="3" name="only_trigger_once" type="bool" default="false" />
+			<description>
+				Triggers on a gameplay event with exactly [param event_tag] sent to [param target], with its payload.
+			</description>
+		</method>
+		<method name="wait_gameplay_tag_added" qualifiers="static">
+			<return type="AbilityAsync" />
+			<param index="0" name="target" type="AbilitySystemComponent" />
+			<param index="1" name="tag" type="StringName" />
+			<param index="2" name="owner" type="Node" default="null" />
+			<param index="3" name="only_trigger_once" type="bool" default="false" />
+			<description>
+				Triggers when [param target] comes to own [param tag] or a tag under it, and at once (at the end of the frame) if it already does. A second source granting the same tag is not a new arrival.
+			</description>
+		</method>
+		<method name="wait_gameplay_tag_removed" qualifiers="static">
+			<return type="AbilityAsync" />
+			<param index="0" name="target" type="AbilitySystemComponent" />
+			<param index="1" name="tag" type="StringName" />
+			<param index="2" name="owner" type="Node" default="null" />
+			<param index="3" name="only_trigger_once" type="bool" default="false" />
+			<description>
+				Triggers when [param target] stops owning [param tag] and every tag under it, and at once (at the end of the frame) if it owns none.
+			</description>
+		</method>
+	</methods>
+	<signals>
+		<signal name="triggered">
+			<param index="0" name="result" type="Variant" />
+			<description>
+				The thing waited for happened. [param result] depends on the wait.
+			</description>
+		</signal>
+	</signals>
+</class>

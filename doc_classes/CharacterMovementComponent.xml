@@ -7,12 +7,29 @@
 		Attach as a child of the node being moved, beside the [Pawn] - the same shape [AbilitySystemComponent] has. The body itself may be any [PhysicsBody3D]; nothing here calls [method CharacterBody3D.move_and_slide], so a [CharacterBody3D] is a sensible default rather than a requirement.
 		Property names follow Unreal's CharacterMovementComponent, but the values are metric: Godot works in metres where Unreal works in centimetres, so [member max_walk_speed] defaults to 6.0 rather than 600.
 		How a character moves is decided by the [MovementMode] named in [method get_movement_mode], looked up in [member modes]. [WalkingMode] and [FallingMode] are registered automatically unless the project put its own mode under those names, and hand over to each other as the ground appears and disappears.
-		None of the simulation is stored on this node. It lives in a [MovementState], a tick is (state, input, delta) to state, and the body's transform is written exactly once at the end - which is what would let the same tick be replayed against a corrected state, the thing client prediction is.
-		The component simulates only where the pawn has authority. On a client, movement still arrives through the transform replication the [Pawn] sets up.
+		None of the simulation is stored on this node. It lives in a [MovementState], a tick is (state, input, delta) to state, and the body's transform is written exactly once at the end - which is what lets the same tick be replayed against a corrected state, the thing client prediction is.
+		The component simulates where the pawn has authority, and - with [member client_prediction] on - on the owning client too. Everywhere else, movement arrives through the transform replication the [Pawn] sets up.
 	</description>
 	<tutorials>
 	</tutorials>
 	<methods>
+		<method name="add_custom_input_flags">
+			<return type="void" />
+			<param index="0" name="flags" type="int" />
+			<description>
+				Sets bits of [member MovementInput.custom_flags] on the next tick's input - sixteen bits the game gives its own meaning. They come back out through [signal custom_input_flags], [i]inside[/i] that tick, on every machine that runs it: the client that predicted it, the server that received it, and every replay of it.
+				That is how an action that changes movement is predicted. Queue the dash from the signal, not from the button: done from the button it starts on the client at once and on the server whenever the action state happens to arrive, and the two disagree by the difference.
+				[codeblock]
+				const FLAG_DASH := 1 &lt;&lt; 0
+				func _on_dash_pressed() -&gt; void:
+				movement.add_custom_input_flags(FLAG_DASH)
+				func _on_custom_input_flags(flags: int) -&gt; void:  # connected to custom_input_flags
+				if flags &amp; FLAG_DASH:
+				movement.queue_layered_move(make_dash())
+				[/codeblock]
+				Bits set between two ticks are OR-ed together and cleared once a tick has used them, the same way [method jump] is latched.
+			</description>
+		</method>
 		<method name="adjust_floor_height_at" qualifiers="const">
 			<return type="Transform3D" />
 			<param index="0" name="from" type="Transform3D" />
@@ -25,6 +42,14 @@
 			<return type="void" />
 			<description>
 				Drops every active and queued move at once, applying each one's finish velocity as it goes.
+			</description>
+		</method>
+		<method name="client_receive_move_ack">
+			<return type="void" />
+			<param index="0" name="frame" type="int" />
+			<param index="1" name="packed_state" type="Array" />
+			<description>
+				Remote call, from the server to the owning client of a predicted character: every move up to [param frame] has been simulated, and [param packed_state] is where that left the character. Sent by [PredictedMovementBackend]; not for game code.
 			</description>
 		</method>
 		<method name="compute_velocity" qualifiers="const">
@@ -120,6 +145,12 @@
 				The [MovementInput] gathered for the current tick.
 			</description>
 		</method>
+		<method name="get_movement_backend" qualifiers="const">
+			<return type="MovementBackend" />
+			<description>
+				The [MovementBackend] driving this component: a [PredictedMovementBackend] when [member client_prediction] was on at [code]_ready[/code], otherwise a [StandaloneMovementBackend]. Its counters are what to look at when prediction misbehaves.
+			</description>
+		</method>
 		<method name="get_pawn" qualifiers="const">
 			<return type="Pawn" />
 			<description>
@@ -168,6 +199,12 @@
 				Whether the character is in the walking mode.
 			</description>
 		</method>
+		<method name="is_replaying" qualifiers="const">
+			<return type="bool" />
+			<description>
+				True while a predicting client is replaying moves after a correction. Every signal this component emits - [signal movement_mode_changed], [signal crouch_changed], [signal layered_move_started], [signal custom_input_flags] - fires again for a replayed tick, so a listener that must react once, such as a sound or a particle, checks this first. A listener that changes the simulation - queuing a layered move - must [i]not[/i] check it, or the replay will differ from the original.
+			</description>
+		</method>
 		<method name="jump">
 			<return type="void" />
 			<description>
@@ -197,10 +234,27 @@
 				Asks for a mode change, taken up at the next mode resolution inside the tick and never in the middle of one. A mode swapped underneath a half-finished move would leave the state describing a position the body is not in.
 			</description>
 		</method>
+		<method name="rollback_to_state">
+			<return type="void" />
+			<param index="0" name="state" type="MovementState" />
+			<description>
+				Makes [param state] the present: the [MovementState], the body's transform, the capsule's size and the cached floor all move together, and the floor is looked for again from the restored position. What a prediction backend calls before replaying.
+				The movement base is dropped rather than restored - it is a snapshot of where a platform [i]was[/i], and no rollback can put a platform back - and found again on the next tick.
+			</description>
+		</method>
 		<method name="save_base_location">
 			<return type="void" />
 			<description>
 				Records what the character ended the tick standing on. Called once per simulated frame after the modes have run; a game has no reason to call it itself.
+			</description>
+		</method>
+		<method name="server_receive_moves">
+			<return type="void" />
+			<param index="0" name="first_frame" type="int" />
+			<param index="1" name="move_inputs" type="PackedVector3Array" />
+			<param index="2" name="flags" type="PackedInt32Array" />
+			<description>
+				Remote call, from the owning client to the server: the client's newest unacknowledged moves, for frames [param first_frame] onward. Dropped unless it comes from the pawn's owner, and every direction is clamped to length 1 on arrival whatever the client sent. Sent by [PredictedMovementBackend]; not for game code.
 			</description>
 		</method>
 		<method name="set_velocity">
@@ -215,6 +269,14 @@
 			<param index="0" name="delta" type="float" />
 			<description>
 				Runs one simulation step. Called by the backend, which is what decides how many of them a frame gets - one while the server simulates, several when a client replays inputs after a correction.
+			</description>
+		</method>
+		<method name="simulate_with_input">
+			<return type="void" />
+			<param index="0" name="input" type="MovementInput" />
+			<param index="1" name="delta" type="float" />
+			<description>
+				Runs one simulation step with an input that was already gathered - a move the server received from a client, or one a predicting client is replaying. Nothing is read from the [Pawn] or from the [method jump], [method crouch] and [method add_custom_input_flags] latches, and the latches are left for the live tick they were set for.
 			</description>
 		</method>
 		<method name="slide_move_from" qualifiers="const">
@@ -277,6 +339,11 @@
 		<member name="can_walk_off_ledges" type="bool" setter="set_can_walk_off_ledges" getter="get_can_walk_off_ledges" default="true">
 			When false the character stops at a ledge instead of stepping off it. Unreal works out how far along the blocked move it could still have gone; this gives the whole move back, which is blunter but keeps the promise the flag makes - the character never walks off on its own.
 		</member>
+		<member name="client_prediction" type="bool" setter="set_client_prediction" getter="get_client_prediction" default="false">
+			The owning client simulates its own character immediately instead of waiting a round trip for the server to, and is corrected when the server disagrees. See [PredictedMovementBackend].
+			Read once, at [code]_ready[/code]. Off, nothing about it costs anything: the backend is a [StandaloneMovementBackend], and there is no history and no remote call. On, it changes three things beyond the backend: the owning client runs this pawn's input bindings too (see [PlayerController]), what the server replicates for this character is dropped on arrival by the owning client, and input that drives movement should be gated with [method Pawn.wants_movement_input] rather than [method Pawn.has_authority].
+			It only helps where the simulation is the same on both machines. Anything that changes movement from outside the tick - a layered move queued from a button, a velocity set from a script - happens on one side only and is corrected; send it through [method add_custom_input_flags] instead.
+		</member>
 		<member name="crouched_half_height" type="float" setter="set_crouched_half_height" getter="get_crouched_half_height" default="0.5">
 			Half the capsule's height while crouching, in metres. The body is shifted down by the difference as it shrinks, so the feet stay where they were rather than the centre.
 		</member>
@@ -299,7 +366,7 @@
 			Hands the platform's own velocity to the character when it leaves, so a jump from a moving lift keeps the lift's momentum instead of dropping straight down.
 			Only bodies Godot tracks the motion of report a velocity to take: an [AnimatableBody3D] does, a [StaticBody3D] pushed around by a script does not.
 		</member>
-		<member name="jump_velocity" type="float" setter="set_jump_velocity" getter="get_jump_velocity" default="4.2">
+		<member name="jump_velocity" type="float" setter="set_jump_velocity" getter="get_jump_velocity" default="5.2">
 			Upward speed applied on [method jump], in metres per second. Jump height is roughly this squared over twice [member gravity].
 		</member>
 		<member name="max_acceleration" type="float" setter="set_max_acceleration" getter="get_max_acceleration" default="20.48">
@@ -344,7 +411,7 @@
 		<member name="orient_rotation_to_movement" type="bool" setter="set_orient_rotation_to_movement" getter="get_orient_rotation_to_movement" default="false">
 			When true, the character turns to face the direction it is moving, at [member rotation_rate_deg].
 		</member>
-		<member name="out_of_water_jump_velocity" type="float" setter="set_out_of_water_jump_velocity" getter="get_out_of_water_jump_velocity" default="4.2">
+		<member name="out_of_water_jump_velocity" type="float" setter="set_out_of_water_jump_velocity" getter="get_out_of_water_jump_velocity" default="5.2">
 			The push a jump gives while swimming, in metres per second. What gets a character out of a pool rather than bobbing against the lip of it.
 			Taking it hands over to [code]Falling[/code] in the same tick rather than staying to swim upward, because the swim speed cap and the surface damping would both brake the impulse away over the next few ticks. Unreal applies its [code]OutofWaterZ[/code] from [code]PhysicsVolumeChanged[/code] for exactly this reason.
 		</member>
@@ -356,8 +423,17 @@
 			It is a restriction, not a licence: when the contact is nearer the rim than this, the floor is re-tested with a narrower probe, and if that probe finds nothing the character falls even though the full-width test was happy. Raising it makes a character let go of a ledge [i]sooner[/i] - roughly, it keeps its footing until its centre is a probe-radius past the edge. At 0.5 radius: off, 0.47 past; at 0.2, 0.27 past; at 0.35, 0.07 past.
 			It cuts the other way in one narrow case: where the full-width sweep finds only something too steep to stand on [b]and[/b] a ray down the capsule's axis finds nothing either, the narrow probe's answer is adopted instead - standing over a floor slot thinner than the probe, with a kerb beside it, is the shape of it. That result is recorded as a line trace, because the distance driving the floor-height adjustment is still the full-width capsule's.
 		</member>
+		<member name="prediction_position_tolerance" type="float" setter="set_prediction_position_tolerance" getter="get_prediction_position_tolerance" default="0.05">
+			How far, in metres, a prediction may be from the server's answer before it is corrected. Too tight and the character twitches on every packet; too loose and a real disagreement is left standing. An exact simulation disagrees by nothing at all, so this only has to absorb what is genuinely not predicted.
+		</member>
+		<member name="prediction_velocity_tolerance" type="float" setter="set_prediction_velocity_tolerance" getter="get_prediction_velocity_tolerance" default="0.5">
+			The same for velocity, in metres per second.
+		</member>
 		<member name="replicate_movement_mode" type="bool" setter="set_replicate_movement_mode" getter="get_replicate_movement_mode" default="true">
-			Sends [member movement_mode] from the server to every other peer. Unreal replicates the same thing as [code]ACharacter::ReplicatedMovementMode[/code], but only to simulated proxies: an autonomous proxy there predicts its own mode, so sending it one would fight the prediction. Nothing here predicts yet, so the owning client receives it like everybody else.
+			Sends [member movement_mode] from the server to every other peer. Unreal replicates the same thing as [code]ACharacter::ReplicatedMovementMode[/code], but only to simulated proxies: an autonomous proxy predicts its own mode, so sending it one would fight the prediction. Here the owner of a predicted character still receives it and drops it on arrival - hiding the synchronizer from the owner instead would hide this node from the owner's remote calls too, and the prediction's acknowledgements are sent to exactly this node.
+		</member>
+		<member name="replicated_movement_mode" type="StringName" setter="set_replicated_movement_mode" getter="get_replicated_movement_mode">
+			What the mode replication reads and writes: [member movement_mode], except that a client predicting this character ignores what arrives. Not for game code.
 		</member>
 		<member name="rotate_with_base" type="bool" setter="set_rotate_with_base" getter="get_rotate_with_base" default="true">
 			Turns the character with its base, about the up axis only. Taking the platform's rotation wholesale would tip a character over on anything that tilts.
@@ -392,6 +468,12 @@
 				Emitted when the character crouches or stands, with the new state. Standing can lag a request by any number of ticks if there is a ceiling in the way.
 			</description>
 		</signal>
+		<signal name="custom_input_flags">
+			<param index="0" name="flags" type="int" />
+			<description>
+				Emitted inside a tick whose input carries custom flags - see [method add_custom_input_flags] - before the movement mode runs, so a layered move queued from here starts on this very tick. Fires on the predicting client, on the server, and again on every replay; that is the point.
+			</description>
+		</signal>
 		<signal name="layered_move_finished">
 			<param index="0" name="move" type="LayeredMove" />
 			<description>
@@ -409,6 +491,14 @@
 			<param index="1" name="to" type="StringName" />
 			<description>
 				Emitted when the character changes movement mode, with the name it left and the name it entered.
+			</description>
+		</signal>
+		<signal name="prediction_corrected">
+			<param index="0" name="acked_frame" type="int" />
+			<param index="1" name="replayed_ticks" type="int" />
+			<param index="2" name="position_error" type="float" />
+			<description>
+				Emitted on a predicting client when the server disagreed with its prediction for [param acked_frame] by more than the tolerance. The character has already been moved to the server's answer and [param replayed_ticks] moves replayed on top of it; [param position_error] is how far off the prediction was. One now and then is the server doing its job - a respawn, a hit. A steady stream means something in the simulation is not the same on both machines.
 			</description>
 		</signal>
 	</signals>

@@ -1,0 +1,26 @@
+[gd_resource type="GameplayEffect" load_steps=5 format=3]
+
+[sub_resource type="AttributeModifier" id="Mod_0"]
+attribute = &"move_speed"
+operation = 1
+magnitude = 1.25
+
+[sub_resource type="GameplayTagContainer" id="Tags_effect_tags"]
+tags = PackedStringArray("Effect.Buff.Haste")
+
+[sub_resource type="GameplayTagContainer" id="Tags_granted_tags"]
+tags = PackedStringArray("State.Hasted")
+
+[sub_resource type="GameplayTagContainer" id="Tags_gameplay_cue_tags"]
+tags = PackedStringArray("Cue.Haste")
+
+[resource]
+duration_policy = 2
+duration = 6.0
+stacking_type = 1
+stack_limit = 2
+stack_duration_refresh = true
+modifiers = Array[AttributeModifier]([SubResource("Mod_0")])
+effect_tags = SubResource("Tags_effect_tags")
+granted_tags = SubResource("Tags_granted_tags")
+gameplay_cue_tags = SubResource("Tags_gameplay_cue_tags")

@@ -7,6 +7,7 @@
 // what keeps the two files from including each other.
 #include "movement/character_movement_component.h"
 #include "movement/character_movement_component_2d.h"
+#include "movement/layered_move.h"
 
 using namespace godot;
 using namespace GFGD;
@@ -17,6 +18,7 @@ MovementInput::MovementInput()
 	: move_input(Vector3())
 	, want_jump(false)
 	, want_crouch(false)
+	, custom_flags(0)
 	, frame(0)
 {
 }
@@ -30,7 +32,31 @@ void MovementInput::reset()
 	move_input = Vector3();
 	want_jump = false;
 	want_crouch = false;
+	custom_flags = 0;
 	frame = 0;
+}
+
+void MovementInput::copy_from(const Ref<MovementInput>& other)
+{
+	ERR_FAIL_COND_MSG(other.is_null(), "GFGD: MovementInput.copy_from was given nothing to copy.");
+
+	move_input = other->move_input;
+	want_jump = other->want_jump;
+	want_crouch = other->want_crouch;
+	custom_flags = other->custom_flags;
+	frame = other->frame;
+}
+
+Ref<MovementInput> MovementInput::duplicate_input() const
+{
+	Ref<MovementInput> copy;
+	copy.instantiate();
+	copy->move_input = move_input;
+	copy->want_jump = want_jump;
+	copy->want_crouch = want_crouch;
+	copy->custom_flags = custom_flags;
+	copy->frame = frame;
+	return copy;
 }
 
 void MovementInput::_bind_methods()
@@ -51,7 +77,14 @@ void MovementInput::_bind_methods()
 	ClassDB::bind_method(D_METHOD("set_frame", "value"), &MovementInput::set_frame);
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "frame"), "set_frame", "get_frame");
 
+	ClassDB::bind_method(D_METHOD("get_custom_flags"), &MovementInput::get_custom_flags);
+	ClassDB::bind_method(D_METHOD("set_custom_flags", "value"), &MovementInput::set_custom_flags);
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "custom_flags", PROPERTY_HINT_FLAGS, "Custom 0,Custom 1,Custom 2,Custom 3,Custom 4,Custom 5,Custom 6,Custom 7,Custom 8,Custom 9,Custom 10,Custom 11,Custom 12,Custom 13,Custom 14,Custom 15"), "set_custom_flags", "get_custom_flags");
+	ClassDB::bind_method(D_METHOD("has_custom_flag", "flag"), &MovementInput::has_custom_flag);
+
 	ClassDB::bind_method(D_METHOD("reset"), &MovementInput::reset);
+	ClassDB::bind_method(D_METHOD("copy_from", "other"), &MovementInput::copy_from);
+	ClassDB::bind_method(D_METHOD("duplicate_input"), &MovementInput::duplicate_input);
 }
 
 // --- MovementState ----------------------------------------------------------
@@ -72,7 +105,23 @@ MovementState::~MovementState()
 {
 }
 
-void MovementState::copy_from(const Ref<MovementState>& other)
+// Each move duplicated rather than shared. Only a prediction history pays for
+// this, and only while a move is actually running.
+static Array duplicate_layered_moves(const Array& moves)
+{
+	Array copy;
+	copy.resize(moves.size());
+
+	for (int i = 0; i < moves.size(); i++)
+	{
+		const Ref<LayeredMove> move = moves[i];
+		copy[i] = move.is_valid() ? Variant(move->duplicate_move()) : moves[i];
+	}
+
+	return copy;
+}
+
+void MovementState::copy_from(const Ref<MovementState>& other, bool deep_layered_moves)
 {
 	ERR_FAIL_COND_MSG(other.is_null(), "GFGD: MovementState.copy_from was given nothing to copy.");
 
@@ -90,11 +139,11 @@ void MovementState::copy_from(const Ref<MovementState>& other)
 	// runs twice per substep.
 	if (!queued_layered_moves.is_empty() || !other->queued_layered_moves.is_empty())
 	{
-		queued_layered_moves = other->queued_layered_moves.duplicate(false);
+		queued_layered_moves = deep_layered_moves ? duplicate_layered_moves(other->queued_layered_moves) : other->queued_layered_moves.duplicate(false);
 	}
 	if (!active_layered_moves.is_empty() || !other->active_layered_moves.is_empty())
 	{
-		active_layered_moves = other->active_layered_moves.duplicate(false);
+		active_layered_moves = deep_layered_moves ? duplicate_layered_moves(other->active_layered_moves) : other->active_layered_moves.duplicate(false);
 	}
 
 	// A shallow assignment would leave both states sharing one Dictionary, so a
@@ -103,7 +152,7 @@ void MovementState::copy_from(const Ref<MovementState>& other)
 	extra = other->extra.duplicate(true);
 }
 
-Ref<MovementState> MovementState::duplicate_state() const
+Ref<MovementState> MovementState::duplicate_state(bool deep_layered_moves) const
 {
 	Ref<MovementState> copy;
 	copy.instantiate();
@@ -115,8 +164,8 @@ Ref<MovementState> MovementState::duplicate_state() const
 	copy->base_id = base_id;
 	copy->base_relative_position = base_relative_position;
 	copy->base_relative_rotation = base_relative_rotation;
-	copy->queued_layered_moves = queued_layered_moves.duplicate(false);
-	copy->active_layered_moves = active_layered_moves.duplicate(false);
+	copy->queued_layered_moves = deep_layered_moves ? duplicate_layered_moves(queued_layered_moves) : queued_layered_moves.duplicate(false);
+	copy->active_layered_moves = deep_layered_moves ? duplicate_layered_moves(active_layered_moves) : active_layered_moves.duplicate(false);
 	copy->extra = extra.duplicate(true);
 	return copy;
 }
@@ -138,6 +187,13 @@ bool MovementState::should_reconcile(const Ref<MovementState>& authority_state, 
 	// A mode change is never within tolerance: the next tick would run different
 	// code, so the divergence only grows.
 	if (movement_mode != authority_state->movement_mode)
+	{
+		return true;
+	}
+
+	// Same reason: a crouched capsule is a different shape, and every sweep after
+	// this one would disagree.
+	if (is_crouching != authority_state->is_crouching)
 	{
 		return true;
 	}
@@ -199,8 +255,8 @@ void MovementState::_bind_methods()
 	ClassDB::bind_method(D_METHOD("has_base"), &MovementState::has_base);
 	ClassDB::bind_method(D_METHOD("clear_base"), &MovementState::clear_base);
 
-	ClassDB::bind_method(D_METHOD("copy_from", "other"), &MovementState::copy_from);
-	ClassDB::bind_method(D_METHOD("duplicate_state"), &MovementState::duplicate_state);
+	ClassDB::bind_method(D_METHOD("copy_from", "other", "deep_layered_moves"), &MovementState::copy_from, DEFVAL(false));
+	ClassDB::bind_method(D_METHOD("duplicate_state", "deep_layered_moves"), &MovementState::duplicate_state, DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("should_reconcile", "authority_state", "position_tolerance", "velocity_tolerance"), &MovementState::should_reconcile, DEFVAL(0.05f), DEFVAL(0.5f));
 }
 

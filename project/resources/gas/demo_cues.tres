@@ -1,0 +1,19 @@
+[gd_resource type="GameplayCueTable" load_steps=7 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/cues/burning_cue.tscn" id="1_burning"]
+[ext_resource type="PackedScene" path="res://scenes/cues/heal_cue.tscn" id="2_heal"]
+[ext_resource type="PackedScene" path="res://scenes/cues/hit_cue.tscn" id="3_hit"]
+[ext_resource type="PackedScene" path="res://scenes/cues/charging_cue.tscn" id="4_charging"]
+[ext_resource type="Script" path="res://scripts/cues/haste_cue.gd" id="5_haste"]
+
+[sub_resource type="GameplayCueNotify" id="Notify_haste"]
+script = ExtResource("5_haste")
+
+[resource]
+cues = {
+&"Cue.Burning": ExtResource("1_burning"),
+&"Cue.Charging": ExtResource("4_charging"),
+&"Cue.Haste": SubResource("Notify_haste"),
+&"Cue.Heal": ExtResource("2_heal"),
+&"Cue.Hit": ExtResource("3_hit")
+}

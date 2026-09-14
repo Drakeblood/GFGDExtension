@@ -107,9 +107,20 @@ public:
 	// contributing to.
 	Vector3 apply_finish_velocity(const Vector3& velocity) const;
 
+	// A copy that can run on its own: the settings, plus the start time and
+	// started flag, which are per-instance and are not properties.
+	//
+	// A prediction history holds these, because a replay restarting from an
+	// earlier tick must not rewrite the clock of the move still running live. A
+	// move written in GDScript with state of its own has that state copied only
+	// if it is a stored property - @export or @export_storage - since that is all
+	// Resource.duplicate() sees; override _duplicate_move for anything else.
+	virtual Ref<LayeredMove> duplicate_move() const;
+
 	GDVIRTUAL1(_on_start, Ref<MovementTickParams>)
 	GDVIRTUAL2(_generate_move, Ref<MovementTickParams>, Ref<ProposedMove>)
 	GDVIRTUAL1R(bool, _is_finished, double)
+	GDVIRTUAL1C(_duplicate_move, Ref<LayeredMove>)
 
 protected:
 	static void _bind_methods();

@@ -8,6 +8,7 @@
 		On possession it calls [code]_setup_input_component[/code] on the [Pawn], which is where input actions get bound, and makes the pawn camera current where the player is actually sitting.
 		It belongs to a level and dies with it. The human behind it is the [LocalPlayer], which the [GameInstance] owns and which survives [method World.load_level] - that is where the device assignment and the split screen viewport live.
 		In a networked game the owning client sends what its player is holding and the server applies it to this controller's [PlayerInput], so the input component and the pawn run the same code in every net mode. Input from any peer other than [method Controller.get_owner_peer_id] is dropped.
+		When the possessed pawn's movement is predicted on this client ([member CharacterMovementComponent.client_prediction]), the client runs the pawn's input bindings as well, and still sends the action state: the bindings are what feed the prediction, the action state is what the server uses for everything that is not movement. A binding that must only ever run on the server keeps its [method Pawn.has_authority] check; one that drives movement uses [method Pawn.wants_movement_input].
 	</description>
 	<tutorials>
 	</tutorials>

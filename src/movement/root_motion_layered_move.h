@@ -58,6 +58,12 @@ public:
 	virtual void on_start(const Ref<MovementTickParams>& params) override;
 	virtual void generate_move(const Ref<MovementTickParams>& params, const Ref<ProposedMove>& out_proposal) override;
 
+	// Carries the resolved mixer across, which is not a property. A replay still
+	// reads the animation as it is now rather than as it was on the tick being
+	// replayed - root motion is not predicted faithfully, and the server's
+	// correction is what squares it.
+	virtual Ref<LayeredMove> duplicate_move() const override;
+
 	NodePath get_animation_mixer_path() const { return animation_mixer_path; }
 	void set_animation_mixer_path(const NodePath& value) { animation_mixer_path = value; }
 

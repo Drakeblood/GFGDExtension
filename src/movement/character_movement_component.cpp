@@ -5,6 +5,8 @@
 #include <godot_cpp/classes/collision_shape3d.hpp>
 #include <godot_cpp/classes/shape3d.hpp>
 #include <godot_cpp/classes/engine.hpp>
+#include <godot_cpp/classes/multiplayer_api.hpp>
+#include <godot_cpp/classes/multiplayer_peer.hpp>
 #include <godot_cpp/classes/node3d.hpp>
 #include <godot_cpp/classes/physics_body3d.hpp>
 #include <godot_cpp/classes/physics_server3d.hpp>
@@ -21,6 +23,7 @@
 #include "movement/movement_backend.h"
 #include "movement/movement_mode.h"
 #include "movement/movement_mode_transition.h"
+#include "movement/predicted_movement_backend.h"
 #include "movement/water_movement_transition.h"
 #include "movement/water_volume.h"
 #include "movement/modes/falling_mode.h"
@@ -52,6 +55,7 @@ CharacterMovementComponent::CharacterMovementComponent()
 	, has_queued_mode(false)
 	, jump_pressed_latch(false)
 	, crouch_latch(false)
+	, custom_input_flags_latch(0)
 	, up_direction(Vector3(0, 1, 0))
 	, gravity(9.8f)
 	, gravity_scale(1.0f)
@@ -91,6 +95,9 @@ CharacterMovementComponent::CharacterMovementComponent()
 	, rotate_with_base(true)
 	, impart_base_velocity(true)
 	, replicate_movement_mode(true)
+	, client_prediction(false)
+	, prediction_position_tolerance(0.05f)
+	, prediction_velocity_tolerance(0.5f)
 {
 	state.instantiate();
 	input.instantiate();
@@ -147,7 +154,21 @@ void CharacterMovementComponent::_ready()
 
 	if (backend == nullptr)
 	{
-		backend = memnew(StandaloneMovementBackend);
+		// Chosen once, here. A pawn that does not predict pays for none of it -
+		// not a history, not a remote call.
+		if (client_prediction)
+		{
+			backend = memnew(PredictedMovementBackend);
+		}
+		else
+		{
+			backend = memnew(StandaloneMovementBackend);
+		}
+	}
+
+	if (pawn != nullptr)
+	{
+		pawn->set_movement_predicted(client_prediction);
 	}
 
 	state->set_movement_mode(find_mode(starting_mode).is_valid() ? starting_mode : StringName(MODE_NULL));
@@ -159,6 +180,7 @@ void CharacterMovementComponent::_ready()
 		state->set_rotation(transform.basis);
 	}
 
+	configure_rpcs();
 	setup_replication();
 
 	set_physics_process(true);
@@ -177,8 +199,9 @@ void CharacterMovementComponent::_physics_process(double delta)
 	}
 
 	// Checked every frame rather than latched at _ready: a pawn's authority is
-	// decided by possession, which happens after this node is in the tree.
-	if (pawn != nullptr && !pawn->has_authority())
+	// decided by possession, which happens after this node is in the tree. The
+	// server simulates everything; a client only a character it predicts.
+	if (pawn != nullptr && !pawn->has_authority() && !pawn->is_locally_predicted())
 	{
 		return;
 	}
@@ -187,6 +210,18 @@ void CharacterMovementComponent::_physics_process(double delta)
 }
 
 void CharacterMovementComponent::simulate(double delta)
+{
+	simulate_internal(delta, Ref<MovementInput>());
+}
+
+void CharacterMovementComponent::simulate_with_input(const Ref<MovementInput>& given_input, double delta)
+{
+	ERR_FAIL_COND_MSG(given_input.is_null(), "GFGD: CharacterMovementComponent.simulate_with_input was given no input.");
+
+	simulate_internal(delta, given_input);
+}
+
+void CharacterMovementComponent::simulate_internal(double delta, const Ref<MovementInput>& given_input)
 {
 	if (delta <= 0.0 || updated_body == nullptr)
 	{
@@ -215,7 +250,22 @@ void CharacterMovementComponent::simulate(double delta)
 	// put the character.
 	update_based_movement();
 
-	gather_input(backend->get_sim_frame(), delta);
+	if (given_input.is_valid())
+	{
+		input->copy_from(given_input);
+	}
+	else
+	{
+		gather_input(backend != nullptr ? backend->get_sim_frame() : 0, delta);
+	}
+
+	// Inside the tick and before anything moves, so whatever a game does with its
+	// own bits - queue a dash, start a sprint - happens on this tick, on every
+	// machine that runs it and on every replay of it.
+	if (input->get_custom_flags() != 0)
+	{
+		emit_signal("custom_input_flags", input->get_custom_flags());
+	}
 
 	// Before the modes run, so a mode that is about to move sees the size the
 	// character will be moving at.
@@ -243,7 +293,59 @@ void CharacterMovementComponent::simulate(double delta)
 	apply_rotation(delta);
 	apply_state_to_body();
 
-	jump_pressed_latch = false;
+	// Only a gathered input consumed the latches. A replayed or received move
+	// leaves them for the live tick they were pressed for.
+	if (given_input.is_null())
+	{
+		jump_pressed_latch = false;
+		custom_input_flags_latch = 0;
+	}
+}
+
+void CharacterMovementComponent::rollback_to_state(const Ref<MovementState>& new_state)
+{
+	ERR_FAIL_COND_MSG(new_state.is_null(), "GFGD: CharacterMovementComponent.rollback_to_state was given no state.");
+
+	const bool was_crouching = state->get_is_crouching();
+
+	state->copy_from(new_state);
+	state->clear_base();
+	has_base_last_transform = false;
+	has_queued_mode = false;
+
+	if (state->get_is_crouching() != was_crouching && capsule_shape.is_valid())
+	{
+		apply_capsule_half_height(state->get_is_crouching() ? MIN(crouched_half_height, standing_half_height) : standing_half_height);
+		emit_signal("crouch_changed", state->get_is_crouching());
+	}
+
+	if (updated_body == nullptr)
+	{
+		return;
+	}
+
+	apply_state_to_body();
+
+	// The cached floor described where the character was, and the first replayed
+	// tick reads it - for the ramp under a walking character above all. Asked
+	// again from the restored transform, the same way a teleport drops it.
+	current_floor->clear();
+	if (is_on_ground())
+	{
+		const Transform3D transform(state->get_rotation(), state->get_position());
+		MovementUtils::find_floor(body, transform, up_direction, floor_sweep_distance, floor_sweep_distance, get_ground_move_settings(), true, current_floor, perch_floor);
+	}
+}
+
+bool CharacterMovementComponent::is_replaying() const
+{
+	const PredictedMovementBackend* predicted = Object::cast_to<PredictedMovementBackend>(backend);
+	return predicted != nullptr && predicted->is_replaying();
+}
+
+void CharacterMovementComponent::add_custom_input_flags(int flags)
+{
+	custom_input_flags_latch |= flags & MovementInput::CUSTOM_FLAGS_MASK;
 }
 
 void CharacterMovementComponent::run_mode_tick(double delta)
@@ -503,6 +605,12 @@ void CharacterMovementComponent::gather_input(int64_t frame, double tick_delta)
 	input->set_frame(frame);
 	input->set_want_jump(jump_pressed_latch);
 
+	// Folded in here, so the input is the whole of what the tick needs. A move
+	// that travels to the server or is replayed has to crouch by itself, without
+	// a latch on the other machine to read.
+	input->set_want_crouch(crouch_latch);
+	input->set_custom_flags(custom_input_flags_latch);
+
 	if (pawn == nullptr)
 	{
 		return;
@@ -663,7 +771,7 @@ void CharacterMovementComponent::update_crouch_state()
 		return;
 	}
 
-	const bool wants_crouch = input->get_want_crouch() || crouch_latch;
+	const bool wants_crouch = input->get_want_crouch();
 	const bool crouching = state->get_is_crouching();
 
 	if (wants_crouch == crouching)
@@ -1023,9 +1131,77 @@ void CharacterMovementComponent::setup_replication()
 	}
 
 	PackedStringArray properties;
-	properties.push_back("movement_mode");
+	properties.push_back("replicated_movement_mode");
 
 	Replication::attach(this, this, Replication::validate_properties(this, properties), World::SERVER_PEER_ID, "MovementReplication");
+}
+
+void CharacterMovementComponent::set_replicated_movement_mode(const StringName& mode_name)
+{
+	if (pawn != nullptr && pawn->is_locally_predicted())
+	{
+		return;
+	}
+
+	set_movement_mode(mode_name);
+}
+
+void CharacterMovementComponent::configure_rpcs()
+{
+	// Both directions unreliable: every move rides in several packets, and every
+	// acknowledgement is superseded by the next one, so waiting for a resend
+	// would only add the lag this exists to hide.
+	Dictionary from_owner;
+	from_owner["rpc_mode"] = MultiplayerAPI::RPC_MODE_ANY_PEER;
+	from_owner["transfer_mode"] = MultiplayerPeer::TRANSFER_MODE_UNRELIABLE_ORDERED;
+	from_owner["call_local"] = false;
+	from_owner["channel"] = 0;
+	rpc_config("server_receive_moves", from_owner);
+
+	Dictionary from_server;
+	from_server["rpc_mode"] = MultiplayerAPI::RPC_MODE_AUTHORITY;
+	from_server["transfer_mode"] = MultiplayerPeer::TRANSFER_MODE_UNRELIABLE_ORDERED;
+	from_server["call_local"] = false;
+	from_server["channel"] = 0;
+	rpc_config("client_receive_move_ack", from_server);
+}
+
+void CharacterMovementComponent::server_receive_moves(int64_t first_frame, const PackedVector3Array& move_inputs, const PackedInt32Array& flags)
+{
+	PredictedMovementBackend* predicted = Object::cast_to<PredictedMovementBackend>(backend);
+	if (predicted == nullptr || pawn == nullptr || !pawn->has_authority())
+	{
+		return;
+	}
+
+	// Only the owner may drive it - the same rule the controller's input path
+	// keeps, and what stops one client from walking another's character.
+	Ref<MultiplayerAPI> multiplayer = get_multiplayer();
+	const int sender_id = multiplayer.is_valid() ? multiplayer->get_remote_sender_id() : 0;
+	if (sender_id != pawn->get_owner_peer_id())
+	{
+		return;
+	}
+
+	predicted->receive_moves(first_frame, move_inputs, flags);
+}
+
+void CharacterMovementComponent::client_receive_move_ack(int64_t frame, const Array& packed_state)
+{
+	PredictedMovementBackend* predicted = Object::cast_to<PredictedMovementBackend>(backend);
+	if (predicted == nullptr)
+	{
+		return;
+	}
+
+	const Ref<MovementState> authority_state = PredictedMovementBackend::unpack_state(packed_state);
+	if (authority_state.is_null())
+	{
+		WARN_PRINT_ONCE("GFGD: CharacterMovementComponent received a malformed movement acknowledgement; ignoring it.");
+		return;
+	}
+
+	predicted->receive_ack(frame, authority_state);
 }
 
 void CharacterMovementComponent::register_default_modes()
@@ -1071,6 +1247,16 @@ void CharacterMovementComponent::register_default_modes()
 void CharacterMovementComponent::_bind_methods()
 {
 	ClassDB::bind_method(D_METHOD("simulate", "delta"), &CharacterMovementComponent::simulate);
+	ClassDB::bind_method(D_METHOD("simulate_with_input", "input", "delta"), &CharacterMovementComponent::simulate_with_input);
+	ClassDB::bind_method(D_METHOD("rollback_to_state", "state"), &CharacterMovementComponent::rollback_to_state);
+	ClassDB::bind_method(D_METHOD("get_movement_backend"), &CharacterMovementComponent::get_movement_backend);
+	ClassDB::bind_method(D_METHOD("is_replaying"), &CharacterMovementComponent::is_replaying);
+	ClassDB::bind_method(D_METHOD("add_custom_input_flags", "flags"), &CharacterMovementComponent::add_custom_input_flags);
+	ClassDB::bind_method(D_METHOD("server_receive_moves", "first_frame", "move_inputs", "flags"), &CharacterMovementComponent::server_receive_moves);
+	ClassDB::bind_method(D_METHOD("client_receive_move_ack", "frame", "packed_state"), &CharacterMovementComponent::client_receive_move_ack);
+	ClassDB::bind_method(D_METHOD("get_replicated_movement_mode"), &CharacterMovementComponent::get_replicated_movement_mode);
+	ClassDB::bind_method(D_METHOD("set_replicated_movement_mode", "mode_name"), &CharacterMovementComponent::set_replicated_movement_mode);
+	ADD_PROPERTY(PropertyInfo(Variant::STRING_NAME, "replicated_movement_mode", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NONE), "set_replicated_movement_mode", "get_replicated_movement_mode");
 
 	ClassDB::bind_method(D_METHOD("queue_next_mode", "mode_name"), &CharacterMovementComponent::queue_next_mode);
 	ClassDB::bind_method(D_METHOD("find_mode", "mode_name"), &CharacterMovementComponent::find_mode);
@@ -1281,6 +1467,18 @@ void CharacterMovementComponent::_bind_methods()
 	ClassDB::bind_method(D_METHOD("set_replicate_movement_mode", "value"), &CharacterMovementComponent::set_replicate_movement_mode);
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "replicate_movement_mode"), "set_replicate_movement_mode", "get_replicate_movement_mode");
 
+	ClassDB::bind_method(D_METHOD("get_client_prediction"), &CharacterMovementComponent::get_client_prediction);
+	ClassDB::bind_method(D_METHOD("set_client_prediction", "value"), &CharacterMovementComponent::set_client_prediction);
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "client_prediction"), "set_client_prediction", "get_client_prediction");
+
+	ClassDB::bind_method(D_METHOD("get_prediction_position_tolerance"), &CharacterMovementComponent::get_prediction_position_tolerance);
+	ClassDB::bind_method(D_METHOD("set_prediction_position_tolerance", "value"), &CharacterMovementComponent::set_prediction_position_tolerance);
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "prediction_position_tolerance", PROPERTY_HINT_RANGE, "0,1,0.001,or_greater,suffix:m"), "set_prediction_position_tolerance", "get_prediction_position_tolerance");
+
+	ClassDB::bind_method(D_METHOD("get_prediction_velocity_tolerance"), &CharacterMovementComponent::get_prediction_velocity_tolerance);
+	ClassDB::bind_method(D_METHOD("set_prediction_velocity_tolerance", "value"), &CharacterMovementComponent::set_prediction_velocity_tolerance);
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "prediction_velocity_tolerance", PROPERTY_HINT_RANGE, "0,10,0.01,or_greater,suffix:m/s"), "set_prediction_velocity_tolerance", "get_prediction_velocity_tolerance");
+
 	ADD_GROUP("Moving Platforms", "");
 
 	ClassDB::bind_method(D_METHOD("get_move_with_base"), &CharacterMovementComponent::get_move_with_base);
@@ -1313,4 +1511,6 @@ void CharacterMovementComponent::_bind_methods()
 	ADD_SIGNAL(MethodInfo("crouch_changed", PropertyInfo(Variant::BOOL, "crouching")));
 	ADD_SIGNAL(MethodInfo("layered_move_started", PropertyInfo(Variant::OBJECT, "move", PROPERTY_HINT_RESOURCE_TYPE, "LayeredMove")));
 	ADD_SIGNAL(MethodInfo("layered_move_finished", PropertyInfo(Variant::OBJECT, "move", PROPERTY_HINT_RESOURCE_TYPE, "LayeredMove")));
+	ADD_SIGNAL(MethodInfo("custom_input_flags", PropertyInfo(Variant::INT, "flags")));
+	ADD_SIGNAL(MethodInfo("prediction_corrected", PropertyInfo(Variant::INT, "acked_frame"), PropertyInfo(Variant::INT, "replayed_ticks"), PropertyInfo(Variant::FLOAT, "position_error")));
 }

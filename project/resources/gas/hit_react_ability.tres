@@ -1,0 +1,15 @@
+[gd_resource type="GameplayAbility" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/hit_react_ability.gd" id="1_react"]
+
+[sub_resource type="GameplayTagContainer" id="Tags_ability"]
+tags = PackedStringArray("Ability.HitReact")
+
+[sub_resource type="GameplayTagContainer" id="Tags_trigger"]
+tags = PackedStringArray("Event.Hit")
+
+[resource]
+script = ExtResource("1_react")
+ability_name = &"HitReact"
+ability_tags = SubResource("Tags_ability")
+trigger_event_tags = SubResource("Tags_trigger")

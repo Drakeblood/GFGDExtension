@@ -24,6 +24,10 @@ Then, in Project Settings → Application → Game Framework:
 | `game_framework/default_port` | Port your menus and helpers default to. |
 | `game_framework/gameplay_tag_tables` | `GameplayTagTable` resources, in merge order. Empty is fine to start with. |
 | `game_framework/save_encryption_key` | Key for encrypted saves. Ships with a default that is in this repository — replace it before release. |
+| `game_framework/gameplay_cue_tables` | `GameplayCueTable` resources: cue tag to handler (a `GameplayCueNotify` or a scene). Later tables win. |
+| `game_framework/prediction/input_buffer_ticks` | Moves the server holds from a predicting client before consuming, against jitter. Each is a tick of added latency. Defaults to `2`. |
+| `game_framework/prediction/max_moves_per_packet` | How many of its newest unacknowledged moves a predicting client repeats in every packet — what survives a lost packet. Defaults to `8`. |
+| `game_framework/debug/network_latency_ms`, `network_jitter_ms`, `network_packet_loss_percent` | A delay-and-drop queue on the prediction traffic, both directions, for trying a bad network on purpose. Latency is one way. Debug builds only; all `0` by default. |
 
 The extension registers all of these on load, so they appear in the editor UI. Godot does not write out settings that still hold their default, so a fresh install adds nothing to `project.godot` until you change something.
 
@@ -48,9 +52,13 @@ The extension registers all of these on load, so they appear in the editor UI. G
 | `CharacterMovementComponent` | Walking, falling and jumping for a 3D pawn. Unreal's property names, metric values. |
 | `MovementMode` | One way of moving, as a `Resource`. `WalkingMode`, `FallingMode`, or your own in GDScript. |
 | `MovementState` / `MovementInput` / `ProposedMove` | The simulation state, the input for one tick, and what a mode asks for. |
-| `MovementBackend` | Decides when the simulation runs and how often. The seam client prediction would plug into. |
-| `AbilitySystemComponent` | Abilities, owned tags, effects, attributes. The ability hub. |
-| `GameplayAbility` / `GameplayEffect` | Authorable ability and effect resources. |
+| `MovementBackend` | Decides when the simulation runs and how often. The seam client prediction plugs into. |
+| `PredictedMovementBackend` | Client-side prediction: the owning client simulates at once, the server checks, a disagreement is rolled back and replayed. Chosen by `client_prediction`. |
+| `AbilitySystemComponent` | Abilities, owned tags, effects, attributes, gameplay cues. The ability hub; replicates server-authoritatively. |
+| `GameplayAbility` / `GameplayEffect` | Authorable ability and effect resources: costs, cooldowns, stacking, cues, network execution policy. |
+| `GameplayEffectSpec` | One application of an effect: level, source, set-by-caller values. |
+| `GameplayCueNotify` / `GameplayCueTable` | What plays a gameplay cue, and which tag it plays for. |
+| `AbilityTask` | What an ability awaits - delays, input, tags, attributes, events, data from the predicting client. Cancelled with its ability. |
 | `AttributeSet` / `AttributeModifier` | Named numeric attributes and the changes applied to them. |
 | `GameplayTag` / `GameplayTagContainer` | A hierarchical tag, and a set of them. |
 | `GameplayTagTable` / `GameplayTagsManager` | Tag declarations, and the merged runtime lookup. |
@@ -186,11 +194,11 @@ Property names follow Unreal's `CharacterMovementComponent`, but **the values ar
 
 How a character moves is a named `MovementMode` in a dictionary rather than a value in an enum, so a project can add one — a `Resource`, subclassable in GDScript — without this extension changing. Each mode proposes motion in `_generate_move` and carries it out in `_simulation_tick`; the split is what will let a dash be layered on a walk without the walking code knowing about dashes.
 
-Movement runs on the authority, as everything else does. There is still no client prediction; `MovementBackend` is the seam it would plug into, and it exists now because it cannot be added afterwards.
+Movement runs on the authority, as everything else does — unless `client_prediction` is on, in which case the owning client also simulates its own character on the tick the key goes down, and is corrected when the server disagrees. Gate movement input with `Pawn.wants_movement_input()` rather than `has_authority()` and the same pawn script works either way; send actions that change movement (a dash) as custom input flags, so they happen on the same tick on both machines. The movement skill's *Client prediction* section has the whole of it.
 
 What a client receives is the transform plus **`movement_mode`** — a position says where a pawn is, not whether it is walking or falling, and the second is what animation needs. `movement_mode_changed` fires on every peer; set `replicate_movement_mode = false` for a pawn whose mode nothing outside the simulation cares about.
 
-Not in yet: step-up (`max_step_height` is carried but not acted on), crouching, swimming, flying, moving platforms, root motion, layered moves, and 2D.
+Not in yet: smoothing for simulated proxies (other players snap to each replicated transform), smoothing of a correction on the predicting client, and clock synchronisation and speed-hack detection for predicted moves.
 
 ## Networking
 
@@ -247,7 +255,7 @@ Ownership is the chain a pawn is reached by: a pawn is owned by its controller, 
 
 Roles say what a peer may do with a node, and are mirror images of each other: on the server everything is `ROLE_AUTHORITY`; on the client that owns it, `ROLE_AUTONOMOUS_PROXY`; on any other client, `ROLE_SIMULATED_PROXY`. Authority is not ownership — the server has authority over every pawn, including one a client owns.
 
-A client sends what its player is holding and the server writes it into that controller's `PlayerInput`, so from the input component down the server runs exactly the code a local player runs. **There is no client-side prediction and no rollback**: movement costs a round trip. A game that needs a snappier feel adds prediction on top, and the pieces to do it with are already here.
+A client sends what its player is holding and the server writes it into that controller's `PlayerInput`, so from the input component down the server runs exactly the code a local player runs. By default movement costs a round trip. `CharacterMovementComponent.client_prediction` removes it for the character a client drives: the client simulates it at once, sends its moves with tick numbers, and rolls back and replays when the server disagrees. On such a pawn the client also runs the pawn's input bindings, and the transform and movement mode the server replicates are ignored by the owner.
 
 ## Local multiplayer
 
@@ -404,13 +412,18 @@ Signatures are introspectable (`ClassDB.class_get_method_list()`, or <kbd>F1</kb
 - **A `LocalPlayer` is not a node.** It has no name path and does not appear in the scene tree; hold the reference or ask the `GameInstance` for it by index. It also outlives the level, which is the whole reason it is not one.
 - **The attribute formula is `(base + Σ ADD) × Π MULTIPLY`,** and a single `OVERRIDE` beats all of it. `AttributeSet` is duplicated at runtime, so the resource on disk is a template and play never mutates it.
 - **Owned tags are reference counted.** Two sources granting the same tag both have to release it. One ability ending does not strip a tag another still grants.
-- **The ability system is not replicated.** Activate abilities where the pawn is authoritative and let the results reach clients through what you replicate on the pawn or its player state.
+- **On a client, applying an effect, granting an ability or setting a base value does nothing** (a warning says so, once) when the `AbilitySystemComponent` replicates — which it does by default. The server's results arrive on their own. Do those on the server; set `replication_mode = REPLICATION_NONE` for a component every peer should run by itself.
+- **A pawn with an `AbilitySystemComponent` runs its input bindings on the owning client too** - the component replicates by default, and ability input has to leave from the client. A binding that changes game state without a `has_authority()` (or `wants_movement_input()`) guard now runs on both machines: the symptom is an action that happens twice, or once on a client that should never have done it. Guard it, or set the component's `replication_mode` to `REPLICATION_NONE`.
+- **A predicted ability's cost and cooldown arrive a round trip later.** On the client, `commit_ability()` only checks them; stamina and the cooldown tag come from the server. A second press inside that round trip is sent, and refused by the server (`ability_activation_failed` with `&"rejected"`).
 - **Tag tables load before anything else.** `World::_initialize` builds `GameplayTagsManager` before creating the `GameInstance`, so tags are always resolvable from `_on_init` onward.
 - **A pooled node is reset by name, not by interface.** `NodePool` calls `_on_acquired()` and `_on_released()` if the node defines them, because a pooled node is a `RigidBody2D` one moment and an `Area2D` the next and there is no shared base to declare them on. A typo in either name is silent.
 - **`NodePool` frees everything when it leaves the tree.** Nodes waiting in the free list have no parent, so nobody else ever would. That also means a pool moved to another parent comes back empty.
 - **A message router listener does not have to be unregistered.** One whose object has been freed is dropped on the next broadcast. Delivery is synchronous and the payload is passed as `callback(channel, payload)` — two arguments, always, because a `MATCH_PARTIAL` listener cannot otherwise tell what it heard. It is local to one peer.
 - **Message router listeners on one channel run in reverse registration order — last registered, first called.** The router walks its listener list backwards so it can drop freed listeners while iterating. Never encode a dependency in registration order; if one listener needs what another produced, the producer should broadcast a second channel once the result exists.
 - **Possession makes the pawn camera current, where the player is sitting.** For a game filmed by a camera the level owns, set `Pawn.auto_manage_camera = false`, or the pawn quietly steals the view — and without a camera on the pawn you pay for a recursive search that finds nothing.
+- **Turning on `client_prediction` makes an online character stop moving altogether.** The pawn script still guards its input with `has_authority()`, which is false on the owning client — so the client predicts standing still and sends that, and the server, which now moves the character only by the client's moves, faithfully agrees. Guard movement input and movement buttons with `Pawn.wants_movement_input()`; it answers like `has_authority()` when prediction is off.
+- **A predicted dash, knockback or sprint snaps back a moment later, every time.** It was started from a button handler or a script outside the movement tick, so it began on the client at once and on the server whenever the action state arrived — or never. Set a bit with `add_custom_input_flags()` and queue the move from the `custom_input_flags` signal: it fires inside the tick carrying the bit, on both machines and on every replay.
+- **On a predicting client, sounds and effects tied to movement signals play twice.** A correction replays ticks, and a replayed tick emits `movement_mode_changed`, `crouch_changed`, `layered_move_started` and `custom_input_flags` again. Check `is_replaying()` in a listener that should react once — but never in one that changes the simulation, or the replay stops matching.
 - **The default save encryption key is in this repository.** `application/game_framework/save_encryption_key` defaults to it so existing saves keep working; changing it makes them unreadable, so change it before your first release rather than after.
 - **`ProjectStatics.load_game` returns null for four different reasons** — file missing, decryption failed, `_from_json` rejected it, wrong script — and only the first means "no save yet". Ask `get_last_load_result()` rather than inferring a first run from the null; `has_save_game(slot)` answers "is there a file" without reading it. After any failure but `LOAD_NOT_FOUND` the framework refuses `save_game` on that slot and returns `ERR_LOCKED`, so the classic "null means first run, save over it" no longer destroys a profile — it fails loudly on the write. `clear_load_failure(slot)` lifts the block once the player has chosen to start over.
 - **A `.tres` whose script extends a native GFGD type must name that type in its header** — `[gd_resource type="AttributeSet" script_class="MyAttributes" …]`, not `type="Resource"`. Godot refuses to attach a script whose base is a GDExtension class to a resource declared as something else; the file then loads with no script and every value at its default. The editor writes the right header itself, so this only bites a hand-written or hand-edited file.

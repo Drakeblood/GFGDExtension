@@ -3,7 +3,8 @@ extends Pawn
 ## AbilitySystemComponent when a PlayerController possesses it, and prints its own
 ## lifecycle so it can be lined up against the level's.
 ##
-## WASD moves, Space jumps, C crouches, F dashes, E runs the ability demo. The
+## WASD moves, Space jumps, C crouches, F dashes, E runs the ability demo, Q
+## strikes (hold to charge). The
 ## movement bindings drive CharacterMovementComponent directly; the test level is
 ## built around trying each of them.
 
@@ -44,6 +45,16 @@ func _ready() -> void:
 		_camera.top_level = true
 		_camera.global_position = get_pawn_root().global_position + CAMERA_OFFSET
 
+	# move_speed is an attribute, so anything that can change an attribute - the
+	# haste pickup, a slow, a stacking buff - changes how fast this walks, and
+	# nothing that does has to know there is a movement component.
+	var asc: AbilitySystemComponent = get_pawn_root().get_node_or_null(^"AbilitySystemComponent")
+	var movement: CharacterMovementComponent = get_pawn_root().get_node_or_null(^"CharacterMovementComponent")
+	if asc != null and movement != null:
+		asc.attribute_changed.connect(func(attribute_name: StringName, _old: float, new_value: float) -> void:
+			if attribute_name == &"move_speed":
+				movement.max_walk_speed = new_value)
+
 	set_process(true)
 
 
@@ -76,6 +87,10 @@ func _setup_input_component(input_component: InputComponent) -> void:
 		func() -> void: asc.ability_local_input_pressed(&"activate_test"))
 	input_component.bind_action(&"activate_test", InputComponent.COMPLETED,
 		func() -> void: asc.ability_local_input_released(&"activate_test"))
+	input_component.bind_action(&"strike", InputComponent.STARTED,
+		func() -> void: asc.ability_local_input_pressed(&"strike"))
+	input_component.bind_action(&"strike", InputComponent.COMPLETED,
+		func() -> void: asc.ability_local_input_released(&"strike"))
 
 
 func _unpossessed() -> void:
