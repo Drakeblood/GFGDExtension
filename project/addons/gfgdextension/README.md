@@ -10,6 +10,22 @@ This file is the orientation document: what the pieces are, how they fit, and th
 
 Copy this `gfgdextension` folder into your project's `addons/` directory and restart Godot. There is no plugin to enable in Project Settings and no `plugin.cfg`: `gfgd.gdextension` is picked up wherever it sits, and the editor integration registers itself from the extension.
 
+To install or update from a GitHub release instead, put [`update_gfgd.ps1`](https://github.com/Drakeblood/GFGDExtension/blob/master/update_gfgd.ps1) in your project root and run it with Godot closed:
+
+```powershell
+pwsh ./update_gfgd.ps1            # latest release
+pwsh ./update_gfgd.ps1 -Tag v0.4  # a specific one
+```
+
+It downloads the release zip, replaces `addons/gfgdextension` and keeps the `.uid` files Godot generated for it. It refuses to run while an editor has the extension's library loaded, because Windows lets that folder be renamed but not deleted.
+
+Since the script can restore the addon at any time, the folder does not need to be in your project's git. Add this to its `.gitignore`:
+
+```gitignore
+addons/gfgdextension/
+addons/gfgdextension.old/
+```
+
 To confirm it actually loaded, `.godot/extension_list.cfg` should name it and `ClassDB.class_exists("World")` should be true. An empty `extension_list.cfg` means the editor has not rescanned, or there is no binary for this platform and target slot.
 
 **A project that already has C# classes of its own named `GameInstance`, `GameMode`, `Controller`, `PlayerController`, `Level`, `LocalPlayer`, `InputComponent`, `SaveGame`, `ProjectStatics`, `GameplayTag*` or `Assert*` and marked `[GlobalClass]` will collide with these on ClassDB names.** One of the two has to go — they cannot both be registered.

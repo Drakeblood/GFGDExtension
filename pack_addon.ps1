@@ -173,6 +173,11 @@ $manifest = Get-Content -LiteralPath (Join-Path $addon "gfgd.gdextension") -Raw
 if ($manifest -match 'compatibility_minimum\s*=\s*"([^"]+)"') { $compatibilityMinimum = $Matches[1] }
 
 $describe = Get-GitValue @("describe", "--tags", "--always", "--dirty")
+# describe only names the release once the tag exists - packing first and tagging
+# afterwards is how v0.4 shipped stamped "v0.3-1-g175c910".
+if (-not (Get-GitValue @("describe", "--tags", "--exact-match", "HEAD") "")) {
+    Write-Host "HEAD has no tag - VERSION.txt will read '$describe'. Tag the release (git tag vX.Y) before packing it." -ForegroundColor Yellow
+}
 $stampLines = @(
     "gfgd            $describe",
     "commit          $(Get-GitValue @('rev-parse', 'HEAD'))",

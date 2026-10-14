@@ -2,6 +2,10 @@
 
 A gameplay framework for **Godot 4.6+**, implemented in C++ as a GDExtension: game modes, controllers, possession, per-player input, an ability system — and one code path that runs the same game standalone, on a listen server, on a dedicated server and on a client.
 
+## Installing
+
+Grab the zip from [Releases](https://github.com/Drakeblood/GFGDExtension/releases) and unpack it into your project, so it ends up at `addons/gfgdextension/`. Or copy [`update_gfgd.ps1`](update_gfgd.ps1) into your project root and run `pwsh ./update_gfgd.ps1` with Godot closed. It downloads the latest release (or the one you pass with `-Tag`) and replaces the addon. Since the addon can be restored that way, add `addons/gfgdextension/` and `addons/gfgdextension.old/` to the game project's `.gitignore` instead of committing it. The addon's own [README](project/addons/gfgdextension/README.md#install) has the rest of the setup.
+
 ## Architecture
 
 ```
