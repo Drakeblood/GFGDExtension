@@ -28,6 +28,7 @@
 #include "framework/gameplay_message_router.h"
 #include "framework/player_controller.h"
 #include "framework/save_game.h"
+#include "framework/delta_replicator.h"
 #include "core/assert.h"
 #include "core/assertion_exception.h"
 #include "core/assertion_messages.h"
@@ -57,6 +58,14 @@
 #include "ability_system/ability_task.h"
 #include "ability_system/ability_async.h"
 #include "ability_system/gameplay_cue.h"
+#include "inventory/inventory_item_definition.h"
+#include "inventory/inventory_item_instance.h"
+#include "inventory/inventory_fragments.h"
+#include "inventory/inventory_manager_component.h"
+#include "inventory/equipment_definition.h"
+#include "inventory/equipment_instance.h"
+#include "inventory/equipment_manager_component.h"
+#include "inventory/quick_bar_component.h"
 #include "movement/movement_types.h"
 #include "movement/movement_mode.h"
 #include "movement/movement_backend.h"
@@ -206,6 +215,7 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level)
 	GDREGISTER_CLASS(PlayerTouchButton);
 	GDREGISTER_CLASS(GameplayMessageRouter);
 	GDREGISTER_CLASS(SaveGame);
+	GDREGISTER_CLASS(DeltaReplicator);
 	GDREGISTER_CLASS(Assert);
 	GDREGISTER_CLASS(AssertionException);
 	GDREGISTER_CLASS(AssertionMessages);
@@ -239,6 +249,21 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level)
 	GDREGISTER_CLASS(GameplayAbility);
 	GDREGISTER_CLASS(AbilitySystemComponent);
 	GDREGISTER_CLASS(AbilitySystemDebugger);
+
+	// Inventory and equipment.
+	GDREGISTER_CLASS(InventoryItemFragment);
+	GDREGISTER_CLASS(InventoryItemDefinition);
+	GDREGISTER_CLASS(InventoryItemInstance);
+	GDREGISTER_CLASS(InventoryFragmentEquippableItem);
+	GDREGISTER_CLASS(InventoryFragmentQuickBarIcon);
+	GDREGISTER_CLASS(InventoryFragmentSetStats);
+	GDREGISTER_CLASS(InventoryFragmentPickup);
+	GDREGISTER_CLASS(InventoryManagerComponent);
+	GDREGISTER_CLASS(EquipmentActorToSpawn);
+	GDREGISTER_CLASS(EquipmentDefinition);
+	GDREGISTER_CLASS(EquipmentInstance);
+	GDREGISTER_CLASS(EquipmentManagerComponent);
+	GDREGISTER_CLASS(QuickBarComponent);
 
 	// Debug tools.
 	GDREGISTER_CLASS(ConsoleManager);

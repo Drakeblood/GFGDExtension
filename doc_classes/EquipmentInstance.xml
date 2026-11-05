@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="EquipmentInstance" inherits="RefCounted" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		One piece of equipment that is on a pawn right now.
+	</brief_description>
+	<description>
+		Exists on every peer the [EquipmentManagerComponent] replicates to, with the same [method get_equipment_id], so each of them shows the spawned scenes and runs [method _on_equipped] / [method _on_unequipped]. Granting abilities, effects and tags is the server's part and happens before [method _on_equipped] runs there.
+		Extend it in a script ([member EquipmentDefinition.instance_script]) for an item with logic of its own - a lamp that switches its light on, a tool that changes the character's pose.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_get_attach_parent" qualifiers="virtual">
+			<return type="Node" />
+			<param index="0" name="spawn" type="EquipmentActorToSpawn" />
+			<description>
+				Return the node a spawned scene goes under, or [code]null[/code] for the default ([member EquipmentActorToSpawn.attach_to] and [member EquipmentActorToSpawn.attach_bone]).
+			</description>
+		</method>
+		<method name="_on_equipped" qualifiers="virtual">
+			<return type="void" />
+			<description>
+				Called on every peer once the scenes are spawned.
+			</description>
+		</method>
+		<method name="_on_unequipped" qualifiers="virtual">
+			<return type="void" />
+			<description>
+				Called on every peer before the scenes are freed.
+			</description>
+		</method>
+		<method name="get_equipment_definition" qualifiers="const">
+			<return type="EquipmentDefinition" />
+			<description>
+				What it is.
+			</description>
+		</method>
+		<method name="get_equipment_id" qualifiers="const">
+			<return type="int" />
+			<description>
+				The id naming this instance on every peer.
+			</description>
+		</method>
+		<method name="get_instigator" qualifiers="const">
+			<return type="Variant" />
+			<description>
+				Whatever equipped it: on the server the [InventoryItemInstance]; on a client the mirror of that instance when this peer has the inventory, else [code]null[/code].
+			</description>
+		</method>
+		<method name="get_item_definition" qualifiers="const">
+			<return type="InventoryItemDefinition" />
+			<description>
+				The definition of the item it came from, on every peer.
+			</description>
+		</method>
+		<method name="get_item_id" qualifiers="const">
+			<return type="int" />
+			<description>
+				The id of the [InventoryItemInstance] it came from, or [code]0[/code] when it was put on without one.
+			</description>
+		</method>
+		<method name="get_manager" qualifiers="const">
+			<return type="EquipmentManagerComponent" />
+			<description>
+				The [EquipmentManagerComponent] it is on.
+			</description>
+		</method>
+		<method name="get_pawn" qualifiers="const">
+			<return type="Node" />
+			<description>
+				The node the manager sits under - the pawn's root.
+			</description>
+		</method>
+		<method name="get_spawned_nodes" qualifiers="const">
+			<return type="Array" />
+			<description>
+				The scenes it spawned, and the bone attachments made for them.
+			</description>
+		</method>
+		<method name="is_spawned_visible" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Whether the spawned scenes are shown.
+			</description>
+		</method>
+		<method name="set_spawned_visible">
+			<return type="void" />
+			<param index="0" name="value" type="bool" />
+			<description>
+				Shows or hides every spawned scene on this peer, e.g. the axe while both hands carry a log.
+			</description>
+		</method>
+	</methods>
+</class>

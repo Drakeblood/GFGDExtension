@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="DeltaReplicator" inherits="Node" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Replicates properties of a node by sending only what changed, down to array elements and dictionary keys, acknowledged per peer.
+	</brief_description>
+	<description>
+		For large or structured state - lists, dictionaries, reports. A property synchronizer sends every value whole on every update, and all of a node's values have to fit into one packet; this sends nothing while nothing changes, and a change costs about the size of the change.
+		Every [member check_interval] the server compares each property with its last recorded state - deeply, so arrays and dictionaries edited in place are noticed - and records a new numbered state when something differs. Each client is sent the patch from the state it confirmed last to the newest one. With [constant DELIVERY_ACKNOWLEDGED] the patch goes unreliably and the client acknowledges every state it applies; until it does, the server re-sends every [member resend_interval] - the patch from the confirmed state to whatever is newest then, never the lost packet itself - so a client that missed something catches up in one step and a slow link never queues stale data. With [constant DELIVERY_RELIABLE] patches go over a reliable, ordered RPC, each from the previous state.
+		A client asks for the full values when its replicator is ready (sent reliably), so a peer joining late starts from the current state.
+		[member keyed_arrays] matches the Dictionary elements of an Array by a key field instead of by index: removing one from the middle sends its key, a moved one sends the key order, and clients get [signal element_added], [signal element_removed] and [signal element_changed].
+		[PlayerState], [GameStateBase] and [Pawn] replicate through one (a child named [code]Replication[/code], checked every physics frame, with their own C++ properties push-based) for the names returned by [code]_get_replicated_properties()[/code] and [code]_get_delta_replicated_properties()[/code] ([code]"orders:id"[/code] keys an array); it can also be placed on any node.
+		Patch format, as returned by [method make_patch]: [code]{"=": value}[/code] - the whole value; [code]{"a": size, "i": {index: patch}}[/code] - an [Array]'s new size and changed elements; [code]{"k": field, "u": {key: patch}, "r": [keys], "o": [keys]}[/code] - a keyed [Array]'s changed and added elements, removed keys and, when something moved, the key order; [code]{"d": {key: patch}, "-": [keys]}[/code] - a [Dictionary]'s changed and removed keys. Packed arrays, differently typed containers, and any value whose patch would not be smaller go whole.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="apply_patch" qualifiers="static">
+			<return type="Variant" />
+			<param index="0" name="old_value" type="Variant" />
+			<param index="1" name="patch" type="Variant" />
+			<description>
+				[param old_value] with the patch applied. Containers are copied, never changed in place; a typed Array stays typed.
+			</description>
+		</method>
+		<method name="client_receive_full_state">
+			<return type="void" />
+			<param index="0" name="seq" type="int" />
+			<param index="1" name="values" type="Dictionary" />
+			<description>
+				RPC: the full values of state [param seq].
+			</description>
+		</method>
+		<method name="client_receive_patch">
+			<return type="void" />
+			<param index="0" name="base" type="int" />
+			<param index="1" name="seq" type="int" />
+			<param index="2" name="patches" type="Dictionary" />
+			<description>
+				RPC: patches by property name, turning state [param base] into state [param seq].
+			</description>
+		</method>
+		<method name="client_receive_patch_reliable">
+			<return type="void" />
+			<param index="0" name="base" type="int" />
+			<param index="1" name="seq" type="int" />
+			<param index="2" name="patches" type="Dictionary" />
+			<description>
+				RPC: [method client_receive_patch] for a patch too big to go unreliably.
+			</description>
+		</method>
+		<method name="flush">
+			<return type="bool" />
+			<description>
+				Server: compares now and sends whatever changed, without waiting for the next check - e.g. before a change carried by another synchronizer that must not arrive first. Returns [code]true[/code] when there was a change.
+			</description>
+		</method>
+		<method name="get_bytes_sent" qualifiers="const">
+			<return type="int" />
+			<description>
+				Server: encoded bytes sent so far, full states and patches, summed over receiving peers.
+			</description>
+		</method>
+		<method name="get_comparisons_skipped" qualifiers="const">
+			<return type="int" />
+			<description>
+				Server: how many times a push-based property was left uncompared because nothing marked it.
+			</description>
+		</method>
+		<method name="get_patches_sent" qualifiers="const">
+			<return type="int" />
+			<description>
+				Server: how many patches have been sent, re-sends included.
+			</description>
+		</method>
+		<method name="get_peer_acked_sequence" qualifiers="const">
+			<return type="int" />
+			<param index="0" name="peer" type="int" />
+			<description>
+				Server: the newest state [param peer] confirmed, or [code]-1[/code].
+			</description>
+		</method>
+		<method name="get_reliable_patches" qualifiers="const">
+			<return type="int" />
+			<description>
+				Server: patches sent reliably for being over [member max_unreliable_bytes].
+			</description>
+		</method>
+		<method name="get_resends" qualifiers="const">
+			<return type="int" />
+			<description>
+				Server: how many sends repeated a state the peer had already been sent, for want of an acknowledgement.
+			</description>
+		</method>
+		<method name="get_state_sequence" qualifiers="const">
+			<return type="int" />
+			<description>
+				The newest state number: on the server the latest recorded, on a client the latest applied.
+			</description>
+		</method>
+		<method name="get_subscribers" qualifiers="const">
+			<return type="PackedInt32Array" />
+			<description>
+				Server: the peers receiving patches.
+			</description>
+		</method>
+		<method name="has_full_state" qualifiers="const">
+			<return type="bool" />
+			<description>
+				On a client: whether the full values have arrived (patches are ignored before that).
+			</description>
+		</method>
+		<method name="make_patch" qualifiers="static">
+			<return type="Variant" />
+			<param index="0" name="old_value" type="Variant" />
+			<param index="1" name="new_value" type="Variant" />
+			<param index="2" name="key_field" type="StringName" default="&amp;&quot;&quot;" />
+			<description>
+				The patch turning [param old_value] into [param new_value], or [code]null[/code] when they are equal. With [param key_field], an Array of Dictionaries is matched by that field.
+			</description>
+		</method>
+		<method name="mark_element_dirty">
+			<return type="void" />
+			<param index="0" name="property" type="StringName" />
+			<param index="1" name="key" type="Variant" />
+			<description>
+				Server: in a push-based keyed array, the element with [param key] changed, was added or was removed. Only marked elements are looked at; the others are taken from the previous state without being compared or copied. On a property that is not a keyed array this marks the whole property.
+			</description>
+		</method>
+		<method name="mark_property_dirty">
+			<return type="void" />
+			<param index="0" name="property" type="StringName" />
+			<description>
+				Server: a push-based property changed - it is compared whole at the next check. Harmless on a polled property.
+			</description>
+		</method>
+		<method name="server_ack">
+			<return type="void" />
+			<param index="0" name="seq" type="int" />
+			<description>
+				RPC: a client confirms it applied state [param seq].
+			</description>
+		</method>
+		<method name="server_request_full_state">
+			<return type="void" />
+			<description>
+				RPC: a client asks for the full values and starts receiving patches.
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="audience" type="int" setter="set_audience" getter="get_audience" enum="DeltaReplicator.Audience" default="0">
+			Who receives them.
+		</member>
+		<member name="check_interval" type="float" setter="set_check_interval" getter="get_check_interval" default="0.1">
+			Seconds between comparisons on the server. [code]0[/code] checks every physics frame.
+		</member>
+		<member name="delivery" type="int" setter="set_delivery" getter="get_delivery" enum="DeltaReplicator.Delivery" default="0">
+			How patches travel.
+		</member>
+		<member name="keyed_arrays" type="Dictionary" setter="set_keyed_arrays" getter="get_keyed_arrays" default="{}">
+			Property name to key field: that Array's Dictionary elements are matched by the field. Elements that are not Dictionaries, lack the field or share a key fall back to matching by index.
+		</member>
+		<member name="max_history" type="int" setter="set_max_history" getter="get_max_history" default="64">
+			How many states the server keeps to build patches from. A peer further behind gets the full values.
+		</member>
+		<member name="max_unreliable_bytes" type="int" setter="set_max_unreliable_bytes" getter="get_max_unreliable_bytes" default="1200">
+			With [constant DELIVERY_ACKNOWLEDGED]: a patch bigger than this is sent reliably instead - an unreliable packet over the MTU is split, and losing any piece loses it.
+		</member>
+		<member name="properties" type="PackedStringArray" setter="set_properties" getter="get_properties" default="PackedStringArray()">
+			Names of the properties to replicate.
+		</member>
+		<member name="push_properties" type="PackedStringArray" setter="set_push_properties" getter="get_push_properties" default="PackedStringArray()">
+			Properties compared only when marked with [method mark_property_dirty] or [method mark_element_dirty] - push-based. In debug builds every [member push_validation_interval] they are compared anyway, and a change nobody marked is reported and replicated.
+		</member>
+		<member name="push_validation_interval" type="float" setter="set_push_validation_interval" getter="get_push_validation_interval" default="1.0">
+			Debug builds: seconds between full comparisons of the push-based properties, to catch changes that were not marked. [code]0[/code] turns it off.
+		</member>
+		<member name="resend_interval" type="float" setter="set_resend_interval" getter="get_resend_interval" default="0.25">
+			With [constant DELIVERY_ACKNOWLEDGED]: how long the server waits for an acknowledgement before sending the newest patch again.
+		</member>
+		<member name="root_path" type="NodePath" setter="set_root_path" getter="get_root_path" default="NodePath(&quot;..&quot;)">
+			The node whose properties are replicated, relative to this one.
+		</member>
+	</members>
+	<signals>
+		<signal name="element_added">
+			<param index="0" name="property" type="StringName" />
+			<param index="1" name="key" type="Variant" />
+			<param index="2" name="element" type="Dictionary" />
+			<description>
+				On a client: a keyed array gained an element.
+			</description>
+		</signal>
+		<signal name="element_changed">
+			<param index="0" name="property" type="StringName" />
+			<param index="1" name="key" type="Variant" />
+			<param index="2" name="element" type="Dictionary" />
+			<description>
+				On a client: an element of a keyed array changed.
+			</description>
+		</signal>
+		<signal name="element_removed">
+			<param index="0" name="property" type="StringName" />
+			<param index="1" name="key" type="Variant" />
+			<description>
+				On a client: a keyed array lost an element.
+			</description>
+		</signal>
+		<signal name="property_changed">
+			<param index="0" name="property" type="StringName" />
+			<description>
+				On a client: a property was set from the full state or a patch.
+			</description>
+		</signal>
+		<signal name="synchronized">
+			<description>
+				On a client: a full state or a patch was applied.
+			</description>
+		</signal>
+	</signals>
+	<constants>
+		<constant name="AUDIENCE_EVERYONE" value="0" enum="Audience">
+			Every peer that has the node.
+		</constant>
+		<constant name="AUDIENCE_OWNER" value="1" enum="Audience">
+			Only the peer owning the replicated node.
+		</constant>
+		<constant name="DELIVERY_ACKNOWLEDGED" value="0" enum="Delivery">
+			Unreliable patches, acknowledged per peer, re-sent from the confirmed state until the newest is confirmed.
+		</constant>
+		<constant name="DELIVERY_RELIABLE" value="1" enum="Delivery">
+			Reliable, ordered patches, each from the previous state.
+		</constant>
+	</constants>
+</class>

@@ -5,6 +5,7 @@
 #include "framework/controller.h"
 #include "framework/input_component.h"
 #include "framework/net_replication.h"
+#include "framework/delta_replicator.h"
 #include "framework/player_controller.h"
 #include "framework/player_state.h"
 #include "framework/world.h"
@@ -92,10 +93,15 @@ void Pawn::setup_replication()
 		Replication::attach(this, this, transform_properties, World::SERVER_PEER_ID, "TransformReplication");
 	}
 
+	// Script values through a DeltaReplicator. The transform above stays on a
+	// synchronizer: it changes every frame, and the prediction path depends on it.
 	PackedStringArray script_properties;
-	if (GDVIRTUAL_CALL(_get_replicated_properties, script_properties) && !script_properties.is_empty())
+	GDVIRTUAL_CALL(_get_replicated_properties, script_properties);
+	PackedStringArray delta_properties;
+	GDVIRTUAL_CALL(_get_delta_replicated_properties, delta_properties);
+	if (!script_properties.is_empty() || !delta_properties.is_empty())
 	{
-		Replication::attach(this, this, Replication::validate_properties(this, script_properties), World::SERVER_PEER_ID, "Replication");
+		Replication::attach_framework(this, PackedStringArray(), script_properties, delta_properties);
 	}
 }
 
@@ -250,8 +256,17 @@ Vector3 Pawn::consume_movement_input_vector()
 	return consumed;
 }
 
+void Pawn::mark_delta_dirty(const StringName& property, const Variant& key)
+{
+	DeltaReplicator* replicator = Object::cast_to<DeltaReplicator>(get_node_or_null(NodePath("Replication")));
+	if (replicator == nullptr) { return; }
+	if (key.get_type() == Variant::NIL) { replicator->mark_property_dirty(property); }
+	else { replicator->mark_element_dirty(property, key); }
+}
+
 void Pawn::_bind_methods()
 {
+	ClassDB::bind_method(D_METHOD("mark_delta_dirty", "property", "key"), &Pawn::mark_delta_dirty, DEFVAL(Variant()));
 	ClassDB::bind_method(D_METHOD("get_controller"), &Pawn::get_controller);
 	ClassDB::bind_method(D_METHOD("get_pawn_root"), &Pawn::get_pawn_root);
 	ClassDB::bind_method(D_METHOD("get_player_state"), &Pawn::get_player_state);
@@ -313,6 +328,7 @@ void Pawn::_bind_methods()
 	GDVIRTUAL_BIND(_unpossessed);
 	GDVIRTUAL_BIND(_setup_input_component, "input_component");
 	GDVIRTUAL_BIND(_get_replicated_properties);
+	GDVIRTUAL_BIND(_get_delta_replicated_properties);
 
 	ADD_SIGNAL(MethodInfo("possessed", PropertyInfo(Variant::OBJECT, "controller", PROPERTY_HINT_NODE_TYPE, "Controller")));
 	ADD_SIGNAL(MethodInfo("unpossessed"));

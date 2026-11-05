@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="EquipmentActorToSpawn" inherits="Resource" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		A scene shown on the character while a piece of equipment is on.
+	</brief_description>
+	<description>
+		The axe in the hand, the backpack on the back. Purely visual and local: every peer the equipment replicates to instantiates its own copy, so the scene must not be a networked node.
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="attach_bone" type="StringName" setter="set_attach_bone" getter="get_attach_bone" default="&amp;&quot;&quot;">
+			When set, the scene follows this bone of the first [Skeleton3D] found at or below [member attach_to], through a [BoneAttachment3D] created for it - so a skeleton built at runtime needs no fixed path.
+		</member>
+		<member name="attach_to" type="NodePath" setter="set_attach_to" getter="get_attach_to" default="NodePath(&quot;&quot;)">
+			Relative to the pawn root; empty means the pawn root itself.
+		</member>
+		<member name="attach_transform" type="Transform3D" setter="set_attach_transform" getter="get_attach_transform" default="Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)">
+			The scene's local transform under its parent. A [Node2D] scene takes the origin's x and y.
+		</member>
+		<member name="scene" type="PackedScene" setter="set_scene" getter="get_scene">
+			What to show.
+		</member>
+	</members>
+</class>

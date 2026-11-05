@@ -58,11 +58,12 @@ told it cannot change level on its own.
 
 The framework mirrors what it creates, so **a project places no `MultiplayerSpawner` and no
 `MultiplayerSynchronizer` of its own.** Player states, pawns and player controllers are spawned
-through `NetDriver`; properties are kept in step by synchronizers the framework attaches from
-`_ready` at matching paths on every peer.
+through `NetDriver`; their properties are kept in step by a `DeltaReplicator` the framework attaches
+from `_ready` as the child `Replication`, at matching paths on every peer.
 
 For your own state, return the property names from `_get_replicated_properties()` on a
-`PlayerState`, `GameStateBase` or `Pawn` subclass:
+`PlayerState`, `GameStateBase` or `Pawn` subclass (`_get_delta_replicated_properties()` is the same
+thing — both feed one replicator):
 
 ```gdscript
 extends PlayerState
@@ -72,6 +73,40 @@ var kills := 0
 func _get_replicated_properties() -> PackedStringArray:
 	return PackedStringArray(["kills"])
 ```
+
+| What | Carrier | How |
+|---|---|---|
+| `PlayerState` name/id/index/score/spectator/bot/ping, `GameStateBase` begun-play/clock | `DeltaReplicator` `Replication` | **push-based**: the C++ setters mark them |
+| your `_get_replicated_properties()` / `_get_delta_replicated_properties()` | the same `Replication` | compared every physics frame (deep), or `name\|push` + `mark_delta_dirty()` |
+| pawn root position/rotation, CMC movement mode | `MultiplayerSynchronizer` | every frame (continuous; prediction reads it) |
+
+- Only changes are sent (array elements / dictionary keys, recursively); nothing while nothing changes.
+- One frame's changes travel in one patch: a scalar and its list arrive together (no `flush()` dance).
+- No per-node size limit (the old synchronizer path needed all values in one ~1350 B packet).
+- **A client must not write replicated properties**: nothing overwrites a local write until the
+  server's value changes again.
+- In-place edits (`orders[3]["delivered"] += 1`) are noticed: the server deep-compares against a copy.
+- **Keyed arrays:** return `"orders:id"` to match an Array of Dictionaries by each element's `id`
+  (removal from the middle = one key, not a shifted array) and get `element_added/removed/changed`
+  on clients. Elements without the key, non-dictionaries or duplicate keys fall back to indices.
+- **Push-based** (`"orders:id|push"`): compared only where marked. After changing it on the server:
+  `mark_delta_dirty(&"orders")` (whole) or `mark_delta_dirty(&"orders", id)` (one element — also for an
+  added or removed one). In-place edits must be marked too. Debug builds re-compare every
+  `push_validation_interval` (1 s) and warn about unmarked changes; release builds miss them.
+  Use it for big arrays that change in a few places; small state is cheaper to just poll.
+- Patches over `max_unreliable_bytes` (1200 B) are sent reliably (MTU).
+- Lost patches: the client acknowledges every state; the server re-sends the patch from the last
+  confirmed state to the newest every `resend_interval` (0.25 s) until it is confirmed. A peer more
+  than `max_history` (64) states behind gets the full values. Debug loss: the project setting
+  `application/game_framework/debug/network_packet_loss_percent` drops these packets too.
+- A client applies patches only after it got the full state (asked for from its `_ready`), so late
+  joiners are correct. Patches set values, they never add.
+- `get_node("Replication").flush()` sends pending changes now instead of at the next check.
+- Signals (clients): `property_changed(property)`, `synchronized`, and for keyed arrays
+  `element_added(property, key, element)`, `element_removed(property, key)`, `element_changed(...)`.
+- A standalone `DeltaReplicator` node works for any node: set `root_path`, `properties`, `audience`
+  (`EVERYONE` / `OWNER`), `keyed_arrays`, `delivery`. `DeltaReplicator.make_patch(old, new, key_field)` /
+  `apply_patch(old, patch)` are static.
 
 **Every scene a game mode names has to be its own file.** A scene built inline cannot be named to
 another machine, so a client would have nothing to build. The framework warns when it finds one

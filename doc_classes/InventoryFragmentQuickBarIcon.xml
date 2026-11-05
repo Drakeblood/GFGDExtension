@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="InventoryFragmentQuickBarIcon" inherits="InventoryItemFragment" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		How an item looks in a quick bar slot.
+	</brief_description>
+	<description>
+		Also what makes a [QuickBarComponent] with [member QuickBarComponent.auto_slot_new_items] put the item into a free slot by itself.
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="count_stat_tag" type="StringName" setter="set_count_stat_tag" getter="get_count_stat_tag" default="&amp;&quot;&quot;">
+			A stat tag shown as the slot's number (ammo, charges). Empty shows the stack size when it is above one.
+		</member>
+		<member name="display_name_when_equipped" type="String" setter="set_display_name_when_equipped" getter="get_display_name_when_equipped" default="&quot;&quot;">
+			Shown instead of the definition's name while the item is the active slot. Empty uses the display name.
+		</member>
+		<member name="icon" type="Texture2D" setter="set_icon" getter="get_icon">
+			The slot's picture.
+		</member>
+		<member name="tint" type="Color" setter="set_tint" getter="get_tint" default="Color(1, 1, 1, 1)">
+			Multiplied with the icon.
+		</member>
+	</members>
+</class>

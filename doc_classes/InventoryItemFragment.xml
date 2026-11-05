@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="InventoryItemFragment" inherits="Resource" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		One piece of what an item is; extend it to give items data or behaviour of your own.
+	</brief_description>
+	<description>
+		An [InventoryItemDefinition] carries no behaviour itself: whether an item has a quick bar icon, can be equipped, starts with stats or has a body in the world is decided by the fragments it lists. GFGD ships [InventoryFragmentEquippableItem], [InventoryFragmentQuickBarIcon], [InventoryFragmentSetStats] and [InventoryFragmentPickup]; a game adds its own by extending this class in a script and finds them with [method InventoryItemDefinition.find_fragment_by_class].
+		Fragments are shared by every instance of the item, so they hold definition data only. Per-instance state belongs on the [InventoryItemInstance] (stat tags and data).
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_on_instance_created" qualifiers="virtual const">
+			<return type="void" />
+			<param index="0" name="instance" type="InventoryItemInstance" />
+			<description>
+				Called on the server for every new instance of the item, before any inventory or client knows about it - the place to set its starting stat tags or data.
+			</description>
+		</method>
+	</methods>
+</class>

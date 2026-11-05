@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="InventoryItemDefinition" inherits="Resource" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		What an item is: its name, its stack size and its fragments.
+	</brief_description>
+	<description>
+		Shared by every [InventoryItemInstance] of the item and never written at runtime.
+		To reach clients a definition has to be a saved resource ([code].tres[/code]): replication sends its path and the client loads the same file.
+		[codeblock]
+		var icon := item.get_item_definition().find_fragment_by_class(&"InventoryFragmentQuickBarIcon")
+		[/codeblock]
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="find_fragment_by_class" qualifiers="const">
+			<return type="InventoryItemFragment" />
+			<param index="0" name="fragment_class" type="Variant" />
+			<description>
+				Returns the first fragment of the given type, or [code]null[/code]. [param fragment_class] may be a native class name ([code]&"InventoryFragmentPickup"[/code]), a script's [code]class_name[/code], or the script itself ([code]preload("my_fragment.gd")[/code]). Subclasses match.
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="display_name" type="String" setter="set_display_name" getter="get_display_name" default="&quot;&quot;">
+			The name shown to players.
+		</member>
+		<member name="fragments" type="InventoryItemFragment[]" setter="set_fragments" getter="get_fragments" default="[]">
+			What the item is made of - see [InventoryItemFragment].
+		</member>
+		<member name="max_stack_size" type="int" setter="set_max_stack_size" getter="get_max_stack_size" default="1">
+			How many units fit in one inventory entry. [code]1[/code] means every unit is its own instance.
+		</member>
+	</members>
+</class>

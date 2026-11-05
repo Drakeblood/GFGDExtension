@@ -137,16 +137,37 @@ world.server_travel("res://levels/arena.tscn")
 The framework mirrors what it creates, so a project does not place a single `MultiplayerSpawner` or `MultiplayerSynchronizer`:
 
 - **Spawning** goes through `NetDriver` as explicit remote calls. Player states, pawns and player controllers are named after a server-assigned `player_id`, so the same player is at the same path on every peer.
-- **Properties** are kept in step by synchronizers the framework attaches from `_ready`, on every peer at matching paths. `PlayerState` replicates its name, id, score, spectator flag and ping; `GameStateBase` replicates whether play has begun and the server clock; a pawn replicates its root's position and rotation while `replicate_transform` is on.
-- **Your own properties**: return their names from `_get_replicated_properties()` on a `PlayerState`, `GameStateBase` or `Pawn` subclass and they join the same synchronizer.
+- **Properties** are kept in step by a `DeltaReplicator` the framework attaches from `_ready` as a child named `Replication`, on every peer at the same path. `PlayerState` replicates its name, id, index, score, spectator and bot flags and ping; `GameStateBase` whether play has begun and the server clock. These are **push-based**: their setters mark them changed, so nothing compares them every frame. A pawn's root position and rotation (while `replicate_transform` is on) and the movement mode stay on a `MultiplayerSynchronizer`: they change every frame, and client prediction reads them on that path.
+- **Your own properties**: return their names from `_get_replicated_properties()` (or `_get_delta_replicated_properties()` — both now feed the same replicator) on a `PlayerState`, `GameStateBase` or `Pawn` subclass.
 
 ```gdscript
 extends PlayerState
 
 var kills := 0
+var inventory_log: Array[Dictionary] = []
 
 func _get_replicated_properties() -> PackedStringArray:
-	return PackedStringArray(["kills"])
+	return PackedStringArray(["kills", "inventory_log:id"])
+```
+
+Script properties are compared every physics frame against the last state the replicator recorded, deeply, so in-place edits count; add `|push` to compare one only where `mark_delta_dirty()` marks it. Whatever changed in one frame — a scalar and the list it belongs with — leaves in the same patch and arrives together. There is no per-node size limit any more (the synchronizer path needed all of a node's values in one ~1350-byte packet). Only the change is sent — the changed elements of an array, the changed and removed keys of a dictionary, recursively — and nothing while nothing changes:
+
+- **Numbered states, acknowledged per peer.** Every `check_interval` (every physics frame for the framework's `Replication`, 0.1 s by default for a standalone node) the server compares the values with its last state, deeply, so in-place edits count, and records a new numbered state when something differs. Each client gets the patch from the state *it confirmed last* to the newest, unreliably, and acknowledges what it applied; without an acknowledgement the server re-sends — the patch from the confirmed state to whatever is newest by then, never the lost packet itself. A client that missed something catches up in one step and a bad link never queues stale data. `delivery = DELIVERY_RELIABLE` sends over a reliable RPC instead.
+- **Keyed arrays.** Write a name as `"orders:id"` and the array's Dictionary elements are matched by their `id`: removing one from the middle sends its id, a moved one sends the key order, and clients get `element_added`, `element_removed` and `element_changed`. Without a key, elements are matched by index.
+- **Push-based properties.** By default the server compares every property each check. Add `|push` (`"orders:id|push"`) and it compares that property only where the game marks a change — `mark_delta_dirty(&"orders")` for the whole property, `mark_delta_dirty(&"orders", order_id)` for one element of a keyed array. Unmarked elements are taken from the previous state without being compared or copied, so a 10 000-element list with one marked change costs one element. Debug builds compare everything once a second anyway and warn about a change nobody marked (and replicate it).
+- Patches over `max_unreliable_bytes` (1200) go reliably even in the acknowledged mode — an unreliable packet over the MTU is split and lost whole if any piece is.
+- A client asks for the full values when its replicator is ready, so a late joiner starts from the current state. `flush()` sends pending changes at once instead of at the next check.
+- Values set on a client are not overwritten until the server's value changes again (the synchronizer used to re-send every frame); a client should not write replicated properties.
+
+`tests/test_delta_patches.gd` checks the patches: one changed field in a list of forty orders is 132 bytes instead of 9.7 KB, the first of forty removed is 164 bytes keyed (5.2 KB by index), and thousands of random nested and keyed changes round-trip exactly.
+
+```gdscript
+extends GameStateBase
+
+var orders: Array[Dictionary] = []
+
+func _get_replicated_properties() -> PackedStringArray:
+	return PackedStringArray(["orders:id"])   # keyed by each order's "id"
 ```
 
 ### Ownership and roles
@@ -268,6 +289,19 @@ Smoothing for simulated proxies (other players snap to each replicated transform
 - **AbilitySystemComponent** (Node) — give/activate/cancel abilities, apply effects to itself or a target, owned tag counting and loose tags, gameplay cues (`execute`/`add`/`remove`, fired on every peer), exported `startup_abilities`, `startup_effects`, `attribute_set` (duplicated at runtime) and `replication_mode`. Signals: `ability_given`, `ability_activated`, `ability_activation_failed`, `ability_ended`, `owned_tag_changed`, `gameplay_effect_applied/removed/stack_changed`, `attribute_changed`, `gameplay_cue`, `replicated_state_received`.
 
 **It replicates.** The server's component is the truth and each client's a mirror: attributes, owned tags and gameplay cues reach every peer, active effects reach the owner or everyone (`replication_mode` `MIXED` or `FULL`), and the granted abilities reach the owner. The owner asks the server to activate an ability; a `LOCAL_PREDICTED` one it runs at once — its tags are there on the frame the button goes down — and the server runs it too, pays its cost, starts its cooldown and confirms, or refuses and the client's copy is cancelled. A `SERVER_ONLY` one runs on the server alone. A joining client is handed the whole state once. `tests/test_gas_replication.gd` checks all of it with a server, an owner and an observer in three processes; `tests/test_gas.gd` checks the rules on one machine.
+
+## Inventory and equipment
+
+Items a player carries, a quick bar of them, and what the active one puts on the character. Every piece is a separate component, so a game takes only what it needs: a chest is just an `InventoryManagerComponent`, armour is an `EquipmentManagerComponent.equip_item()` call with no quick bar involved.
+
+- **InventoryItemDefinition** (Resource) — what an item is: `display_name`, `max_stack_size` and a list of **fragments**. Behaviour comes from the fragments, not from subclasses: `InventoryFragmentEquippableItem` (an `EquipmentDefinition` to put on), `InventoryFragmentQuickBarIcon` (icon, tint, the stat shown as a number), `InventoryFragmentSetStats` (starting stat tags), `InventoryFragmentPickup` (the item's world scene). A game's own fragment extends `InventoryItemFragment` in a script (`_on_instance_created` sets up new instances); `find_fragment_by_class()` takes a native class name, a `class_name` or the script.
+- **InventoryItemInstance** (RefCounted) — one item somebody has: its definition, an `item_id` that is the same on the server and its clients and survives moving between inventories, stat tags (named counters — ammo, charges, durability) and free-form `data`.
+- **InventoryManagerComponent** (Node) — a list of stacks. `add_item_definition` makes a new entry; `add_items` tops up existing stacks first; `consume_items` is all-or-nothing; `get_total_item_count_by_definition` counts units, not entries; `max_entries` caps it. Signals: `item_added`, `item_removed`, `stack_changed`, `changed`.
+- **QuickBarComponent** (Node) — `num_slots` slots pointing into the inventory beside it, one active. The active item is put on through the pawn's equipment manager; selecting another slot takes it off first. `auto_slot_new_items` puts an incoming item with an icon or equipment into the first free slot; an item leaving the inventory leaves its slot. Under a `PlayerController` it outlives the pawn and puts the active item back on whenever a new pawn is possessed.
+- **EquipmentDefinition** (Resource) — what putting something on does: `abilities_to_grant`, `effects_to_apply`, `granted_tags` (loose tags), `actors_to_spawn` (`EquipmentActorToSpawn`: a scene, `attach_to`, an `attach_bone` found on any `Skeleton3D` under the pawn, a transform) and an optional `instance_script`.
+- **EquipmentManagerComponent** (Node, beside the `Pawn`) — `equip_item` / `unequip_item`. On the server it grants and takes back the abilities, effects and tags through the `AbilitySystemComponent` beside it; on every peer it spawns the scenes and runs the `EquipmentInstance` hooks `_on_equipped` / `_on_unequipped`. `EquipmentInstance.set_spawned_visible()` hides the scenes locally (a tool while both hands carry something).
+
+**It replicates**, the same way as the ability system: the server's components are the truth and clients hold read-only mirrors that ask for the whole state from `_ready` and then get changes once per frame. The inventory and the quick bar go to the owner (`InventoryManagerComponent.replication_mode` can send a chest to everyone); equipment goes to everyone, so each peer sees the axe in a friend's hand. On the owning client `QuickBarComponent.set_active_slot_index()` and `swap_slots()` are requests the server checks and answers. Definitions travel as resource paths, so items that reach clients are saved `.tres` files. `tests/test_inventory.gd` checks the rules on one machine.
 
 ## Debug tools
 

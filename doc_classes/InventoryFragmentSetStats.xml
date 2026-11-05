@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="InventoryFragmentSetStats" inherits="InventoryItemFragment" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Starting stat tag stacks of every new instance of the item.
+	</brief_description>
+	<description>
+		For example [code]{&"Inventory.Charges": 3}[/code]: every new instance starts with three charges.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="get_initial_stat" qualifiers="const">
+			<return type="int" />
+			<param index="0" name="tag" type="StringName" />
+			<description>
+				The starting count of one stat tag, or [code]0[/code].
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="initial_stats" type="Dictionary" setter="set_initial_stats" getter="get_initial_stats" default="{}">
+			Stat tag name to starting count.
+		</member>
+	</members>
+</class>

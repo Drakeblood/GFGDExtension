@@ -28,6 +28,21 @@ namespace Replication
 // server, so this is the server's peer id in every current caller.
 MultiplayerSynchronizer* attach(Node* owner, Node* target, const PackedStringArray& properties, int authority_peer, const String& synchronizer_name);
 
+// Adds a DeltaReplicator under owner for the listed properties of target:
+// sent only when they change, reliably, and only the changed part. Does
+// nothing when the list is empty. A name written "orders:id" replicates that
+// Array keyed by each element's "id" field (DeltaReplicator.keyed_arrays);
+// a "|push" suffix makes it push-based (DeltaReplicator.push_properties).
+// check_interval: seconds between comparisons (0 = every physics frame).
+Node* attach_delta(Node* owner, Node* target, const PackedStringArray& properties, const String& replicator_name, double check_interval = 0.1);
+
+// What a framework node replicates: its own push-based properties (marked by
+// their setters), then whatever the script returns from _get_replicated_properties
+// and _get_delta_replicated_properties - all through one DeltaReplicator named
+// "Replication", compared every physics frame, so a scalar and the list it goes
+// with arrive in the same patch.
+Node* attach_framework(Node* node, const PackedStringArray& own_push_properties, const PackedStringArray& script_properties, const PackedStringArray& delta_properties);
+
 // Drops duplicates and names that are not properties of node (which would
 // otherwise be a silent no-op inside the synchronizer). Callers merge their own
 // built-in list with whatever a script returned before passing it here.

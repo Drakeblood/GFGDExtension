@@ -3,6 +3,7 @@
 #include <godot_cpp/core/class_db.hpp>
 
 #include "framework/net_replication.h"
+#include "framework/delta_replicator.h"
 #include "framework/world.h"
 
 using namespace godot;
@@ -30,23 +31,23 @@ void PlayerState::_ready()
 {
 	if (Engine::get_singleton()->is_editor_hint()) { return; }
 
-	PackedStringArray properties;
-	properties.push_back("player_name");
-	properties.push_back("player_id");
-	properties.push_back("player_index");
-	properties.push_back("unique_id");
-	properties.push_back("score");
-	properties.push_back("spectator");
-	properties.push_back("a_bot");
-	properties.push_back("ping");
+	// Framework values are push-based: their setters mark them, nothing compares
+	// them each frame. Script values are compared (or marked, with "|push").
+	PackedStringArray own;
+	own.push_back("player_name");
+	own.push_back("player_id");
+	own.push_back("player_index");
+	own.push_back("unique_id");
+	own.push_back("score");
+	own.push_back("spectator");
+	own.push_back("a_bot");
+	own.push_back("ping");
 
 	PackedStringArray script_properties;
-	if (GDVIRTUAL_CALL(_get_replicated_properties, script_properties))
-	{
-		properties.append_array(script_properties);
-	}
-
-	Replication::attach(this, this, Replication::validate_properties(this, properties), World::SERVER_PEER_ID, "Replication");
+	GDVIRTUAL_CALL(_get_replicated_properties, script_properties);
+	PackedStringArray delta_properties;
+	GDVIRTUAL_CALL(_get_delta_replicated_properties, delta_properties);
+	Replication::attach_framework(this, own, script_properties, delta_properties);
 }
 
 World* PlayerState::get_world() const
@@ -79,6 +80,7 @@ void PlayerState::set_player_name(const String& value)
 	if (player_name == value) { return; }
 
 	player_name = value;
+	mark_delta_dirty("player_name");
 	emit_signal("player_name_changed", player_name);
 }
 
@@ -87,11 +89,63 @@ void PlayerState::set_score(int value)
 	if (score == value) { return; }
 
 	score = value;
+	mark_delta_dirty("score");
 	emit_signal("score_changed", score);
+}
+
+void PlayerState::set_player_id(int value)
+{
+	if (player_id == value) { return; }
+	player_id = value;
+	mark_delta_dirty("player_id");
+}
+
+void PlayerState::set_player_index(int value)
+{
+	if (player_index == value) { return; }
+	player_index = value;
+	mark_delta_dirty("player_index");
+}
+
+void PlayerState::set_unique_id(int value)
+{
+	if (unique_id == value) { return; }
+	unique_id = value;
+	mark_delta_dirty("unique_id");
+}
+
+void PlayerState::set_spectator(bool value)
+{
+	if (spectator == value) { return; }
+	spectator = value;
+	mark_delta_dirty("spectator");
+}
+
+void PlayerState::set_a_bot(bool value)
+{
+	if (a_bot == value) { return; }
+	a_bot = value;
+	mark_delta_dirty("a_bot");
+}
+
+void PlayerState::set_ping(float value)
+{
+	if (ping == value) { return; }
+	ping = value;
+	mark_delta_dirty("ping");
+}
+
+void PlayerState::mark_delta_dirty(const StringName& property, const Variant& key)
+{
+	DeltaReplicator* replicator = Object::cast_to<DeltaReplicator>(get_node_or_null(NodePath("Replication")));
+	if (replicator == nullptr) { return; }
+	if (key.get_type() == Variant::NIL) { replicator->mark_property_dirty(property); }
+	else { replicator->mark_element_dirty(property, key); }
 }
 
 void PlayerState::_bind_methods()
 {
+	ClassDB::bind_method(D_METHOD("mark_delta_dirty", "property", "key"), &PlayerState::mark_delta_dirty, DEFVAL(Variant()));
 	ClassDB::bind_method(D_METHOD("get_player_name"), &PlayerState::get_player_name);
 	ClassDB::bind_method(D_METHOD("set_player_name", "value"), &PlayerState::set_player_name);
 	ClassDB::bind_method(D_METHOD("get_player_id"), &PlayerState::get_player_id);
@@ -127,6 +181,7 @@ void PlayerState::_bind_methods()
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "ping"), "set_ping", "get_ping");
 
 	GDVIRTUAL_BIND(_get_replicated_properties);
+	GDVIRTUAL_BIND(_get_delta_replicated_properties);
 
 	ADD_SIGNAL(MethodInfo("player_name_changed", PropertyInfo(Variant::STRING, "player_name")));
 	ADD_SIGNAL(MethodInfo("score_changed", PropertyInfo(Variant::INT, "score")));

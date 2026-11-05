@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="InventoryFragmentEquippableItem" inherits="InventoryItemFragment" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Makes an item equippable: the quick bar puts this equipment on while the item's slot is active.
+	</brief_description>
+	<description>
+		See [QuickBarComponent] and [EquipmentManagerComponent].
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="equipment_definition" type="EquipmentDefinition" setter="set_equipment_definition" getter="get_equipment_definition">
+			What putting the item on does to the pawn.
+		</member>
+	</members>
+</class>

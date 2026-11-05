@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="InventoryItemInstance" inherits="RefCounted" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		One item somebody has: a definition plus the state this copy carries.
+	</brief_description>
+	<description>
+		Created by an [InventoryManagerComponent] on the server. Each instance has an [method get_item_id] that is unique across every inventory and the same on the server and its clients, so both sides can name the item to each other; it stays the same when the instance moves to another inventory.
+		The state is stat tags - named counters such as ammo, charges or durability - and free-form data. Both replicate with the inventory. On a client the instance is a read-only mirror: its setters refuse there.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="add_stat_tag_stack">
+			<return type="void" />
+			<param index="0" name="tag" type="StringName" />
+			<param index="1" name="count" type="int" />
+			<description>
+				Adds [param count] to the stat tag. A count below one does nothing.
+			</description>
+		</method>
+		<method name="find_fragment_by_class" qualifiers="const">
+			<return type="InventoryItemFragment" />
+			<param index="0" name="fragment_class" type="Variant" />
+			<description>
+				Shortcut for [method InventoryItemDefinition.find_fragment_by_class] on this item's definition.
+			</description>
+		</method>
+		<method name="get_all_data" qualifiers="const">
+			<return type="Dictionary" />
+			<description>
+				A copy of every per-instance value.
+			</description>
+		</method>
+		<method name="get_data" qualifiers="const">
+			<return type="Variant" />
+			<param index="0" name="key" type="StringName" />
+			<param index="1" name="default_value" type="Variant" default="null" />
+			<description>
+				A per-instance value, or [param default_value].
+			</description>
+		</method>
+		<method name="get_debug_string" qualifiers="const">
+			<return type="String" />
+			<description>
+				[code]#id name[/code], for logs.
+			</description>
+		</method>
+		<method name="get_inventory" qualifiers="const">
+			<return type="InventoryManagerComponent" />
+			<description>
+				The inventory holding this instance right now, or [code]null[/code].
+			</description>
+		</method>
+		<method name="get_item_definition" qualifiers="const">
+			<return type="InventoryItemDefinition" />
+			<description>
+				What this item is.
+			</description>
+		</method>
+		<method name="get_item_id" qualifiers="const">
+			<return type="int" />
+			<description>
+				The id naming this instance on every peer.
+			</description>
+		</method>
+		<method name="get_stat_tag_stack_count" qualifiers="const">
+			<return type="int" />
+			<param index="0" name="tag" type="StringName" />
+			<description>
+				The stat tag's count, or [code]0[/code].
+			</description>
+		</method>
+		<method name="get_stat_tags" qualifiers="const">
+			<return type="Dictionary" />
+			<description>
+				A copy of every stat tag and its count.
+			</description>
+		</method>
+		<method name="has_data" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="key" type="StringName" />
+			<description>
+				Whether the key is set.
+			</description>
+		</method>
+		<method name="has_stat_tag" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="tag" type="StringName" />
+			<description>
+				Whether the stat tag's count is above zero.
+			</description>
+		</method>
+		<method name="remove_stat_tag_stack">
+			<return type="void" />
+			<param index="0" name="tag" type="StringName" />
+			<param index="1" name="count" type="int" />
+			<description>
+				Removes [param count] from the stat tag, never below zero. A count below one does nothing.
+			</description>
+		</method>
+		<method name="set_data">
+			<return type="void" />
+			<param index="0" name="key" type="StringName" />
+			<param index="1" name="value" type="Variant" />
+			<description>
+				Stores a per-instance value (a colour, a name, contents). It must be something an RPC can carry - no objects. [code]null[/code] removes the key.
+			</description>
+		</method>
+		<method name="set_stat_tag_stack">
+			<return type="void" />
+			<param index="0" name="tag" type="StringName" />
+			<param index="1" name="count" type="int" />
+			<description>
+				Sets the stat tag to [param count]; zero removes it.
+			</description>
+		</method>
+	</methods>
+	<signals>
+		<signal name="data_changed">
+			<param index="0" name="key" type="StringName" />
+			<param index="1" name="value" type="Variant" />
+			<description>
+				A per-instance value changed or was removed ([param value] is [code]null[/code]).
+			</description>
+		</signal>
+		<signal name="stat_tag_changed">
+			<param index="0" name="tag" type="StringName" />
+			<param index="1" name="count" type="int" />
+			<description>
+				A stat tag's count changed - on the server and, when the change arrives, on clients holding a mirror.
+			</description>
+		</signal>
+	</signals>
+</class>

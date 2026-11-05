@@ -19,10 +19,16 @@
 				Reading input from [method Node._process] instead is not wrong, but it accumulates once per rendered frame while movement consumes once per physics frame, so the vector's length depends on how many frames happened to fit - which is what the clamp in [CharacterMovementComponent] exists to survive. Gathering here is exactly once per tick, so an analog stick keeps its magnitude and the clamp never has to do anything.
 			</description>
 		</method>
+		<method name="_get_delta_replicated_properties" qualifiers="virtual">
+			<return type="PackedStringArray" />
+			<description>
+				The same as [method _get_replicated_properties] - both feed the [DeltaReplicator] child named [code]Replication[/code]. Kept so a script can list its arrays apart from its scalars.
+			</description>
+		</method>
 		<method name="_get_replicated_properties" qualifiers="virtual">
 			<return type="PackedStringArray" />
 			<description>
-				Override to add your own properties to what is kept in step across peers. Return their names; the framework attaches the synchronizer, so a project places no [MultiplayerSynchronizer] of its own.
+				Override to add your own properties to what is kept in step across peers. Return their names; the framework replicates them through a [DeltaReplicator] child named [code]Replication[/code]: compared every physics frame and sent only when they change, and only the changed part - the changed elements of an array, the changed and removed keys of a dictionary - with each client confirming what it applied. Write a name as [code]"orders:id"[/code] to match an Array's Dictionary elements by their [code]id[/code], and add [code]|push[/code] ([code]"orders:id|push"[/code]) to compare it only where [method mark_delta_dirty] marks it. A client should not write these properties: nothing overwrites a local write until the server's value changes.
 			</description>
 		</method>
 		<method name="_possessed" qualifiers="virtual">
@@ -154,6 +160,14 @@
 			<return type="bool" />
 			<description>
 				Whether a [PlayerController] drives this pawn rather than an [AIController].
+			</description>
+		</method>
+		<method name="mark_delta_dirty">
+			<return type="void" />
+			<param index="0" name="property" type="StringName" />
+			<param index="1" name="key" type="Variant" default="null" />
+			<description>
+				Server: marks a push-based property ([code]"name|push"[/code]) changed - the whole property, or with [param key] one element of a keyed array. The framework's own properties are marked by their setters. See [method DeltaReplicator.mark_element_dirty].
 			</description>
 		</method>
 		<method name="runs_input_locally" qualifiers="const">

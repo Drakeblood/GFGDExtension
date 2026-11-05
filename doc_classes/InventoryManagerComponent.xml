@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="InventoryManagerComponent" inherits="Node" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		A list of item stacks, owned by the server and mirrored to the owner or to everyone.
+	</brief_description>
+	<description>
+		Each entry is one [InventoryItemInstance] and how many units of it there are. Put it under a [PlayerController] for a player's backpack - it then outlives the pawn - under a pawn root, or on a chest in the level.
+		The server's list is the truth. A client gets a read-only mirror ([member replication_mode]): on [code]_ready[/code] it asks for the whole list, after that every change reaches it once per frame, and the same signals fire on both sides. Changing a mirror is refused with an error.
+		[codeblock]
+		# Server: a stack of five, topping up existing stacks first.
+		inventory.add_items(preload("res://items/arrow.tres"), 5)
+		[/codeblock]
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="add_item_definition">
+			<return type="InventoryItemInstance" />
+			<param index="0" name="definition" type="InventoryItemDefinition" />
+			<param index="1" name="count" type="int" default="1" />
+			<description>
+				Server: one new entry of [param count] units (capped at the definition's max stack size), or [code]null[/code] when the inventory is full. Never merges into an existing stack: two entries of one definition are two instances, each with its own state.
+			</description>
+		</method>
+		<method name="add_item_instance">
+			<return type="bool" />
+			<param index="0" name="instance" type="InventoryItemInstance" />
+			<param index="1" name="count" type="int" default="1" />
+			<description>
+				Server: takes in an instance that already exists - its stats and data come with it. An instance in another inventory is removed from there first. An instance already here gets [param count] more units.
+			</description>
+		</method>
+		<method name="add_items">
+			<return type="int" />
+			<param index="0" name="definition" type="InventoryItemDefinition" />
+			<param index="1" name="count" type="int" default="1" />
+			<description>
+				Server: [param count] units, topping up existing stacks before starting new ones. Returns how many fitted.
+			</description>
+		</method>
+		<method name="can_add_item_definition" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="definition" type="InventoryItemDefinition" />
+			<param index="1" name="count" type="int" default="1" />
+			<description>
+				Whether [param count] units fit, topping up existing stacks first.
+			</description>
+		</method>
+		<method name="clear">
+			<return type="void" />
+			<description>
+				Server: removes every entry.
+			</description>
+		</method>
+		<method name="client_receive_full_state">
+			<return type="void" />
+			<param index="0" name="state" type="Array" />
+			<description>
+				RPC: the whole list, sent to a client that asked.
+			</description>
+		</method>
+		<method name="client_update">
+			<return type="void" />
+			<param index="0" name="changed" type="Array" />
+			<param index="1" name="removed" type="PackedInt64Array" />
+			<description>
+				RPC: the entries that changed and the ids that left, once per frame.
+			</description>
+		</method>
+		<method name="consume_items">
+			<return type="bool" />
+			<param index="0" name="definition" type="InventoryItemDefinition" />
+			<param index="1" name="count" type="int" default="1" />
+			<description>
+				Server: takes [param count] units of the definition, newest stacks first. All or nothing: with fewer units than that it takes none and returns [code]false[/code].
+			</description>
+		</method>
+		<method name="find_first_item_stack_by_definition" qualifiers="const">
+			<return type="InventoryItemInstance" />
+			<param index="0" name="definition" type="InventoryItemDefinition" />
+			<description>
+				The first entry of the definition, or [code]null[/code].
+			</description>
+		</method>
+		<method name="find_item_anywhere" qualifiers="static">
+			<return type="InventoryItemInstance" />
+			<param index="0" name="from" type="Node" />
+			<param index="1" name="item_id" type="int" />
+			<description>
+				The instance with this id in any inventory in [param from]'s tree, or [code]null[/code].
+			</description>
+		</method>
+		<method name="find_item_by_id" qualifiers="const">
+			<return type="InventoryItemInstance" />
+			<param index="0" name="item_id" type="int" />
+			<description>
+				The instance with this [method InventoryItemInstance.get_item_id], or [code]null[/code].
+			</description>
+		</method>
+		<method name="get_all_items" qualifiers="const">
+			<return type="Array" />
+			<description>
+				Every instance, in list order.
+			</description>
+		</method>
+		<method name="get_entry_count" qualifiers="const">
+			<return type="int" />
+			<description>
+				How many entries there are.
+			</description>
+		</method>
+		<method name="get_stack_count" qualifiers="const">
+			<return type="int" />
+			<param index="0" name="instance" type="InventoryItemInstance" />
+			<description>
+				The entry's unit count, or [code]0[/code] when the instance is not here.
+			</description>
+		</method>
+		<method name="get_total_item_count_by_definition" qualifiers="const">
+			<return type="int" />
+			<param index="0" name="definition" type="InventoryItemDefinition" />
+			<description>
+				Units of the definition across all its entries - two stacks of five are ten.
+			</description>
+		</method>
+		<method name="has_authority" qualifiers="const">
+			<return type="bool" />
+			<description>
+				True where the list may be changed: offline, and on the server.
+			</description>
+		</method>
+		<method name="is_mirror" qualifiers="const">
+			<return type="bool" />
+			<description>
+				True on a networked client holding a mirror of the server's list.
+			</description>
+		</method>
+		<method name="remove_item_instance">
+			<return type="bool" />
+			<param index="0" name="instance" type="InventoryItemInstance" />
+			<description>
+				Server: removes the entry. Returns [code]false[/code] when the instance is not here.
+			</description>
+		</method>
+		<method name="server_request_full_state">
+			<return type="void" />
+			<description>
+				RPC: a client asks for the whole list.
+			</description>
+		</method>
+		<method name="set_stack_count">
+			<return type="void" />
+			<param index="0" name="instance" type="InventoryItemInstance" />
+			<param index="1" name="count" type="int" />
+			<description>
+				Server: sets an entry's unit count; [code]0[/code] removes the entry.
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="max_entries" type="int" setter="set_max_entries" getter="get_max_entries" default="0">
+			How many entries fit; [code]0[/code] is unlimited.
+		</member>
+		<member name="replication_mode" type="int" setter="set_replication_mode" getter="get_replication_mode" enum="InventoryManagerComponent.ReplicationMode" default="1">
+			Who gets a mirror of the list. [constant REPLICATION_OWNER] suits a backpack; [constant REPLICATION_EVERYONE] a chest anybody may look into.
+		</member>
+	</members>
+	<signals>
+		<signal name="changed">
+			<description>
+				Anything changed: entries, counts, an instance's stats or data.
+			</description>
+		</signal>
+		<signal name="item_added">
+			<param index="0" name="item" type="InventoryItemInstance" />
+			<param index="1" name="count" type="int" />
+			<description>
+				A new entry appeared with [param count] units.
+			</description>
+		</signal>
+		<signal name="item_removed">
+			<param index="0" name="item" type="InventoryItemInstance" />
+			<description>
+				An entry left.
+			</description>
+		</signal>
+		<signal name="replicated_state_received">
+			<description>
+				A client's mirror got the whole list for the first time (or again).
+			</description>
+		</signal>
+		<signal name="stack_changed">
+			<param index="0" name="item" type="InventoryItemInstance" />
+			<param index="1" name="old_count" type="int" />
+			<param index="2" name="new_count" type="int" />
+			<description>
+				An entry's unit count changed; [param new_count] is [code]0[/code] when it left.
+			</description>
+		</signal>
+	</signals>
+	<constants>
+		<constant name="REPLICATION_NONE" value="0" enum="ReplicationMode">
+			Every peer keeps its own list, as offline.
+		</constant>
+		<constant name="REPLICATION_OWNER" value="1" enum="ReplicationMode">
+			Only the peer owning the parent gets a mirror.
+		</constant>
+		<constant name="REPLICATION_EVERYONE" value="2" enum="ReplicationMode">
+			Every peer gets a mirror.
+		</constant>
+	</constants>
+</class>

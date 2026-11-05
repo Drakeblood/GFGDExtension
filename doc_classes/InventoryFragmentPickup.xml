@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="InventoryFragmentPickup" inherits="InventoryItemFragment" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		The item's body in the world.
+	</brief_description>
+	<description>
+		The scene a game spawns when the item is dropped, and the name a pickup of it shows. GFGD does not spawn it itself: spawning networked objects is the game's business.
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="display_name" type="String" setter="set_display_name" getter="get_display_name" default="&quot;&quot;">
+			What a pickup prompt calls it.
+		</member>
+		<member name="scene" type="PackedScene" setter="set_scene" getter="get_scene">
+			The world scene of the item.
+		</member>
+	</members>
+</class>

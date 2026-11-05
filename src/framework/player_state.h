@@ -57,13 +57,13 @@ public:
 	void set_player_name(const String& value);
 
 	int get_player_id() const { return player_id; }
-	void set_player_id(int value) { player_id = value; }
+	void set_player_id(int value);
 
 	int get_player_index() const { return player_index; }
-	void set_player_index(int value) { player_index = value; }
+	void set_player_index(int value);
 
 	int get_unique_id() const { return unique_id; }
-	void set_unique_id(int value) { unique_id = value; }
+	void set_unique_id(int value);
 
 	bool is_local() const { return local; }
 	void set_local(bool value) { local = value; }
@@ -72,13 +72,13 @@ public:
 	void set_score(int value);
 
 	bool is_spectator() const { return spectator; }
-	void set_spectator(bool value) { spectator = value; }
+	void set_spectator(bool value);
 
 	bool is_a_bot() const { return a_bot; }
-	void set_a_bot(bool value) { a_bot = value; }
+	void set_a_bot(bool value);
 
 	float get_ping() const { return ping; }
-	void set_ping(float value) { ping = value; }
+	void set_ping(float value);
 
 	World* get_world() const;
 	bool has_authority() const;
@@ -87,6 +87,15 @@ public:
 
 	// Names of this node's own properties to keep in step with the server's copy.
 	GDVIRTUAL0R(PackedStringArray, _get_replicated_properties)
+
+	// Properties sent through a DeltaReplicator instead: only when they change,
+	// reliably, and only the changed part - for arrays and dictionaries.
+	GDVIRTUAL0R(PackedStringArray, _get_delta_replicated_properties)
+
+public:
+	// Server: marks a push-based delta property (name|push) changed - the
+	// whole property, or with a key one element of a keyed array.
+	void mark_delta_dirty(const StringName& property, const Variant& key = Variant());
 
 protected:
 	static void _bind_methods();

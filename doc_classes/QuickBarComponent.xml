@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="QuickBarComponent" inherits="Node" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		A row of slots pointing at inventory items, one of them active and equipped.
+	</brief_description>
+	<description>
+		The active slot's item is put on through the pawn's [EquipmentManagerComponent] (when it has an [InventoryFragmentEquippableItem]); selecting another slot takes it off first.
+		Put it beside the [InventoryManagerComponent]. Under a [PlayerController] the pair outlives the pawn, and the active item is put on again whenever the controller possesses a new one; under a pawn root it equips on that pawn.
+		The server decides. A client calling [method set_active_slot_index] or [method swap_slots] sends the request to the server and sees the result when it comes back; the slots reach the owner only. An item that leaves the inventory leaves its slot too.
+		[codeblock]
+		func _on_slot_key(index: int) -> void:
+		    quick_bar.set_active_slot_index(index)  # works on the host and on the owning client
+		[/codeblock]
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="add_item_to_slot">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="item" type="InventoryItemInstance" />
+			<description>
+				Server: puts an item of the inventory into an empty slot.
+			</description>
+		</method>
+		<method name="client_receive_state">
+			<return type="void" />
+			<param index="0" name="slots" type="PackedInt64Array" />
+			<param index="1" name="active_index" type="int" />
+			<description>
+				RPC: the slots and the active index, sent to the owner.
+			</description>
+		</method>
+		<method name="cycle_active_slot_backward">
+			<return type="void" />
+			<description>
+				Selects the previous slot holding an item, wrapping around.
+			</description>
+		</method>
+		<method name="cycle_active_slot_forward">
+			<return type="void" />
+			<description>
+				Selects the next slot holding an item, wrapping around.
+			</description>
+		</method>
+		<method name="find_slot_of_item" qualifiers="const">
+			<return type="int" />
+			<param index="0" name="item" type="InventoryItemInstance" />
+			<description>
+				The slot holding the item, or [code]-1[/code].
+			</description>
+		</method>
+		<method name="get_active_slot_index" qualifiers="const">
+			<return type="int" />
+			<description>
+				The active slot, or [code]-1[/code].
+			</description>
+		</method>
+		<method name="get_active_slot_item" qualifiers="const">
+			<return type="InventoryItemInstance" />
+			<description>
+				The active slot's item, or [code]null[/code].
+			</description>
+		</method>
+		<method name="get_equipment_manager" qualifiers="const">
+			<return type="EquipmentManagerComponent" />
+			<description>
+				Where the active item is put on: the possessed pawn's when this sits under a controller, else the one beside it.
+			</description>
+		</method>
+		<method name="get_equipped_item" qualifiers="const">
+			<return type="EquipmentInstance" />
+			<description>
+				What the active slot has on - available wherever the equipment replicates.
+			</description>
+		</method>
+		<method name="get_inventory" qualifiers="const">
+			<return type="InventoryManagerComponent" />
+			<description>
+				The inventory the slots point into.
+			</description>
+		</method>
+		<method name="get_next_free_item_slot" qualifiers="const">
+			<return type="int" />
+			<description>
+				The first empty slot, or [code]-1[/code].
+			</description>
+		</method>
+		<method name="get_slot_item" qualifiers="const">
+			<return type="InventoryItemInstance" />
+			<param index="0" name="index" type="int" />
+			<description>
+				The slot's item, or [code]null[/code].
+			</description>
+		</method>
+		<method name="get_slots" qualifiers="const">
+			<return type="Array" />
+			<description>
+				One entry per slot: the [InventoryItemInstance], or [code]null[/code].
+			</description>
+		</method>
+		<method name="is_item_slot_free" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Whether the slot exists and is empty.
+			</description>
+		</method>
+		<method name="is_mirror" qualifiers="const">
+			<return type="bool" />
+			<description>
+				True on the owning client, whose copy follows the server's.
+			</description>
+		</method>
+		<method name="remove_item_from_slot">
+			<return type="InventoryItemInstance" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Server: empties a slot, taking its item off first if it was active. Returns the item.
+			</description>
+		</method>
+		<method name="reset_slots">
+			<return type="void" />
+			<description>
+				Server: empties every slot and selects nothing.
+			</description>
+		</method>
+		<method name="server_request_full_state">
+			<return type="void" />
+			<description>
+				RPC: the owner asks for the slots.
+			</description>
+		</method>
+		<method name="server_set_active_slot_index">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<description>
+				RPC: the owner asks to select a slot.
+			</description>
+		</method>
+		<method name="server_swap_slots">
+			<return type="void" />
+			<param index="0" name="from" type="int" />
+			<param index="1" name="to" type="int" />
+			<description>
+				RPC: the owner asks to swap two slots.
+			</description>
+		</method>
+		<method name="set_active_slot_index">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Selects a slot and puts its item on; [code]-1[/code] selects nothing. Selecting the active slot again changes nothing. On a client this is a request to the server.
+			</description>
+		</method>
+		<method name="swap_slots">
+			<return type="void" />
+			<param index="0" name="from" type="int" />
+			<param index="1" name="to" type="int" />
+			<description>
+				Swaps two slots' items; the active index stays where it was, so the item in the hands changes when the active slot takes part. On a client this is a request to the server.
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="allow_no_active_slot" type="bool" setter="set_allow_no_active_slot" getter="get_allow_no_active_slot" default="true">
+			Whether [method set_active_slot_index] with [code]-1[/code] (nothing in the hands) is allowed.
+		</member>
+		<member name="auto_slot_new_items" type="bool" setter="set_auto_slot_new_items" getter="get_auto_slot_new_items" default="true">
+			On the server, an item arriving in the inventory with an [InventoryFragmentQuickBarIcon] or an [InventoryFragmentEquippableItem] goes into the first free slot by itself.
+		</member>
+		<member name="inventory_path" type="NodePath" setter="set_inventory_path" getter="get_inventory_path" default="NodePath(&quot;&quot;)">
+			The inventory whose items the slots point at. Empty uses the first [InventoryManagerComponent] beside this node.
+		</member>
+		<member name="num_slots" type="int" setter="set_num_slots" getter="get_num_slots" default="3">
+			How many slots there are.
+		</member>
+		<member name="replicated" type="bool" setter="set_replicated" getter="get_replicated" default="true">
+			Whether the owner gets a mirror. Off, every peer keeps its own, as offline.
+		</member>
+	</members>
+	<signals>
+		<signal name="active_slot_changed">
+			<param index="0" name="index" type="int" />
+			<description>
+				Another slot was selected; [code]-1[/code] is none.
+			</description>
+		</signal>
+		<signal name="slots_changed">
+			<description>
+				A slot's item changed - or, on a client, an item a slot names has just arrived.
+			</description>
+		</signal>
+	</signals>
+</class>

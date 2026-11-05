@@ -22,13 +22,17 @@ src/
   framework/              world, game_instance, local_player, player_input, input_router,
                           input_component, game_state_base, player_state, game_mode_base,
                           level, controller, player_controller, ai_controller, pawn,
-                          net_driver, net_replication, player_start_2d/3d, node_pool,
+                          net_driver, net_replication, delta_replicator, player_start_2d/3d, node_pool,
                           player_virtual_joystick, player_touch_button,
                           gameplay_message_router, save_game
   gameplay_tags/          gameplay_tag(+_container, _count_container, _table), _manager
   ability_system/         attribute_set, attribute_modifier, gameplay_effect,
                           gameplay_effect_spec, active_gameplay_effect, gameplay_ability,
                           ability_system_component
+  inventory/              component_replication (shared mirror plumbing), inventory_item_definition
+                          (+ InventoryItemFragment), inventory_item_instance, inventory_fragments,
+                          inventory_manager_component, quick_bar_component, equipment_definition,
+                          equipment_instance, equipment_manager_component
   editor/                 #ifdef TOOLS_ENABLED only
   gen/                    doc_data.gen.cpp (generated, gitignored)
 project/           the demo Godot project; builds install the library into its addon

@@ -173,6 +173,15 @@ public:
 	// Names of this node's own properties to keep in step with the server's copy.
 	GDVIRTUAL0R(PackedStringArray, _get_replicated_properties)
 
+	// Properties sent through a DeltaReplicator instead: only when they change,
+	// reliably, and only the changed part - for arrays and dictionaries.
+	GDVIRTUAL0R(PackedStringArray, _get_delta_replicated_properties)
+
+public:
+	// Server: marks a push-based delta property (name|push) changed - the
+	// whole property, or with a key one element of a keyed array.
+	void mark_delta_dirty(const StringName& property, const Variant& key = Variant());
+
 protected:
 	static void _bind_methods();
 

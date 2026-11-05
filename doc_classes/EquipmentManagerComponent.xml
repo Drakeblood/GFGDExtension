@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="EquipmentManagerComponent" inherits="Node" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		What a pawn has on: equips, unequips, and shows it on every peer.
+	</brief_description>
+	<description>
+		Sits beside the [Pawn] under the pawn's root, next to the [AbilitySystemComponent] it grants abilities through. The server equips and unequips; every peer in [member replication_mode] - everyone by default, so you see the axe in a friend's hand - gets the same [EquipmentInstance] with the same scenes spawned. When the pawn leaves the tree everything comes off, and on the server the granted abilities, effects and tags are taken back.
+		Usually driven by a [QuickBarComponent]; [method equip_item] also works on its own, e.g. for armour.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="client_equipped">
+			<return type="void" />
+			<param index="0" name="state" type="Dictionary" />
+			<description>
+				RPC: something was put on.
+			</description>
+		</method>
+		<method name="client_receive_full_state">
+			<return type="void" />
+			<param index="0" name="state" type="Array" />
+			<description>
+				RPC: everything on, sent to a client that asked.
+			</description>
+		</method>
+		<method name="client_unequipped">
+			<return type="void" />
+			<param index="0" name="equipment_id" type="int" />
+			<description>
+				RPC: something came off.
+			</description>
+		</method>
+		<method name="equip_item">
+			<return type="EquipmentInstance" />
+			<param index="0" name="definition" type="EquipmentDefinition" />
+			<param index="1" name="instigator" type="Variant" default="null" />
+			<description>
+				Server: puts the equipment on and returns its instance. [param instigator] is what it came from - usually the [InventoryItemInstance] - and becomes the source object of the granted abilities.
+			</description>
+		</method>
+		<method name="find_instance_by_definition" qualifiers="const">
+			<return type="EquipmentInstance" />
+			<param index="0" name="definition" type="EquipmentDefinition" />
+			<description>
+				The first instance of the definition, or [code]null[/code].
+			</description>
+		</method>
+		<method name="find_instance_by_item_id" qualifiers="const">
+			<return type="EquipmentInstance" />
+			<param index="0" name="item_id" type="int" />
+			<description>
+				The instance put on by the item with this id, or [code]null[/code].
+			</description>
+		</method>
+		<method name="get_ability_system_component" qualifiers="const">
+			<return type="AbilitySystemComponent" />
+			<description>
+				The [AbilitySystemComponent] beside this one, or [code]null[/code].
+			</description>
+		</method>
+		<method name="get_equipment_instances" qualifiers="const">
+			<return type="Array" />
+			<description>
+				Everything on, in the order it was put on.
+			</description>
+		</method>
+		<method name="get_first_instance_of_type" qualifiers="const">
+			<return type="EquipmentInstance" />
+			<param index="0" name="instance_class" type="Variant" />
+			<description>
+				The first instance whose script is or extends the given class - a [code]class_name[/code], a script, or a native class name.
+			</description>
+		</method>
+		<method name="is_mirror" qualifiers="const">
+			<return type="bool" />
+			<description>
+				True on a networked client holding a mirror.
+			</description>
+		</method>
+		<method name="server_request_full_state">
+			<return type="void" />
+			<description>
+				RPC: a client asks for everything on.
+			</description>
+		</method>
+		<method name="unequip_all">
+			<return type="void" />
+			<description>
+				Server: takes everything off.
+			</description>
+		</method>
+		<method name="unequip_item">
+			<return type="void" />
+			<param index="0" name="instance" type="EquipmentInstance" />
+			<description>
+				Server: takes the equipment off.
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="replication_mode" type="int" setter="set_replication_mode" getter="get_replication_mode" enum="EquipmentManagerComponent.ReplicationMode" default="2">
+			Who sees the equipment.
+		</member>
+	</members>
+	<signals>
+		<signal name="item_equipped">
+			<param index="0" name="instance" type="EquipmentInstance" />
+			<description>
+				Something was put on - on every peer it reaches.
+			</description>
+		</signal>
+		<signal name="item_unequipped">
+			<param index="0" name="instance" type="EquipmentInstance" />
+			<description>
+				Something came off.
+			</description>
+		</signal>
+		<signal name="replicated_state_received">
+			<description>
+				A client's mirror got the whole state.
+			</description>
+		</signal>
+	</signals>
+	<constants>
+		<constant name="REPLICATION_NONE" value="0" enum="ReplicationMode">
+			Every peer keeps its own, as offline.
+		</constant>
+		<constant name="REPLICATION_OWNER" value="1" enum="ReplicationMode">
+			Only the peer owning the pawn sees it.
+		</constant>
+		<constant name="REPLICATION_EVERYONE" value="2" enum="ReplicationMode">
+			Every peer sees it.
+		</constant>
+	</constants>
+</class>

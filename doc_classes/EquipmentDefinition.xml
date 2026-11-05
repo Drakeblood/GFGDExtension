@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="EquipmentDefinition" inherits="Resource" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		What putting an item on does to the pawn.
+	</brief_description>
+	<description>
+		Abilities granted, effects and loose tags held while it is on, and scenes shown. Referenced from an item by [InventoryFragmentEquippableItem], or equipped directly with [method EquipmentManagerComponent.equip_item].
+		Like item definitions, one that should reach clients must be a saved resource.
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="abilities_to_grant" type="Array" setter="set_abilities_to_grant" getter="get_abilities_to_grant" default="[]">
+			[GameplayAbility] templates granted on the server through the pawn's [AbilitySystemComponent] and taken back on unequip. The item instance is their source object.
+		</member>
+		<member name="actors_to_spawn" type="EquipmentActorToSpawn[]" setter="set_actors_to_spawn" getter="get_actors_to_spawn" default="[]">
+			Scenes shown while equipped.
+		</member>
+		<member name="effects_to_apply" type="Array" setter="set_effects_to_apply" getter="get_effects_to_apply" default="[]">
+			[GameplayEffect]s applied while equipped and removed on unequip.
+		</member>
+		<member name="granted_tags" type="PackedStringArray" setter="set_granted_tags" getter="get_granted_tags" default="PackedStringArray()">
+			Loose gameplay tags held while equipped, e.g. [code]State.Equipped.Axe[/code].
+		</member>
+		<member name="instance_script" type="Script" setter="set_instance_script" getter="get_instance_script">
+			A script extending [EquipmentInstance], for equip and unequip logic of its own. Empty means a plain [EquipmentInstance].
+		</member>
+	</members>
+</class>

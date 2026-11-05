@@ -7,6 +7,7 @@
 #include <godot_cpp/core/class_db.hpp>
 
 #include "framework/net_replication.h"
+#include "framework/delta_replicator.h"
 #include "framework/player_state.h"
 
 using namespace godot;
@@ -42,17 +43,17 @@ void GameStateBase::_ready()
 {
 	if (Engine::get_singleton()->is_editor_hint()) { return; }
 
-	PackedStringArray properties;
-	properties.push_back("has_begun_play");
-	properties.push_back("server_world_time");
+	// Framework values are push-based: their setters mark them, nothing compares
+	// them each frame. Script values are compared (or marked, with "|push").
+	PackedStringArray own;
+	own.push_back("has_begun_play");
+	own.push_back("server_world_time");
 
 	PackedStringArray script_properties;
-	if (GDVIRTUAL_CALL(_get_replicated_properties, script_properties))
-	{
-		properties.append_array(script_properties);
-	}
-
-	Replication::attach(this, this, Replication::validate_properties(this, properties), World::SERVER_PEER_ID, "Replication");
+	GDVIRTUAL_CALL(_get_replicated_properties, script_properties);
+	PackedStringArray delta_properties;
+	GDVIRTUAL_CALL(_get_delta_replicated_properties, delta_properties);
+	Replication::attach_framework(this, own, script_properties, delta_properties);
 
 	set_process(true);
 }
@@ -82,6 +83,7 @@ void GameStateBase::update_server_world_time(double delta)
 		{
 			time_since_time_update = 0.0f;
 			server_world_time = local_seconds();
+			mark_delta_dirty("server_world_time");
 		}
 		return;
 	}
@@ -142,6 +144,7 @@ void GameStateBase::handle_begin_play()
 	if (!has_authority()) { return; }
 
 	has_begun_play = true;
+	mark_delta_dirty("has_begun_play");
 	emit_signal("begun_play");
 }
 
@@ -222,8 +225,17 @@ PlayerState* GameStateBase::get_player_state_by_unique_id(int unique_id) const
 	return nullptr;
 }
 
+void GameStateBase::mark_delta_dirty(const StringName& property, const Variant& key)
+{
+	DeltaReplicator* replicator = Object::cast_to<DeltaReplicator>(get_node_or_null(NodePath("Replication")));
+	if (replicator == nullptr) { return; }
+	if (key.get_type() == Variant::NIL) { replicator->mark_property_dirty(property); }
+	else { replicator->mark_element_dirty(property, key); }
+}
+
 void GameStateBase::_bind_methods()
 {
+	ClassDB::bind_method(D_METHOD("mark_delta_dirty", "property", "key"), &GameStateBase::mark_delta_dirty, DEFVAL(Variant()));
 	ClassDB::bind_method(D_METHOD("add_player_state", "player_state"), &GameStateBase::add_player_state);
 	ClassDB::bind_method(D_METHOD("remove_player_state", "player_state"), &GameStateBase::remove_player_state);
 	ClassDB::bind_method(D_METHOD("get_player_array"), &GameStateBase::get_player_array);
@@ -247,6 +259,7 @@ void GameStateBase::_bind_methods()
 
 	GDVIRTUAL_BIND(_init_game_state, "world");
 	GDVIRTUAL_BIND(_get_replicated_properties);
+	GDVIRTUAL_BIND(_get_delta_replicated_properties);
 
 	ADD_SIGNAL(MethodInfo("player_state_added", PropertyInfo(Variant::OBJECT, "player_state", PROPERTY_HINT_NODE_TYPE, "PlayerState")));
 	ADD_SIGNAL(MethodInfo("player_state_removed", PropertyInfo(Variant::OBJECT, "player_state", PROPERTY_HINT_NODE_TYPE, "PlayerState")));

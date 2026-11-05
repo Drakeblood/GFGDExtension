@@ -166,6 +166,7 @@ func _process(delta: float) -> void:
 | Hosting, joining, travel, replication, authority vs ownership | `references/networking.md` |
 | Walking, falling, jumping, movement modes, tuning how a character feels | `references/movement.md` |
 | Abilities, effects, attributes | `references/ability-system.md` |
+| Items, stacks, quick bar, equipment (abilities/scenes granted by what is in the hands) | `references/inventory.md` |
 | Tags, tag tables, the tag editor | `references/gameplay-tags.md` |
 | `NodePool`, `GameplayMessageRouter`, saves | `references/pooling-and-messaging.md` |
 | Porting an existing game (especially from C#) onto GFGD | `references/migrating-from-csharp.md` |

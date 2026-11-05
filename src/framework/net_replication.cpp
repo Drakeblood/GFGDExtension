@@ -1,4 +1,5 @@
 #include "framework/net_replication.h"
+#include "framework/delta_replicator.h"
 
 #include <godot_cpp/classes/scene_replication_config.hpp>
 #include <godot_cpp/classes/scene_tree.hpp>
@@ -72,6 +73,61 @@ MultiplayerSynchronizer* attach(Node* owner, Node* target, const PackedStringArr
 	}
 
 	return synchronizer;
+}
+
+Node* attach_delta(Node* owner, Node* target, const PackedStringArray& properties, const String& replicator_name, double check_interval)
+{
+	if (owner == nullptr || target == nullptr || properties.is_empty()) { return nullptr; }
+	if (Node* existing = owner->get_node_or_null(NodePath(replicator_name))) { return existing; }
+
+	// "orders:id" replicates orders as an array keyed by each element's "id".
+	// "orders:id|push": keyed by "id", and push-based (compared only when marked).
+	PackedStringArray names;
+	PackedStringArray push;
+	Dictionary keyed;
+	for (int i = 0; i < properties.size(); i++)
+	{
+		const PackedStringArray options = properties[i].split("|");
+		const PackedStringArray parts = options[0].split(":", true, 1);
+		const String name = parts[0].strip_edges();
+		names.push_back(name);
+		if (parts.size() > 1 && !parts[1].strip_edges().is_empty())
+		{
+			keyed[StringName(name)] = StringName(parts[1].strip_edges());
+		}
+		for (int o = 1; o < options.size(); o++)
+		{
+			const String option = options[o].strip_edges();
+			if (option == "push") { push.push_back(name); }
+			else { WARN_PRINT(vformat("GFGD: unknown delta replication option \"%s\" on \"%s\" (known: push).", option, name)); }
+		}
+	}
+	names = validate_properties(target, names);
+	if (names.is_empty()) { return nullptr; }
+
+	DeltaReplicator* replicator = memnew(DeltaReplicator);
+	replicator->set_name(replicator_name);
+	replicator->set_properties(names);
+	replicator->set_keyed_arrays(keyed);
+	replicator->set_push_properties(push);
+	replicator->set_check_interval(check_interval);
+	String root_path = "..";
+	if (target != owner)
+	{
+		root_path += "/" + String(owner->get_path_to(target));
+	}
+	replicator->set_root_path(NodePath(root_path));
+	owner->add_child(replicator);
+	return replicator;
+}
+
+Node* attach_framework(Node* node, const PackedStringArray& own_push_properties, const PackedStringArray& script_properties, const PackedStringArray& delta_properties)
+{
+	PackedStringArray all;
+	for (int i = 0; i < own_push_properties.size(); i++) { all.push_back(String(own_push_properties[i]) + String("|push")); }
+	all.append_array(script_properties);
+	all.append_array(delta_properties);
+	return attach_delta(node, node, all, "Replication", 0.0);
 }
 
 PackedStringArray validate_properties(Node* node, const PackedStringArray& properties)
