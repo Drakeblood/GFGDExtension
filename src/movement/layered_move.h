@@ -19,8 +19,8 @@ namespace GFGD
 // the whole reason MovementMode was split into generate_move and
 // simulation_tick: a proposal is side effect free, so proposals can be blended,
 // and a dash becomes possible without the walking code ever hearing about
-// dashes. Unreal's CharacterMovementComponent fuses the two inside each Phys*
-// function, which is exactly why layering anything on it is painful.
+// dashes. Fusing the two into one function is exactly what makes layering
+// anything on a movement component painful.
 //
 // Queue one with CharacterMovementComponent::queue_layered_move.
 class LayeredMove : public Resource

@@ -197,6 +197,7 @@ private:
 	void create_game_instance();
 	void create_net_driver();
 	void create_input_router();
+	void create_debug_tools();
 	void create_containers();
 	void create_game_state();
 	void resolve_game_mode(const Ref<PackedScene>& game_mode_scene);

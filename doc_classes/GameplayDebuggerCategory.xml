@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="GameplayDebuggerCategory" inherits="RefCounted" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		One section of the gameplay debugger.
+	</brief_description>
+	<description>
+		Split in two, because the interesting state lives on the server:
+		- [method _collect_data] runs on the [b]server[/b] for the node the viewer is looking at. Return plain data - it is sent over the network.
+		- [method _draw_data] runs on the viewer's machine when data arrives and returns BBCode for the overlay. [param target] is the local copy of the node, so comparing it with the server's data is how prediction and replication problems show up.
+		- [method _draw_world] runs on the viewer's machine every frame; draw with [DebugDraw].
+		Register an instance with [method GameplayDebugger.register_category], or list the script in [code]application/game_framework/debug/gameplay_debugger_categories[/code] (set [member category_name] in [code]_init[/code]).
+		[codeblock]
+		extends GameplayDebuggerCategory
+
+		func _init() -&gt; void:
+		    category_name = "Tree"
+
+		func _collect_data(target: Node, _viewer: Node) -&gt; Dictionary:
+		    return {"hp": target.hp} if target is ChoppableTree else {}
+
+		func _draw_data(_target: Node, data: Dictionary) -&gt; String:
+		    return "hp %d" % data.hp if data else "not a tree"
+		[/codeblock]
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_collect_data" qualifiers="virtual">
+			<return type="Dictionary" />
+			<param index="0" name="target" type="Node" />
+			<param index="1" name="viewer" type="Node" />
+			<description>
+				Server: the data to show for [param target] ([code]null[/code] when nothing is targeted). [param viewer] is the requesting [PlayerController].
+			</description>
+		</method>
+		<method name="_draw_data" qualifiers="virtual">
+			<return type="String" />
+			<param index="0" name="target" type="Node" />
+			<param index="1" name="data" type="Dictionary" />
+			<description>
+				Viewer's machine: BBCode for the overlay, from the server's [param data].
+			</description>
+		</method>
+		<method name="_draw_world" qualifiers="virtual">
+			<return type="void" />
+			<param index="0" name="target" type="Node" />
+			<param index="1" name="data" type="Dictionary" />
+			<description>
+				Viewer's machine, every frame: world shapes with [DebugDraw].
+			</description>
+		</method>
+		<method name="collect_data">
+			<return type="Dictionary" />
+			<param index="0" name="target" type="Node" />
+			<param index="1" name="viewer" type="PlayerController" />
+			<description>
+				Calls [method _collect_data] (or the built-in implementation).
+			</description>
+		</method>
+		<method name="draw_data">
+			<return type="String" />
+			<param index="0" name="target" type="Node" />
+			<param index="1" name="data" type="Dictionary" />
+			<description>
+				Calls [method _draw_data] (or the built-in implementation).
+			</description>
+		</method>
+		<method name="draw_world">
+			<return type="void" />
+			<param index="0" name="target" type="Node" />
+			<param index="1" name="data" type="Dictionary" />
+			<description>
+				Calls [method _draw_world] (or the built-in implementation).
+			</description>
+		</method>
+		<method name="find_component" qualifiers="static">
+			<return type="Node" />
+			<param index="0" name="target" type="Node" />
+			<param index="1" name="class_name" type="String" />
+			<description>
+				The first node of [param class_name] at or under [param target] - or anywhere in the pawn when [param target] is a [Pawn].
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="category_name" type="String" setter="set_category_name" getter="get_category_name" default="&quot;&quot;">
+			The name shown in the overlay and used by [code]gd.category[/code].
+		</member>
+		<member name="enabled_by_default" type="bool" setter="set_enabled_by_default" getter="is_enabled_by_default" default="true">
+			Whether the category is on when the overlay opens for the first time.
+		</member>
+	</members>
+</class>

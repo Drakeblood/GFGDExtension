@@ -72,7 +72,7 @@
 			<param index="0" name="cue_tag" type="StringName" />
 			<param index="1" name="parameters" type="Dictionary" default="{}" />
 			<description>
-				Starts a lasting cue from this ability; it is removed when the ability ends (Unreal's default too). See [method execute_gameplay_cue] for why this and not the component's.
+				Starts a lasting cue from this ability; it is removed when the ability ends. See [method execute_gameplay_cue] for why this and not the component's.
 			</description>
 		</method>
 		<method name="apply_effect_spec_to_owner">
@@ -112,7 +112,7 @@
 		<method name="check_cost" qualifiers="const">
 			<return type="bool" />
 			<description>
-				Whether the cost could be paid: applying the cost effect would leave no attribute below zero. Unreal's CanApplyAttributeModifiers. On a client, it is checked against the values the server last sent.
+				Whether the cost could be paid: applying the cost effect would leave no attribute below zero. On a client, it is checked against the values the server last sent.
 			</description>
 		</method>
 		<method name="commit_ability">
@@ -430,8 +430,8 @@
 			Where the ability runs when a networked game activates it. Only matters on a replicated [AbilitySystemComponent]; offline every ability runs where it is activated.
 		</member>
 		<member name="trigger_event_tags" type="GameplayTagContainer" setter="set_trigger_event_tags" getter="get_trigger_event_tags">
-			Gameplay events that activate this ability by themselves - Unreal's AbilityTriggers with a GameplayEvent source. [method AbilitySystemComponent.send_gameplay_event] with a matching tag (or a child of one: [code]Event.Hit[/code] is triggered by [code]Event.Hit.Head[/code]) activates the ability with the event's payload, readable through [method get_trigger_event_data].
-			Events are local to a machine, so where a trigger fires follows Unreal's rule: a [constant LOCAL_PREDICTED] or [constant LOCAL_ONLY] ability is triggered on the machine that controls its owner, a [constant SERVER_ONLY] one on the server. A predicted activation carries the payload to the server with its request, so the server's copy runs with the same data though it never saw the event; an activation claiming an event the ability is not triggered by is refused there.
+			Gameplay events that activate this ability by themselves. [method AbilitySystemComponent.send_gameplay_event] with a matching tag (or a child of one: [code]Event.Hit[/code] is triggered by [code]Event.Hit.Head[/code]) activates the ability with the event's payload, readable through [method get_trigger_event_data].
+			Events are local to a machine, so where a trigger fires depends on the policy: a [constant LOCAL_PREDICTED] or [constant LOCAL_ONLY] ability is triggered on the machine that controls its owner, a [constant SERVER_ONLY] one on the server. A predicted activation carries the payload to the server with its request, so the server's copy runs with the same data though it never saw the event; an activation claiming an event the ability is not triggered by is refused there.
 		</member>
 	</members>
 	<signals>

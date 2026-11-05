@@ -1,105 +1,29 @@
-# GFGD
+# GFGD — Game Framework for Godot
 
-A game framework for **Godot 4.6+**, built as a GDExtension: game modes, controllers, possession, per-player input, networking, and a lightweight gameplay ability system — tags, abilities, effects, attributes.
+A gameplay framework for **Godot 4.6+**, implemented in C++ as a GDExtension: game modes, controllers, possession, per-player input, an ability system — and one code path that runs the same game standalone, on a listen server, on a dedicated server and on a client.
 
-`VERSION.txt` next to this file says which build you have: the GFGD commit, the godot-cpp it was built against, the API version and the minimum Godot version.
+## Installing
 
-This file is the orientation document: what the pieces are, how they fit, and the contracts that are not visible from the API. Per-class reference lives in Godot's own help — press <kbd>F1</kbd> and search for any class below, or <kbd>Ctrl</kbd>+click a class name in the script editor. The same reference ships as XML in `doc_classes/`, which is the fast way to look a signature up from outside the editor.
+Grab the zip from [Releases](https://github.com/Drakeblood/GFGDExtension/releases) and unpack it into your project, so it ends up at `addons/gfgdextension/`. Or copy [`update_gfgd.ps1`](update_gfgd.ps1) into your project root and run `pwsh ./update_gfgd.ps1` with Godot closed. It downloads the latest release (or the one you pass with `-Tag`) and replaces the addon. Since the addon can be restored that way, add `addons/gfgdextension/` and `addons/gfgdextension.old/` to the game project's `.gitignore` instead of committing it. The addon's own [README](project/addons/gfgdextension/README.md#install) has the rest of the setup.
 
-## Install
-
-Copy this `gfgdextension` folder into your project's `addons/` directory and restart Godot. There is no plugin to enable in Project Settings and no `plugin.cfg`: `gfgd.gdextension` is picked up wherever it sits, and the editor integration registers itself from the extension.
-
-To install or update from a GitHub release instead, put [`update_gfgd.ps1`](https://github.com/Drakeblood/GFGDExtension/blob/master/update_gfgd.ps1) in your project root and run it with Godot closed:
-
-```powershell
-pwsh ./update_gfgd.ps1            # latest release
-pwsh ./update_gfgd.ps1 -Tag v0.4  # a specific one
-```
-
-It downloads the release zip, replaces `addons/gfgdextension` and keeps the `.uid` files Godot generated for it. It refuses to run while an editor has the extension's library loaded, because Windows lets that folder be renamed but not deleted.
-
-Since the script can restore the addon at any time, the folder does not need to be in your project's git. Add this to its `.gitignore`:
-
-```gitignore
-addons/gfgdextension/
-addons/gfgdextension.old/
-```
-
-To confirm it actually loaded, `.godot/extension_list.cfg` should name it and `ClassDB.class_exists("World")` should be true. An empty `extension_list.cfg` means the editor has not rescanned, or there is no binary for this platform and target slot.
-
-**A project that already has C# classes of its own named `GameInstance`, `GameMode`, `Controller`, `PlayerController`, `Level`, `LocalPlayer`, `InputComponent`, `SaveGame`, `ProjectStatics`, `GameplayTag*` or `Assert*` and marked `[GlobalClass]` will collide with these on ClassDB names.** One of the two has to go — they cannot both be registered.
-
-Then, in Project Settings → Application → Game Framework:
-
-| Setting | Meaning |
-|---|---|
-| `application/run/main_loop_type` | Must be `World`. **Required** — nothing else starts the framework. |
-| `game_framework/game_instance_script` | Script extending `GameInstance`. |
-| `game_framework/default_game_mode` | A scene whose root is a `GameModeBase`. |
-| `game_framework/default_port` | Port your menus and helpers default to. |
-| `game_framework/gameplay_tag_tables` | `GameplayTagTable` resources, in merge order. Empty is fine to start with. |
-| `game_framework/save_encryption_key` | Key for encrypted saves. Ships with a default that is in this repository — replace it before release. |
-| `game_framework/gameplay_cue_tables` | `GameplayCueTable` resources: cue tag to handler (a `GameplayCueNotify` or a scene). Later tables win. |
-| `game_framework/prediction/input_buffer_ticks` | Moves the server holds from a predicting client before consuming, against jitter. Each is a tick of added latency. Defaults to `2`. |
-| `game_framework/prediction/max_moves_per_packet` | How many of its newest unacknowledged moves a predicting client repeats in every packet — what survives a lost packet. Defaults to `8`. |
-| `game_framework/debug/network_latency_ms`, `network_jitter_ms`, `network_packet_loss_percent` | A delay-and-drop queue on the prediction traffic, both directions, for trying a bad network on purpose. Latency is one way. Debug builds only; all `0` by default. |
-
-The extension registers all of these on load, so they appear in the editor UI. Godot does not write out settings that still hold their default, so a fresh install adds nothing to `project.godot` until you change something.
-
-## Class map
-
-| Class | Role |
-|---|---|
-| `World` | Custom `SceneTree`, the entry point. Owns startup order, the level and the session. |
-| `NetDriver` | Connections, travel, and mirroring what the server creates. |
-| `GameInstance` | Application-lifetime object. State that survives a level change. |
-| `Level` | Playable scene root. May override the game mode. |
-| `GameModeBase` | Per-level rules and the default scenes everything is built from. Server only. |
-| `GameStateBase` | What every peer is allowed to know, including the player list. Exists on clients too. |
-| `PlayerController` / `Controller` / `AIController` | Possesses a pawn, owns its input. Dies with the level. |
-| `PlayerState` | Per-player data everyone sees: name, id, score, ping. Lives under the game state. |
-| `Pawn` | Makes a scene possessable. Where input bindings are declared. |
-| `PlayerStart2D` / `PlayerStart3D` | Where the game mode places a pawn. |
-| `LocalPlayer` | One human at this machine. Owned by the `GameInstance`, survives a level change. |
-| `PlayerInput` | That human's own action state, filtered by the devices they own. |
-| `InputRouter` | Sends each raw event to the player who owns the device it came from. |
-| `InputComponent` | Binds input actions to callables, reading the owning player's `PlayerInput`. |
-| `CharacterMovementComponent` | Walking, falling and jumping for a 3D pawn. Unreal's property names, metric values. |
-| `MovementMode` | One way of moving, as a `Resource`. `WalkingMode`, `FallingMode`, or your own in GDScript. |
-| `MovementState` / `MovementInput` / `ProposedMove` | The simulation state, the input for one tick, and what a mode asks for. |
-| `MovementBackend` | Decides when the simulation runs and how often. The seam client prediction plugs into. |
-| `PredictedMovementBackend` | Client-side prediction: the owning client simulates at once, the server checks, a disagreement is rolled back and replayed. Chosen by `client_prediction`. |
-| `AbilitySystemComponent` | Abilities, owned tags, effects, attributes, gameplay cues. The ability hub; replicates server-authoritatively. |
-| `GameplayAbility` / `GameplayEffect` | Authorable ability and effect resources: costs, cooldowns, stacking, cues, network execution policy. |
-| `GameplayEffectSpec` | One application of an effect: level, source, set-by-caller values. |
-| `GameplayCueNotify` / `GameplayCueTable` | What plays a gameplay cue, and which tag it plays for. |
-| `AbilityTask` | What an ability awaits - delays, input, tags, attributes, events, data from the predicting client. Cancelled with its ability. |
-| `AttributeSet` / `AttributeModifier` | Named numeric attributes and the changes applied to them. |
-| `GameplayTag` / `GameplayTagContainer` | A hierarchical tag, and a set of them. |
-| `GameplayTagTable` / `GameplayTagsManager` | Tag declarations, and the merged runtime lookup. |
-| `SaveGame` / `ProjectStatics` | Save state and the helpers that read and write it. |
-| `NodePool` | Recycles nodes for anything spawned by the hundred. |
-| `GameplayMessageRouter` | Fire-and-forget bus, keyed by tag name, for announcements with no owner. |
-| `PlayerVirtualJoystick` / `PlayerTouchButton` | Touch controls that drive one player's `PlayerInput`. |
-
-And how they sit at runtime:
+## Architecture
 
 ```
 root
- ├─ NetDriver              – connections, travel, mirroring
+ ├─ NetDriver              – connections, travel, and mirroring what the server creates
  ├─ GameState              – what every peer may know; exists on clients too
  │   └─ PlayerState…       – per-player name, id, score, ping
  ├─ Players
  │   └─ PlayerController…  – server: all of them; client: only its own
  ├─ Pawns
  │   └─ Pawn<id>           – the node a player drives
- │       ├─ Pawn           – makes the parent possessable, declares input bindings
+ │       ├─ Pawn           – makes the parent possessable, sets up input bindings
  │       ├─ Camera2D/3D    – made current on possession, where the player is sitting
- │       └─ AbilitySystemComponent
+ │       ├─ AbilitySystemComponent – abilities, gameplay tags, effects, attributes
+ │       └─ CharacterMovementComponent – walking, falling, jumping (3D)
  ├─ InputRouter            – sends each raw event to the player owning that device
  ├─ Level                  – scene root node, may override the game mode
- │   └─ PlayerStart2D/3D…  – where a pawn is placed
+ │   └─ PlayerStart2D/3D…  – where restart_player places each pawn
  └─ GameMode               – per-level rules and default scenes; server only
 
 Held by World, outside the scene tree:
@@ -108,13 +32,51 @@ Held by World, outside the scene tree:
       └─ PlayerInput      – that human's own action state, filtered by device
 ```
 
-Everything under `root` is a real node; everything under `GameInstance` is a plain `Object` that `World` owns and frees itself, deliberately outside the tree so it can outlive a level. `NetDriver`, `InputRouter`, `Players` and `Pawns` are built once and survive a level change; `Level`, `GameState` and `GameMode` are rebuilt with each level.
+Everything under `root` is a real node; everything under `GameInstance` is a plain `Object` the framework owns and frees itself, deliberately outside the tree so it can outlive a level.
 
-Controllers, player states and pawns hang off fixed parents rather than off the level, and are named after a server-assigned `player_id`, because their node path is the address every peer refers to them by.
+`World` is the main loop and the world: it holds the controller lists — `get_first_player_controller()` and `get_player_controllers()` — and creates the `NetDriver`, `InputRouter`, `GameState` and `GameMode`. The `GameMode` deliberately keeps no player list of its own: it is the server's object and does not exist on a client, while the world's list does. `GameInstance` is what outlives a level, which is why the `LocalPlayer`s live there.
 
-## The game mode is a scene
+Controllers, pawns and player states hang off fixed parents rather than off the level, because their node path is the address every peer refers to them by — and a level's node name is not something the framework gets to decide.
 
-A game mode declares what everything else is built from, so it is a scene whose root is a `GameModeBase` — that is the only way those choices can be set in the inspector:
+### Startup flow
+
+1. `World::_initialize` creates the **GameInstance** from `application/game_framework/game_instance_script` and calls its `_on_init`.
+2. On the first frame the **NetDriver**, the `Players` and `Pawns` containers and (unless this is a dedicated server) the **InputRouter** are created, and the current **Level** — the main scene root, which must be a `Level` — is found.
+3. The **GameMode** scene is resolved: `Level.game_mode_override`, else `application/game_framework/default_game_mode`. It is instantiated on every peer, but only added to the tree on the server; a client reads its default scenes and nothing else.
+4. The **GameState** is created from `GameModeBase.game_state_scene` and added to the root, before the game mode runs — so player states have somewhere to attach.
+5. `GameMode.init_game` runs, then the game mode enters the tree. Unless `_init_game` returns `true` ("I handled spawning"), `restart_all_players()` logs in every `LocalPlayer`, which creates its `PlayerController` and `PlayerState`, spawns `default_pawn_scene`, places it at a `PlayerStart` and possesses its `Pawn`. A project that never touched local multiplayer has exactly one local player here, created implicitly.
+6. On possession the `PlayerController` makes the pawn camera current and calls `Pawn._setup_input_component`, where you bind input actions.
+
+The level is in the tree and started before any of this, so `_init_game` and everything it spawns see a world that is already live. The game mode's own `_ready` runs after `init_game`, which makes it the point where the level, the players and the game state are all up.
+
+The same fact read from the other side is the one that costs integrators the most time: **everything inside the level scene has its `_ready` run before step 3.** A HUD, a camera, a spawner or a touch control sitting in the level cannot see the game mode, a pawn or a controller from `_ready` — `World::get_game_mode()` returns null, the ordinary null guard swallows it, and the node quietly never finds what it wanted. `Level::_init_level` (step 6, after everything) is the hook for handing references out; resolving them on first use is better still, because it also survives a respawn.
+
+All hooks degrade gracefully — missing settings produce warnings and sensible fallbacks, never crashes.
+
+## Project settings
+
+| Setting | Meaning |
+|---|---|
+| `application/run/main_loop_type` | Must be `World` to enable the framework. |
+| `application/game_framework/game_instance_script` | Script extending `GameInstance`. |
+| `application/game_framework/default_game_mode` | A scene whose root is a `GameModeBase`. |
+| `application/game_framework/default_port` | Port the demo menu and helpers default to. |
+| `application/game_framework/gameplay_tag_tables` | `GameplayTagTable` resources declaring the project's gameplay tags. Merged in listed order; on a duplicate the first table wins. Parent tags are registered implicitly. |
+| `application/game_framework/save_encryption_key` | Key for encrypted saves. Defaults to a key that ships with this source — replace it before release. |
+
+A minimal `project.godot`:
+
+```ini
+[application]
+
+run/main_loop_type="World"
+game_framework/game_instance_script="res://scripts/game_instance.gd"
+game_framework/default_game_mode="res://game_modes/default_game_mode.tscn"
+```
+
+### The game mode is a scene
+
+A game mode declares what everything else is built from, so it is a scene rather than a bare script — that is the only way those choices can be set in the inspector:
 
 | Property | Used for |
 |---|---|
@@ -126,108 +88,24 @@ A game mode declares what everything else is built from, so it is a scene whose 
 | `max_local_players`, `allow_press_to_join` | Local multiplayer. |
 | `max_players` | How many players the session accepts, across every machine. |
 
-Point `Level.game_mode_override` at it, or leave it to `game_framework/default_game_mode`.
+A client never runs a game mode, but it does read these: both sides have to build the same player state and the same pawn, and this is where that agreement is written down. Any scene named here must be saved as its own file — a scene built inline cannot be named to another machine.
 
-A client never runs a game mode, but it does read these: both sides have to build the same player state and the same pawn, and this is where that agreement is written down.
+### Scene requirements
 
-## Startup ordering
-
-```
-[Level] _enter_tree / _ready          <- the level AND EVERYTHING IN IT is up first
-GameState created and added
-GameMode._init_game                   <- prepare; spawns and possesses the players
-GameMode._ready                       <- everything live
-Level._init_level                     <- the first hook that can see all of it
-```
-
-Read the first line carefully, because it is the single most expensive thing in this document. **Everything sitting in the level scene — a HUD, a camera, a spawner, a warning overlay, a touch control — has its `_ready` run before there is a game mode to ask, before a pawn exists, and before any controller has possessed anything.** `World.get_game_mode()` returns null there, the usual `if x != null` guard swallows it, and the node simply never finds what it was looking for, for the whole session, in silence.
-
-Either hand the references out from `Level._init_level`, which runs after everything is built, or — usually better — have each node resolve what it needs the first time it needs it, which also survives the pawn being respawned mid-level.
-
-Two hooks, one rule: **prepare in `_init_game`, play in `_ready`.** The framework logs the local players in and possesses their pawns on its own; your game mode overrides `_init_game` only if it needs to prepare something first, and reads the player off the world from `_ready`. Returning `true` from `_init_game` suppresses the spawn entirely — that is how a menu level runs with no player at all rather than with an empty one.
-
-The player list lives on `World`, not on the `GameMode` — `get_first_player_controller()` and `get_player_controllers()`. The game mode is the server's object and does not exist on a client; the world does, so that is where "who is player one" is answered.
-
-## Minimal integration
-
-A game mode that reads an attribute off the spawned player:
-
-```gdscript
-extends GameModeBase
-
-func _ready() -> void:
-	var pawn: Pawn = get_world().get_first_player_controller().get_pawn()
-	var asc: AbilitySystemComponent = pawn.get_pawn_root().get_node("AbilitySystemComponent")
-
-	asc.attribute_changed.connect(func(name: StringName, old: float, new: float) -> void:
-		print("%s %s -> %s" % [name, old, new]))
-
-	print(asc.get_attribute_value(&"health"))
-	asc.try_activate_ability(&"TestAbility")
-```
-
-A pawn that binds input. Note this runs **on possession**, not on `_ready`:
-
-```gdscript
-extends Pawn
-
-func _setup_input_component(input_component: InputComponent) -> void:
-	var asc: AbilitySystemComponent = get_pawn_root().get_node("AbilitySystemComponent")
-	input_component.bind_action(&"attack", InputComponent.STARTED,
-		func() -> void: asc.ability_local_input_pressed(&"attack"))
-	input_component.bind_action(&"attack", InputComponent.COMPLETED,
-		func() -> void: asc.ability_local_input_released(&"attack"))
-```
-
-And moving it, in a way that is correct offline and online alike:
-
-```gdscript
-func _process(delta: float) -> void:
-	if not has_authority():
-		return    # the server decides where this pawn is; here it is only shown
-
-	var move := _input_component.get_vector(&"move_left", &"move_right", &"move_forward", &"move_back")
-	add_movement_input(Vector3(move.x, 0.0, move.y))
-	get_pawn_root().position += consume_movement_input_vector() * SPEED * delta
-```
-
-## Character movement
-
-`CharacterMovementComponent` gives a pawn walking, falling and jumping. Attach it beside the `Pawn`, on a root that is a `PhysicsBody3D` with a capsule shape:
-
-```
-CharacterBody3D
- ├─ CollisionShape3D      # a CapsuleShape3D
- ├─ Pawn
- └─ CharacterMovementComponent
-```
-
-`updated_body_path` defaults to the parent and the walking and falling modes register themselves, so nothing else is required. Feed it with the `add_movement_input` the pawn already had — guarded by `has_authority()` — and **stop moving the root yourself**: the component writes the transform once per tick and would overwrite you.
-
-Property names follow Unreal's `CharacterMovementComponent`, but **the values are metric**. Godot works in metres where Unreal works in centimetres, so `max_walk_speed` defaults to `6.0`, not `600`. Divide anything lifted from an Unreal project by 100.
-
-`ground_friction` and `braking_deceleration_walking` are not the same knob and should not be tuned as one: friction is how sharply the character can **change direction** while being pushed, braking is how hard it **stops** when input ends.
-
-How a character moves is a named `MovementMode` in a dictionary rather than a value in an enum, so a project can add one — a `Resource`, subclassable in GDScript — without this extension changing. Each mode proposes motion in `_generate_move` and carries it out in `_simulation_tick`; the split is what will let a dash be layered on a walk without the walking code knowing about dashes.
-
-Movement runs on the authority, as everything else does — unless `client_prediction` is on, in which case the owning client also simulates its own character on the tick the key goes down, and is corrected when the server disagrees. Gate movement input with `Pawn.wants_movement_input()` rather than `has_authority()` and the same pawn script works either way; send actions that change movement (a dash) as custom input flags, so they happen on the same tick on both machines. The movement skill's *Client prediction* section has the whole of it.
-
-What a client receives is the transform plus **`movement_mode`** — a position says where a pawn is, not whether it is walking or falling, and the second is what animation needs. `movement_mode_changed` fires on every peer; set `replicate_movement_mode = false` for a pawn whose mode nothing outside the simulation cares about.
-
-Not in yet: smoothing for simulated proxies (other players snap to each replicated transform), smoothing of a correction on the predicting client, and clock synchronisation and speed-hack detection for predicted moves.
+The pawn scene must contain a **`Pawn`** node — either as the scene root, or anywhere below it (the first one found in a recursive search wins). Without it the pawn spawns but cannot be possessed, and the framework warns instead of failing. A camera and an `AbilitySystemComponent` are optional siblings; the camera is made current on possession, on the machine the player is sitting at — set `Pawn.auto_manage_camera = false` for a game filmed by a fixed camera the level owns, or possession quietly steals the view from it.
 
 ## Networking
 
-The same build is every role, decided by what you called:
+The same build is every role. Which one it is depends on what you called:
 
-| Call | `World.get_net_mode()` |
+| Call | `get_net_mode()` |
 |---|---|
 | nothing | `NET_MODE_STANDALONE` |
 | `host_game(port)` | `NET_MODE_LISTEN_SERVER` |
 | `create_dedicated_server(port)` | `NET_MODE_DEDICATED_SERVER` |
 | `join_game(address, port)` | `NET_MODE_CLIENT` |
 
-`has_authority()` is true in every mode but the last, and true with no peer at all — which is what makes a rule written for a server also correct in a game that never touches the network.
+`has_authority()` is true in every mode but the last, and true with no peer at all — which is what makes a rule written for a server also correct in a game that never touches the network. A dedicated server creates no local player, no input routing and no camera; it waits for machines to connect.
 
 ### What exists where
 
@@ -250,11 +128,15 @@ world.server_travel("res://levels/arena.tscn")
 
 `open_level` is the standalone form; on a server it forwards to `server_travel`, and a client is told it cannot change level on its own.
 
+`World` relays the connection signals: `connected_to_server`, `connection_failed`, `server_disconnected`, `peer_connected`, `peer_disconnected`, `net_mode_changed`, `level_loaded`.
+
 ### Replication
 
-The framework mirrors what it creates, so a project places no `MultiplayerSpawner` and no `MultiplayerSynchronizer` of its own. Player states, pawns and player controllers are spawned through `NetDriver`; properties are kept in step by synchronizers the framework attaches from `_ready` at matching paths on every peer.
+The framework mirrors what it creates, so a project does not place a single `MultiplayerSpawner` or `MultiplayerSynchronizer`:
 
-For your own state, return the property names from `_get_replicated_properties()` on a `PlayerState`, `GameStateBase` or `Pawn` subclass:
+- **Spawning** goes through `NetDriver` as explicit remote calls. Player states, pawns and player controllers are named after a server-assigned `player_id`, so the same player is at the same path on every peer.
+- **Properties** are kept in step by synchronizers the framework attaches from `_ready`, on every peer at matching paths. `PlayerState` replicates its name, id, score, spectator flag and ping; `GameStateBase` replicates whether play has begun and the server clock; a pawn replicates its root's position and rotation while `replicate_transform` is on.
+- **Your own properties**: return their names from `_get_replicated_properties()` on a `PlayerState`, `GameStateBase` or `Pawn` subclass and they join the same synchronizer.
 
 ```gdscript
 extends PlayerState
@@ -265,103 +147,139 @@ func _get_replicated_properties() -> PackedStringArray:
 	return PackedStringArray(["kills"])
 ```
 
-### Ownership, roles and input
+### Ownership and roles
 
-Ownership is the chain a pawn is reached by: a pawn is owned by its controller, and a player controller by the connection it was created for. It decides whether a remote call is honoured — input sent for a controller the sender does not own is dropped.
+Ownership is the chain a pawn is reached by: a pawn is owned by its controller, and a player controller by the connection it was created for. `get_owner_peer_id()` walks it. It is what decides whether a remote call is honoured — the server drops input sent for a controller the sender does not own, which is what stops one client from playing another's character.
 
-Roles say what a peer may do with a node, and are mirror images of each other: on the server everything is `ROLE_AUTHORITY`; on the client that owns it, `ROLE_AUTONOMOUS_PROXY`; on any other client, `ROLE_SIMULATED_PROXY`. Authority is not ownership — the server has authority over every pawn, including one a client owns.
+Roles are what a peer may do with a node, and they are mirror images of each other:
 
-A client sends what its player is holding and the server writes it into that controller's `PlayerInput`, so from the input component down the server runs exactly the code a local player runs. By default movement costs a round trip. `CharacterMovementComponent.client_prediction` removes it for the character a client drives: the client simulates it at once, sends its moves with tick numbers, and rolls back and replays when the server disagrees. On such a pawn the client also runs the pawn's input bindings, and the transform and movement mode the server replicates are ignored by the owner.
+| | `get_local_role()` | `get_remote_role()` |
+|---|---|---|
+| on the server | `ROLE_AUTHORITY` | `ROLE_AUTONOMOUS_PROXY` for a player's own, else `ROLE_SIMULATED_PROXY` |
+| on the owning client | `ROLE_AUTONOMOUS_PROXY` | `ROLE_AUTHORITY` |
+| on another client | `ROLE_SIMULATED_PROXY` | `ROLE_AUTHORITY` |
+
+Authority is not ownership: the server has authority over every pawn, including one a client owns.
+
+### Input across the network
+
+A client sends what its player is holding — only the actions that changed, unreliably, because input is a stream of states and a lost packet is corrected by the next one. The server writes it into that controller's `PlayerInput`, and from the `InputComponent` down it runs exactly the code a local player runs. The pawn therefore moves on the server and its position comes back to everyone.
+
+By default that is the whole of it, and movement costs a round trip. A pawn whose `CharacterMovementComponent` has **`client_prediction`** on skips it: the owning client simulates its own character on the tick the key goes down, sends the server its moves with tick numbers — each repeated in several packets, so a lost one costs nothing — and when the server's answer for a tick disagrees with what it predicted, it takes the server's state and replays every move since. With the same inputs the two machines agree exactly, so on a normal connection that correction only happens when the server did something the client could not know about. See *Client prediction* below.
+
+Not implemented: seamless travel, relevancy and priority beyond the visibility filter a synchronizer carries, a spectator pawn, and voice.
 
 ## Local multiplayer
 
-Godot's `Input` singleton merges every device into one state, which is why two people cannot share it. GFGD splits it: a **`LocalPlayer`** is one human at this machine, it owns a **`PlayerInput`** holding that person's own action state, and a central **`InputRouter`** hands each raw event to whoever owns the device it came from.
+Godot's `Input` singleton merges every device into one state, so two people cannot share it. GFGD splits it: a **`LocalPlayer`** is one human at this machine and owns a **`PlayerInput`** holding their own action state, while a single **`InputRouter`** at the scene root hands each raw event to whoever owns the device it came from. `InputComponent` then reads that player's state instead of the global singleton, so a pawn only ever sees its own pad.
 
-The split is deliberate about lifetime. A `PlayerController` belongs to a level and dies with it; a `LocalPlayer` is owned by the `GameInstance` and carries the device assignment across a level change.
+**A single player project is unaffected.** The first local player is created holding `PlayerInput.DEVICE_SLOT_ALL`, and in that state `PlayerInput` forwards every query straight to `Input` — same behaviour, same code path.
 
-**A project that does nothing sees no change.** The first local player is created holding `PlayerInput.DEVICE_SLOT_ALL`, a wildcard that accepts every device, and in that state `PlayerInput` forwards every query straight to `Input`. Same behaviour, same code path, down to synthetic `Input.action_press()`.
+A device slot is a plain `int`: a joypad index, `DEVICE_SLOT_KEYBOARD_MOUSE`, `DEVICE_SLOT_ALL`, or `DEVICE_SLOT_NONE`. One player may own several. Events are classified by event class rather than by `InputEvent.device`, because a synthesized `InputEventAction` reports device `0` and would collide with joypad 0.
 
-### Device slots
-
-A device slot is a plain `int`, so it round-trips through GDScript and can key a `Dictionary`:
-
-| Value | Meaning |
-|---|---|
-| `0`, `1`, `2`, … | Joypad index |
-| `PlayerInput.DEVICE_SLOT_KEYBOARD_MOUSE` | Keyboard and mouse, counted as one device |
-| `PlayerInput.DEVICE_SLOT_ALL` | Every device. The single player default |
-| `PlayerInput.DEVICE_SLOT_NONE` | No device yet; waiting for a press-to-join |
-
-A player may own several at once — keyboard and mouse *and* a pad is the normal setup for player 1 in a co-op game.
-
-Events are classified by class, not by `InputEvent.device`: keyboard and mouse have reserved ids, but a synthesized `InputEventAction` reports `0`, which would collide with joypad 0.
-
-### Two pads, keyboard ignored
-
-Set `max_local_players = 2` and `allow_press_to_join = true` on the game mode, then:
+Two pads with the keyboard ignored, using `max_local_players = 2` and `allow_press_to_join = true`:
 
 ```gdscript
-extends GameModeBase
-
 func _init_game(world: World) -> bool:
 	var pads: Array = Input.get_connected_joypads()
-
-	# Narrow player 0 off the DEVICE_SLOT_ALL wildcard first, or it swallows
-	# every event the second pad needs to join with.
+	# Narrow player 0 off the DEVICE_SLOT_ALL wildcard, or it swallows the events
+	# the second pad needs to join with.
 	world.get_local_player(0).device_slots = PackedInt32Array([pads[0]])
-
 	if pads.size() > 1:
 		world.create_local_player(pads[1])
-
-	return false    # the framework logs everyone in and spawns them
+	return false
 
 func _can_join(device_slot: int) -> bool:
 	return device_slot != PlayerInput.DEVICE_SLOT_KEYBOARD_MOUSE
 ```
 
-`_can_join` is the gate for press-to-join, and it is where "keyboard is not a player" belongs. Any button on an unowned device offers its slot to `GameModeBase.try_join()`; a player who is already in the game but has no device claims it first, so the same path doubles as "press a button to pick your pad back up" after a disconnect.
+### Touch input
 
-One `InputMap` serves everyone. You do not duplicate actions per player.
+`PlayerVirtualJoystick` and `PlayerTouchButton` are `Control`s that write to a **`PlayerInput`** rather than to the global `Input` singleton, so a pawn reads them through its `InputComponent` like any other action.
 
-### Touch controls
-
-Godot ships `VirtualJoystick` and `TouchScreenButton`, and for a single player game those are the better choice — they are themed, and `PlayerInput` in passthrough forwards to `Input` anyway. `PlayerVirtualJoystick` and `PlayerTouchButton` exist for the two things the engine's cannot do: address one player out of several (`player_index`), and hold an action for as long as a finger is on the stick (`press_action`), so one gesture can mean both "move" and "hold".
+Godot ships `VirtualJoystick` and `TouchScreenButton`, and for a single player game those are the better choice — they are themed, and a `PlayerInput` in passthrough forwards to `Input` anyway. These two exist for what the engine's cannot do: address one player out of several (`player_index`), and, on the stick, hold an action for as long as a finger is down (`press_action`), so a single gesture can mean both "move" and "hold".
 
 ```gdscript
 $Joystick.action_left = &"move_left"
 $Joystick.action_right = &"move_right"
 $Joystick.action_up = &"move_up"
 $Joystick.action_down = &"move_down"
-$Joystick.press_action = &"grab"      # held while the finger is down
+$Joystick.press_action = &"grab"      # held while the finger is on the stick
 ```
 
-Both are `Control`s, so they anchor with the rest of the HUD, and both read raw touches in `_input` tracked by finger index. Neither marks events handled, so buttons above keep working — a stick keeps clear of the HUD simply by having a rect that does not cover it.
+Both track their finger by index in `_input` rather than through GUI routing, which hands a second finger to the same `Control` and loses one of the two. Neither marks events handled, so the UI above keeps working; a HUD strip stays clear simply by giving the stick a rect that does not cover it. Hiding either node releases whatever it holds, so a stick hidden mid-drag cannot leave a pawn flying.
 
-### Split screen
+Split screen is deliberately left to the project: set `LocalPlayer.viewport_override` and the framework points the right camera at the right viewport, but it does not build the layout.
 
-Out of scope by design: the framework records *which* viewport belongs to whom and leaves the layout to you. Set `LocalPlayer.viewport_override` to a `SubViewport` and `PlayerController.set_pawn_camera_node_as_current()` targets it. A `Camera2D` needs nothing else — its `custom_viewport` is set for you. A `Camera3D` has no such property, so it has to physically live inside the `SubViewport`; `LocalPlayer.adopt_camera()` moves it there, and the framework warns rather than reparenting behind your back.
+## Character movement
 
-## Gameplay tags
+`CharacterMovementComponent` gives a pawn walking, falling and jumping. Attach it beside the `Pawn`, on a root that is a `PhysicsBody3D` with a capsule; `updated_body_path` defaults to the parent and the modes register themselves.
 
-Tags are declared in `GameplayTagTable` resources — a `tag name -> description` dictionary — and listed in `gameplay_tag_tables`. Several tables merge in listed order; on a duplicate declaration the first one wins and the later one warns.
+Its properties — `max_walk_speed`, `ground_friction`, `braking_deceleration_walking`, `jump_velocity`, `air_control`, `walkable_floor_angle` — use the usual character movement vocabulary. **The values are metric**, so `max_walk_speed` defaults to `6.0` (metres per second).
 
-Parents are implicit: declaring `Ability.Combat.Melee` also registers `Ability` and `Ability.Combat` as usable tags, though they hold no description until some table declares them outright.
-
-Selecting a table in the FileSystem dock opens a tree editor. Double-click a row (or press Rename) to edit a name or a description; renaming a tag rewrites everything beneath it as a single undo step. `GameplayTag` and `GameplayTagContainer` properties get a hierarchical picker in the inspector.
+Drive it with the `add_movement_input` the pawn already had, guarded by `has_authority()` the way the demo pawns are, and let the component consume it:
 
 ```gdscript
-var manager := GameplayTagsManager.get_singleton()
-var tag := manager.request_tag(&"Status.Debuff.Burning")
-
-if asc.get_owned_gameplay_tags().has_tag(tag):
-	pass    # has_tag is hierarchical: "Status.Debuff" would match too
+func _process(_delta: float) -> void:
+	if _input == null or not has_authority():
+		return
+	var move := _input.get_vector(&"move_left", &"move_right", &"move_forward", &"move_back")
+	add_movement_input(Vector3(move.x, 0.0, move.y))
 ```
 
-## Pooling and messaging
+### Modes, and why they are objects
 
-`NodePool` recycles nodes by taking them **out of the tree**, not by disabling them: a node outside the tree does not exist for the physics server, so a recycled body cannot be hit by accident. Give it a `scene` or a `factory`, then `acquire()` and `release()`; `release()` is safe from inside a physics callback, because leaving the tree is deferred to the end of the frame.
+How a character moves is a named `MovementMode` in a dictionary — `Walking`, `Falling`, `Null` — rather than a value in an enum. A mode is a `Resource`, so it can be authored inline, shared between pawns and subclassed in GDScript; putting your own under one of those names replaces the built-in one.
 
-`GameplayMessageRouter` is a bus for announcements with no natural owner. Channels are tag names, so a listener on `Fx` with `MATCH_PARTIAL` hears `Fx.Impact`:
+Each mode has two halves that are deliberately not the same function. `_generate_move` **proposes** motion: it is side effect free and touches nothing, so proposals can be blended. `_simulation_tick` **executes** it: sweeps, resolves collisions, writes the state. Fusing the two into one function is exactly what makes layering a dash on top of a walk painful.
+
+### It does not use `move_and_slide`
+
+`move_and_slide()` reads `velocity` off the body, derives its step from the engine's physics delta, and writes back to the node. Each of those alone would make it impossible to run the same tick twice from two different starting states — which is what a resimulation is, and therefore what client prediction needs. The solver is built on `PhysicsServer3D.body_test_motion` instead, which sweeps from a `Transform3D` handed to it without moving anything.
+
+That is also why the simulation state lives in a `MovementState` object rather than in fields on the node, and why `MovementBackend` exists: `PredictedMovementBackend` calls `simulate_with_input()` once per unacknowledged input after a correction, without a line changing in any mode. The seam was there before prediction was, because it could not have been added afterwards.
+
+Two things reach a client: the transform, through the `Pawn`'s synchronizer, and **`movement_mode`**, through the component's own. A position says where a pawn is, not whether it is walking or falling, and the second is the question an animation graph asks first — guessing it back out of vertical velocity is wrong at the top of a jump and wrong on a ramp. An autonomous proxy predicts its own mode, so the owner of a predicted character receives both and ignores them. `movement_mode_changed` fires on every peer.
+
+### Client prediction
+
+Set `client_prediction = true` on the component, gate movement input in the pawn script with `Pawn.wants_movement_input()` instead of `has_authority()`, and the owning client stops waiting a round trip to see its own character move. Anything else that changes movement has to travel with the input so both machines do it on the same tick: `jump()` and `crouch()` already do, and a game's own actions — a dash, a sprint — go in `MovementInput.custom_flags` through `add_custom_input_flags()`, and are acted on from the `custom_input_flags` signal, which fires inside the tick on the client, on the server and on every replay. The demo's online pawn predicts, dash included.
+
+`project/tests/test_prediction.gd` runs a real server and client over ENet — once on a clean loopback, once at 50 ms each way with jitter and 5 % loss through a debug delay-and-drop queue — and checks that a scripted stretch of walking, jumping, dashing and hitting a wall produces no correction at all, and that a change the server makes is corrected once, by the right amount. `test_replay.gd` checks the rule under all of it: rolled back to any tick, the same inputs reproduce the same states exactly.
+
+### Not in yet
+
+Smoothing for simulated proxies (other players snap to each replicated transform), smoothing of a correction on the predicting client, clock synchronisation and speed-hack detection for predicted moves.
+
+## Gameplay Ability System
+
+- **GameplayTag / GameplayTagContainer** — hierarchical `StringName` tags; `"A.B.C"` matches the parent query `"A.B"`. Containers serialize as a `PackedStringArray` (`tags`) and resolve through the `GameplayTagsManager` singleton.
+- **GameplayTagTable** (Resource) — a `tag name -> description` dictionary; the authoring source for tags. Split them across as many tables as you like (per feature, or shipped with an addon) and list each one in `gameplay_tag_tables`. `GameplayTagsManager` flattens them into a single lookup and tracks where every tag came from: `get_tag_source_kind()` reports `TAG_SOURCE_TABLE` (declared), `TAG_SOURCE_IMPLICIT` (a parent implied by a longer tag) or `TAG_SOURCE_RUNTIME` (never declared — `request_tag()` conjured it, which usually means a typo or a stale asset), with `get_tag_source_path()` naming the declaring table.
+- **GameplayAbility** (Resource) — identified by `ability_name`, optionally bound to an input action via `input_action_name`. Tag gating: `activation_required_tags`, `activation_blocked_tags`, `activation_owned_tags`, `block/cancel_abilities_with_tag`. A `cost_effect` and a `cooldown_effect`, checked before activation and applied by `commit_ability()`; a level, carried into every spec it makes; a `net_execution_policy` — `LOCAL_ONLY`, `LOCAL_PREDICTED`, `SERVER_ONLY`. A refused activation says why (`get_last_failure_reason()`, `ability_activation_failed`). Script hooks: `_on_give_ability`, `_can_activate_ability`, `_activate_ability`, `_end_ability`, `_input_pressed/_released`, `_on_remove_ability`.
+- **GameplayEffect** (Resource) — `INSTANT` (mutates base values), `HAS_DURATION`/`INFINITE` (aggregate onto current values, grant `granted_tags`, optionally periodic via `period`, ticking at once with `execute_period_on_application`). Carries `AttributeModifier`s (`ADD`, `MULTIPLY`, `OVERRIDE`) plus application tag requirements, aggregate stacking with a limit and two expiry rules, and `gameplay_cue_tags`.
+- **Gameplay cues** — `GameplayCueTable` maps a cue tag to a `GameplayCueNotify` resource (called with the character) or a scene (instanced on the character while the cue lasts, or in the world at a hit's location); a tag without a handler uses its parent's. Cues fire on every peer; an ability's own `execute_gameplay_cue` keeps the predicting client from hearing its cue twice.
+- **AbilityTask** (RefCounted) — what an ability `await`s: `wait_delay`, `wait_input_press/release`, `wait_gameplay_tag_added/removed`, `wait_attribute_change`, `wait_gameplay_event`, `wait_any`, `wait_all`, and `sync_target_data`, which carries the predicting client's value to the server's copy of the activation. Tasks die with their ability: the code after an `await` on one never runs once the ability has been cancelled. Subclass it in GDScript for your own.
+- **AbilityAsync** (RefCounted) — the same waits from outside any ability, for a HUD or a quest: `AbilityAsync.wait_gameplay_tag_added/removed`, `wait_attribute_change`, `wait_gameplay_event`, `wait_gameplay_effect_applied`, each taking the target component and an optional owner node. The target keeps it alive; it ends when the target is freed, the owner leaves the tree, `end_action()` is called, or after one trigger with `only_trigger_once`. Subclass it in GDScript for your own.
+- **GameplayEffectSpec** (RefCounted) — one application of an effect: its level, its source, set-by-caller values, free-form context. Applied to self or, with `apply_gameplay_effect_spec_to_target`, to someone else.
+- **AttributeModifier** magnitudes — a flat value scaled by a level `Curve`, a snapshot of the source's or target's attribute, or a value the caller sets on the spec.
+- **AttributeSet** (Resource) — a `name -> base value` dictionary; current values are computed as `(base + Σ add) × Π multiply` (an `OVERRIDE` wins). Hooks `_pre_attribute_change` (clamping) / `_post_attribute_change`, signals `attribute_changed`, `base_value_changed`.
+- **AbilitySystemComponent** (Node) — give/activate/cancel abilities, apply effects to itself or a target, owned tag counting and loose tags, gameplay cues (`execute`/`add`/`remove`, fired on every peer), exported `startup_abilities`, `startup_effects`, `attribute_set` (duplicated at runtime) and `replication_mode`. Signals: `ability_given`, `ability_activated`, `ability_activation_failed`, `ability_ended`, `owned_tag_changed`, `gameplay_effect_applied/removed/stack_changed`, `attribute_changed`, `gameplay_cue`, `replicated_state_received`.
+
+**It replicates.** The server's component is the truth and each client's a mirror: attributes, owned tags and gameplay cues reach every peer, active effects reach the owner or everyone (`replication_mode` `MIXED` or `FULL`), and the granted abilities reach the owner. The owner asks the server to activate an ability; a `LOCAL_PREDICTED` one it runs at once — its tags are there on the frame the button goes down — and the server runs it too, pays its cost, starts its cooldown and confirms, or refuses and the client's copy is cancelled. A `SERVER_ONLY` one runs on the server alone. A joining client is handed the whole state once. `tests/test_gas_replication.gd` checks all of it with a server, an owner and an observer in three processes; `tests/test_gas.gd` checks the rules on one machine.
+
+## Debug tools
+
+A console, cheats, a gameplay debugger and debug drawing; on in debug builds (`application/game_framework/debug/enable_in_release` keeps them in a release build). Every key is an Input Map action (`gfgd_debug_*`), which the editor adds to the project with defaults, so they are rebound in Project Settings > Input Map.
+
+- **Console** (`` ` ``) — `ConsoleManager` singleton: `register_command(name, callable, help, flags)` with arguments converted to the callable's parameter types, `register_variable(name, default, help, flags)` (`FLAG_SAVED` persists), `execute(line)`. `FLAG_SERVER` commands typed on a client run on the server as that player, and their output comes back. Two sizes: a command line at the bottom with suggestions (arguments and description of every match) as you type, then the full console with what was typed and printed. History, `dumpcommands`, `user://autoexec.cfg`. Game input is blocked while it is open. `--log` opens a terminal window with the game's log on Windows.
+- **CheatManager** — `application/game_framework/debug/cheat_manager_script`: every public method of the script is a command that runs on the server, on the typing player's controller (`PlayerController.get_cheat_manager()`). Built-in: `teleport`, `set_movement_mode`, `gas_add_tag`, `gas_apply_effect`, `gas_grant_ability`, `gas_set_attribute`...
+- **Gameplay debugger** (`'`) — follows the actor under the crosshair (Kp * locks it, Kp 0–9 toggle categories, Tab detaches a free camera, T moves the pawn to it). Categories (`GameplayDebuggerCategory`) collect on the **server** (`_collect_data`) and draw on the viewer (`_draw_data` → BBCode, `_draw_world` → `DebugDraw`), through a `DebugReplicator` under each `PlayerController`. Built-in: Basic, Abilities (with the client mirror's differences), Movement (with the client-server position error), Net. Game categories: `application/game_framework/debug/gameplay_debugger_categories`.
+- **DebugDraw** — singleton: `line`, `arrow`, `sphere`, `box`, `point`, `axes`, `text` with a colour and a duration.
+- **AbilitySystemDebugger** (F3/F4) — the local ability system state and an event log.
+
+## Messaging
+
+`GameplayMessageRouter` is a fire-and-forget bus for announcements with no natural owner — a hit landed, a wave started, the run ended. Channels are gameplay tag names, so a listener registered on `Fx` with `MATCH_PARTIAL` hears `Fx.Impact` and `Fx.Text` alike.
 
 ```gdscript
 GameplayMessageRouter.get_singleton().register_listener(&"Fx.Impact", _on_impact)
@@ -370,158 +288,102 @@ func _on_impact(_channel: StringName, payload: Variant) -> void:
 	burst(payload.position, payload.strength)
 ```
 
-## Porting an existing project onto GFGD
+A listener whose object is freed is dropped on the next broadcast, which is what makes this usable from nodes that come and go with a level. Prefer a plain signal whenever the emitter and the listener can see each other; the router earns its place when they cannot — UI built before the level exists, for one. It is local to one peer.
 
-The framework has replacements for most of what a hand-rolled one does, so the bulk of a port is
-deletion:
+## Pooling
 
-| What you have | What replaces it |
-|---|---|
-| Autoload holding cross-level state | `GameInstance` — created from a project setting, outside the tree |
-| Autoload or level script spawning the player | `GameModeBase`, which spawns and possesses on its own |
-| Hard-coded `Marker2D` spawn point | `PlayerStart2D` / `PlayerStart3D` |
-| A settings `Resource` naming the pawn and controller scenes | The game mode **scene**'s own inspector properties |
-| Static event bus with string channels | `GameplayMessageRouter`, channels keyed by tag name |
-| Hand-rolled object pool | `NodePool` |
-| `Input.is_action_pressed` in the player script | `InputComponent`, bound in `_setup_input_component` |
-| Own touch joystick `Control` | `PlayerVirtualJoystick` / `PlayerTouchButton` |
-| JSON save helper | `SaveGame` + `ProjectStatics.save_game` / `load_game` |
-| Tag list in an `.ini` | `GameplayTagTable` resources in `gameplay_tag_tables` |
+`NodePool` recycles nodes for anything spawned by the hundred. It pools by taking the node **out of the tree** rather than by disabling it: a node outside the tree does not exist for the physics server, so it cannot collide, costs no broadphase budget, and cannot be hit by accident while "dead".
 
-Three things worth knowing before you start:
-
-- **From C#, the port cannot be gradual.** C# cannot inherit a GDExtension class, so every class
-  that exists to override something has to become GDScript; and a C# framework of your own whose
-  `[GlobalClass]` names match GFGD's cannot be installed alongside it. Decide up front how far the
-  port goes.
-- **Get the project *booting* before porting any gameplay.** Switch `main_loop_type`, write the game
-  instance, one game mode scene, one level and the tag table, and replace everything else with
-  three-line stubs at the paths the scenes already reference. A stub for a `Resource` must repeat the
-  same `@export` names, or its `.tres` loses every value on the next save.
-- **A parse check proves nothing.** The mistakes this framework makes possible — a `_ready` that runs
-  too early, a pawn drawing behind the level, a `.tres` that loaded without its script — all produce
-  a running game with clean output. Boot after every step and check the actual numbers.
-
-`skills/gfgd/references/migrating-from-csharp.md` has the long version, written from a real port.
-
-## Gotchas — what the API does not tell you
-
-Signatures are introspectable (`ClassDB.class_get_method_list()`, or <kbd>F1</kbd>). These are the contracts that are not, and each one is a mistake that is easy to make.
-
-- **C# cannot inherit GDExtension classes.** `class MyGameMode : GameModeBase` will not work — this is a Godot limitation, not a GFGD one. From C#, use the framework compositionally: place the nodes, author the resources, call the methods, connect to the signals. Anything requiring an override (`_init_game`, `_activate_ability`, `_setup_input_component`, …) has to be GDScript.
-- **Nothing crashes.** Missing settings, a missing `Pawn` node, an unloadable tag table — all warn and fall back. A clean Output panel does not mean the project is configured; check for warnings.
-- **Virtual hooks are overrides, not signals.** Methods starting with `_` (`_init_game`, `_can_activate_ability`, `_pre_attribute_change`) are overridden in a subclass. Do not try to `connect()` to them.
-- **Every scene a game mode names has to be its own file.** A scene built inline cannot be named to another machine, so a client would have nothing to build. The framework warns when it finds one while networked.
-- **A pawn built by hand is not mirrored.** Choose the scene through `default_pawn_scene`, `pawn_scene_overrides` or `_get_pawn_scene_for`, and let the framework spawn it; a node a script instantiates itself exists only where it was made.
-- **`GameMode` is null on a client, on purpose.** Use `World.get_game_state()` for anything a client has to read, and keep rules behind `has_authority()`.
-- **Tags are referenced by name, never by object.** Containers serialize a `PackedStringArray` and resolve through `GameplayTagsManager` on load. Never author an inline `GameplayTag` sub-resource in a `.tres` — it compares equal by name but is not the canonical instance, and it breaks when the tag is renamed.
-- **Tag container properties start out null.** `ability_tags`, `granted_tags` and the rest default to `null`, not to an empty container, because ClassDB warns about any live object used as a property default. Every framework method that takes a container accepts null and reads it as empty, and the inspector creates one on the first edit — but your own GDScript has to check `is_valid()` before calling into one.
-- **`request_tag()` turns a typo into a real tag.** It never returns null for a well-formed name; it registers the tag, warns, and carries on. `get_tag_source_kind()` returning `TAG_SOURCE_RUNTIME` is how you find these — the editor pickers show them in red.
-- **The `Pawn` node is found recursively.** It may be the pawn scene root or any descendant; the first match wins. Two of them in one scene means the other is silently ignored.
-- **Player starts are claimed once each per level.** With more players than starts the framework warns and reuses them. It cannot test whether a start is physically occupied.
-- **Input binding happens on possession.** `_setup_input_component` is called by the `PlayerController` when it possesses the pawn — binding from `_ready` is too early and will not fire.
-- **Never read `Input` from a pawn script.** It merges every device, so with two local players it moves both pawns at once, and on a server it is nobody's input at all. Go through the `InputComponent`, which resolves to the owning player's `PlayerInput`.
-- **Raising `max_local_players` without narrowing player 0 leaves nothing for anyone else.** Player 0 starts on `DEVICE_SLOT_ALL` and would claim every event, including the ones a second pad needs to join with. The framework warns about exactly this combination.
-- **`PlayerInput` in filtered mode does not see `Input.action_press()`.** Synthetic actions pushed into the engine singleton belong to nobody. Use `PlayerInput.action_press()` on the player you mean.
-- **The `InputRouter` listens on `_input`, not `_unhandled_input`.** It has to: if a `Control` swallowed a press but not the release, the action would stay held forever. It never marks input handled, so the GUI is unaffected — but gameplay actions do fire while a `LineEdit` has focus. Disable the `InputComponent` to gate that.
-- **A `Controller` subclass overriding `_enter_tree` must call the base implementation.** Godot binds only the most derived override, and the base is what registers the controller with `World.get_controllers()`. Forgetting it removes the controller from every world list, silently.
-- **A `LocalPlayer` is not a node.** It has no name path and does not appear in the scene tree; hold the reference or ask the `GameInstance` for it by index. It also outlives the level, which is the whole reason it is not one.
-- **The attribute formula is `(base + Σ ADD) × Π MULTIPLY`,** and a single `OVERRIDE` beats all of it. `AttributeSet` is duplicated at runtime, so the resource on disk is a template and play never mutates it.
-- **Owned tags are reference counted.** Two sources granting the same tag both have to release it. One ability ending does not strip a tag another still grants.
-- **On a client, applying an effect, granting an ability or setting a base value does nothing** (a warning says so, once) when the `AbilitySystemComponent` replicates — which it does by default. The server's results arrive on their own. Do those on the server; set `replication_mode = REPLICATION_NONE` for a component every peer should run by itself.
-- **A pawn with an `AbilitySystemComponent` runs its input bindings on the owning client too** - the component replicates by default, and ability input has to leave from the client. A binding that changes game state without a `has_authority()` (or `wants_movement_input()`) guard now runs on both machines: the symptom is an action that happens twice, or once on a client that should never have done it. Guard it, or set the component's `replication_mode` to `REPLICATION_NONE`.
-- **A predicted ability's cost and cooldown arrive a round trip later.** On the client, `commit_ability()` only checks them; stamina and the cooldown tag come from the server. A second press inside that round trip is sent, and refused by the server (`ability_activation_failed` with `&"rejected"`).
-- **Tag tables load before anything else.** `World::_initialize` builds `GameplayTagsManager` before creating the `GameInstance`, so tags are always resolvable from `_on_init` onward.
-- **A pooled node is reset by name, not by interface.** `NodePool` calls `_on_acquired()` and `_on_released()` if the node defines them, because a pooled node is a `RigidBody2D` one moment and an `Area2D` the next and there is no shared base to declare them on. A typo in either name is silent.
-- **`NodePool` frees everything when it leaves the tree.** Nodes waiting in the free list have no parent, so nobody else ever would. That also means a pool moved to another parent comes back empty.
-- **A message router listener does not have to be unregistered.** One whose object has been freed is dropped on the next broadcast. Delivery is synchronous and the payload is passed as `callback(channel, payload)` — two arguments, always, because a `MATCH_PARTIAL` listener cannot otherwise tell what it heard. It is local to one peer.
-- **Message router listeners on one channel run in reverse registration order — last registered, first called.** The router walks its listener list backwards so it can drop freed listeners while iterating. Never encode a dependency in registration order; if one listener needs what another produced, the producer should broadcast a second channel once the result exists.
-- **Possession makes the pawn camera current, where the player is sitting.** For a game filmed by a camera the level owns, set `Pawn.auto_manage_camera = false`, or the pawn quietly steals the view — and without a camera on the pawn you pay for a recursive search that finds nothing.
-- **Turning on `client_prediction` makes an online character stop moving altogether.** The pawn script still guards its input with `has_authority()`, which is false on the owning client — so the client predicts standing still and sends that, and the server, which now moves the character only by the client's moves, faithfully agrees. Guard movement input and movement buttons with `Pawn.wants_movement_input()`; it answers like `has_authority()` when prediction is off.
-- **A predicted dash, knockback or sprint snaps back a moment later, every time.** It was started from a button handler or a script outside the movement tick, so it began on the client at once and on the server whenever the action state arrived — or never. Set a bit with `add_custom_input_flags()` and queue the move from the `custom_input_flags` signal: it fires inside the tick carrying the bit, on both machines and on every replay.
-- **On a predicting client, sounds and effects tied to movement signals play twice.** A correction replays ticks, and a replayed tick emits `movement_mode_changed`, `crouch_changed`, `layered_move_started` and `custom_input_flags` again. Check `is_replaying()` in a listener that should react once — but never in one that changes the simulation, or the replay stops matching.
-- **The default save encryption key is in this repository.** `application/game_framework/save_encryption_key` defaults to it so existing saves keep working; changing it makes them unreadable, so change it before your first release rather than after.
-- **`ProjectStatics.load_game` returns null for four different reasons** — file missing, decryption failed, `_from_json` rejected it, wrong script — and only the first means "no save yet". Ask `get_last_load_result()` rather than inferring a first run from the null; `has_save_game(slot)` answers "is there a file" without reading it. After any failure but `LOAD_NOT_FOUND` the framework refuses `save_game` on that slot and returns `ERR_LOCKED`, so the classic "null means first run, save over it" no longer destroys a profile — it fails loudly on the write. `clear_load_failure(slot)` lifts the block once the player has chosen to start over.
-- **A `.tres` whose script extends a native GFGD type must name that type in its header** — `[gd_resource type="AttributeSet" script_class="MyAttributes" …]`, not `type="Resource"`. Godot refuses to attach a script whose base is a GDExtension class to a resource declared as something else; the file then loads with no script and every value at its default. The editor writes the right header itself, so this only bites a hand-written or hand-edited file.
-- **A level's children are ready before the game mode exists.** See *Startup ordering* above. Anything in the level scene that reaches for the game mode, a pawn or a controller from `_ready` gets null. Within a single scene, Godot's own rule that a child's `_ready` runs before its parent's has the same shape: a child reading an attribute its parent defines in `_ready` gets `0.0`, so read attributes at the point of use and pick a fallback that means "not configured" rather than one that means "do nothing".
-- **In 2D, a pawn draws behind the level.** `Pawns` is built before any level is loaded, so it sits earlier in root's child list, and root's 2D children draw in tree order — the level's background paints straight over the pawn, which is then invisible with nothing in the Output to explain it. Give the pawn scene root a `z_index` above what the level draws.
-- **The editor binary loads the `.editor` library even when running a game.** `godot --path <project>` from an editor build matches `windows.x86_64.single.debug.editor` in the manifest, not `template_debug`. Rebuilding only the template target and testing that way will appear to change nothing — a real template build needs an export.
-
-## Layout
-
-```
-gfgdextension/
-  README.md
-  gfgd.gdextension     manifest; library paths are relative to this file
-  VERSION.txt          which build this is
-  bin/
-    windows/  linux/  macos/  android/
-  doc_classes/         per-class XML reference   (.gdignore)
-  src/                 the C++ sources           (.gdignore)
-  skills/              agent skills              (.gdignore)
+```gdscript
+var bullet: Node = $BulletPool.acquire()   # scene or factory, prewarm, container
+...
+$BulletPool.release(bullet)                # safe inside a physics callback
 ```
 
-The last three ship as plain text and carry an empty `.gdignore`, so Godot never scans, imports or
-exports them. Godot does not export non-resource files by default, but it does scan them into the
-FileSystem dock; the marker makes both guarantees unconditional and costs nothing. It follows that
-they cannot be `load()`ed either — read them with ordinary file tools.
+Pooled nodes get `_on_acquired()` / `_on_released()` called if they define them — by name, because a pooled node is a `RigidBody2D` one moment and an `Area2D` the next.
 
-**The markers live in those subfolders and never in the addon root.** A `.gdignore` at the top would
-hide `gfgd.gdextension` itself, and the extension would not load at all.
+## Save games
 
-`skills/` holds two agent skills: `gfgd` for working in a game built on the framework, and
-`gfgd-dev` for working on the framework itself. Copy the folder you want into your client's skills
-directory, e.g. `.claude/skills/`.
+`ProjectStatics.save_game/load_game` serialize a `SaveGame` resource to `user://saves/` (optionally encrypted). By default every script variable is serialized to JSON; override `_to_json` / `_from_json` for custom formats.
 
-Library filenames are keyed by platform, architecture, float precision and build target — see `[libraries]` in the manifest for what each slot expects. The editor build provides the tag pickers and the tag table editor; template builds carry runtime only.
+Encryption uses `application/game_framework/save_encryption_key`. It defaults to the key compiled into this extension, which is public — a released game should set its own. The framework warns once per run while the default is still in use.
+
+`load_game` returns null for four different reasons, and only `LOAD_NOT_FOUND` means the player has never played: `get_last_load_result()` says which, and `has_save_game(slot)` asks whether a file exists without reading it. After any other failure the slot is marked and `save_game` refuses it with `ERR_LOCKED`, so "load, and if that gave me nothing start fresh and save" cannot overwrite a save the game merely failed to decrypt — the usual cause being a changed encryption key. `clear_load_failure(slot)` lifts the block once the player has been told and has chosen to start over.
+
+## The demo project
+
+`project/` is a working example of every mode. From the menu: **New Game** (single player, ability demo), **Local Co-op** (two pads), **Host** and **Join**. Every pawn is a `CharacterBody3D` driven by a `CharacterMovementComponent`: **WASD** walks, **Space** jumps, **E** activates the test ability. The single-player map also has an ability yard to the right of the start - a heal pad, a fire, a haste pickup and a training dummy for the charged strike (**Q**, hold to charge) - and the online arena a heal pad and a fire whose effects the server applies. From the command line, after `--`:
+
+```sh
+godot --path project -- --server --port 7777          # dedicated server
+godot --path project -- --host                        # listen server, playing along
+godot --path project -- --join 127.0.0.1              # client
+godot --path project -- --level res://levels/test_level.tscn   # skip the menu
+```
+
+`--auto-move` drives a pawn without a keyboard and `--travel-after N` makes the server change level again, both so a run with no window still shows whether the network did its job.
 
 ## Building
 
-From the repository root, not from here. The short way, which builds and then assembles this folder:
+Requirements: [SCons](https://scons.org/), a C++17 compiler, and the `godot-cpp` submodule:
 
-```powershell
-./pack_addon.ps1 -Build windows,android
+```sh
+git submodule update --init --recursive
 ```
 
-One platform there is one full set of targets. Add `-Destination <project>/addons/gfgdextension -InstallSkills` to land the result in a game in the same command, and drop `-Build` to repack without compiling anything.
+**One SCons invocation builds exactly one library**, for one `platform` x `arch` x `target`. Both default to the host, so a bare `scons target=template_debug` on Windows gives you Windows x86_64 and nothing else — every other platform has to be asked for by name.
 
-The long way: **one SCons invocation builds exactly one library**, for one `platform` x `arch` x `target`; both default to the host, so every other platform has to be named.
+### The three targets
 
 | | `editor` | `template_debug` | `template_release` |
 |---|:---:|:---:|:---:|
-| `TOOLS_ENABLED` (the tag editor) | ✓ | | |
+| `TOOLS_ENABLED` | ✓ | | |
 | `DEBUG_ENABLED` | ✓ | ✓ | |
 | optimisation | `speed_trace` | `speed_trace` | `speed` |
 | class reference compiled in | ✓ | ✓ | |
-| debug symbols (CMake presets) | ✓ | | |
 | loaded by | the editor | an export with debug | a release export |
 
-`GODOTCPP_TARGET` and `CMAKE_BUILD_TYPE` are separate axes, and confusing them is expensive. The target decides `DEBUG_ENABLED`, `TOOLS_ENABLED` and optimisation; the build type decides only whether debug symbols are emitted. `template_debug` does **not** have to mean compiled with `-g` — under MinGW the DWARF lands inside the library rather than beside it, which is worth 60 MB on Windows and 30 MB per Android ABI. The presets build it as `Release`; only the editor target keeps its symbols. SCons emits none by default for any target, which is why a SCons build has always come out smaller than a CMake one.
+`TOOLS_ENABLED` is what gates the gameplay tag editor, so a `template_debug` library dropped into an editor runs the game but leaves you no way to edit tags. And the editor binary loads the `editor` slot even when it is only running the game, which is why rebuilding just `template_debug` and pressing play appears to change nothing.
+
+A desktop platform therefore wants all three; Android wants two, because nobody runs an editor there.
+
+### Per platform
 
 ```sh
-# a desktop platform wants all three
-scons platform=windows arch=x86_64   target=editor
-scons platform=windows arch=x86_64   target=template_debug
-scons platform=windows arch=x86_64   target=template_release
+# Windows, on Windows
+scons platform=windows arch=x86_64 target=editor
+scons platform=windows arch=x86_64 target=template_debug
+scons platform=windows arch=x86_64 target=template_release
 
-scons platform=linux   arch=x86_64   target=editor            # and arch=arm64 if needed
-scons platform=macos   arch=universal target=editor           # universal is required on macOS
+# Linux, on Linux (add arch=arm64 for ARM machines)
+scons platform=linux arch=x86_64 target=editor
+scons platform=linux arch=x86_64 target=template_debug
+scons platform=linux arch=x86_64 target=template_release
 
-# Android wants two, twice - nobody runs an editor there
+# macOS, on macOS - arch=universal is required, see below
+scons platform=macos arch=universal target=editor
+scons platform=macos arch=universal target=template_debug
+scons platform=macos arch=universal target=template_release
+
+# Android, from any host with the NDK - arm64 for devices, x86_64 for the emulator
 scons platform=android arch=arm64  target=template_debug
 scons platform=android arch=arm64  target=template_release
 scons platform=android arch=x86_64 target=template_debug
 scons platform=android arch=x86_64 target=template_release
 ```
 
-Android needs `ANDROID_HOME` pointing at an SDK with the NDK installed. macOS must use `arch=universal` — the build strips `.universal` from the file name, which is what the manifest expects; a per-arch build comes out named something nothing looks for.
+Android needs `ANDROID_HOME` pointing at an SDK with the NDK installed.
 
-Each build copies its library into `bin/<platform>/` above; only the shared library is copied, not the import libraries that MSVC emits beside it. A CMake build is also provided for IDE use and writes to the same place.
+macOS **must** be built with `arch=universal`. The build strips `.universal` from the file name, producing `libGFGD.macos.template_debug.dylib` — exactly what the manifest names. Built per-arch it would come out as `...template_debug.arm64.dylib`, which nothing looks for.
 
-Class reference in `doc_classes/*.xml` at the repository root is compiled into the binary, which is what makes it show up under <kbd>F1</kbd>. Regenerate the skeletons after changing the API with:
+Windows, Linux and macOS each need their own host or a CI runner; there is no cross-compilation toolchain set up here. Android is the exception and cross-compiles from anything.
 
-```
-godot --headless --path <project> --doctool <abs-path-to-repo-root> --gdextension-docs
-```
+`precision=double` is only for a Godot built in double precision. The manifest has the slots, but a normal build never needs them.
 
-It merges with the existing files, so prose already written is kept.
+The Godot API the bindings are generated from is pinned in `SConstruct` as `api_version = "4.7"`. Build with `api_version=4.6` to produce a library that also loads in a 4.6 engine — at the cost of whatever 4.7 added — and lower `compatibility_minimum` in `gfgd.gdextension` to match.
+
+### Where it lands
+
+The library is written to `bin/<platform>/` and copied into `project/addons/gfgdextension/bin/<platform>/`, where `project/addons/gfgdextension/gfgd.gdextension` (entry symbol `gfgd_library_init`) picks it up by platform, architecture, precision and target. Nothing is copied by hand. Dropping that one `addons/gfgdextension/` folder into another project is the whole install — so the binaries you want shipped are the ones that need to be in it.
+
+A CMake build is also provided for IDE use and writes to the same place.

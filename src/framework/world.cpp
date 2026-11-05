@@ -6,9 +6,15 @@
 #include <godot_cpp/classes/offline_multiplayer_peer.hpp>
 #include <godot_cpp/classes/os.hpp>
 #include <godot_cpp/classes/project_settings.hpp>
+#include <godot_cpp/classes/file_access.hpp>
 #include <godot_cpp/classes/resource_loader.hpp>
 #include <godot_cpp/classes/window.hpp>
 
+#include "ability_system/ability_system_debugger.h"
+#include "debug/console_manager.h"
+#include "debug/debug_tools.h"
+#include "debug/game_console.h"
+#include "debug/gameplay_debugger.h"
 #include "framework/controller.h"
 #include "framework/game_instance.h"
 #include "framework/game_mode_base.h"
@@ -73,6 +79,7 @@ void World::initialize_game()
 	if (!is_dedicated_server())
 	{
 		create_input_router();
+		create_debug_tools();
 	}
 
 	// The main scene is the level, and Godot has already added it by now.
@@ -95,6 +102,12 @@ void World::_finalize()
 		memdelete(game_instance);
 		game_instance = nullptr;
 	}
+
+	// The debug singletons outlive the tree, but scripts do not: commands bound
+	// to script methods or lambdas, and script categories, are let go now while
+	// the script languages are still there to free them.
+	if (ConsoleManager* console = ConsoleManager::get_singleton()) { console->release_script_references(); }
+	if (GameplayDebugger* debugger = GameplayDebugger::get_singleton()) { debugger->release_script_references(); }
 
 	// Everything else is a node the tree owns and may already be gone by now, so
 	// nothing more is freed here.
@@ -141,6 +154,44 @@ void World::create_input_router()
 	input_router->set_name("InputRouter");
 	input_router->set_world(this);
 	get_root()->add_child(input_router);
+}
+
+void World::create_debug_tools()
+{
+	// Debug builds, or release builds with application/game_framework/debug/
+	// enable_in_release. Each overlay stays hidden until its key.
+	if (!DebugTools::is_enabled()) { return; }
+	DebugTools::ensure_actions();
+
+	ProjectSettings* settings = ProjectSettings::get_singleton();
+	Window* root = get_root();
+	bool console_added = false;
+
+	if (bool(settings->get_setting("application/game_framework/debug/console", true)) && !root->has_node(NodePath("GameConsole")))
+	{
+		GameConsole* console = memnew(GameConsole);
+		console->set_name("GameConsole");
+		root->add_child(console);
+		console_added = true;
+	}
+	if (bool(settings->get_setting("application/game_framework/debug/gameplay_debugger", true)) && !root->has_node(NodePath("GameplayDebuggerHUD")))
+	{
+		GameplayDebuggerHUD* hud = memnew(GameplayDebuggerHUD);
+		hud->set_name("GameplayDebuggerHUD");
+		root->add_child(hud);
+	}
+	if (bool(settings->get_setting("application/game_framework/debug/gas_debugger", true)) && !root->has_node(NodePath("AbilitySystemDebugger")))
+	{
+		AbilitySystemDebugger* debugger = memnew(AbilitySystemDebugger);
+		debugger->set_name("AbilitySystemDebugger");
+		root->add_child(debugger);
+	}
+
+	// Console lines a developer wants every run.
+	if (console_added && FileAccess::file_exists("user://autoexec.cfg"))
+	{
+		ConsoleManager::get_singleton()->call_deferred("execute_file", "user://autoexec.cfg");
+	}
 }
 
 void World::create_containers()

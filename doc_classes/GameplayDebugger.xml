@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="GameplayDebugger" inherits="Object" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		The gameplay debugger's category registry. Engine singleton.
+	</brief_description>
+	<description>
+		Exists on every machine, dedicated servers included, because categories collect their data on the server. The built-in categories come first - [GameplayDebuggerCategoryBasic], [GameplayDebuggerCategoryAbilities], [GameplayDebuggerCategoryMovement], [GameplayDebuggerCategoryNet] - then the scripts listed in [code]application/game_framework/debug/gameplay_debugger_categories[/code], in order. A category's slot (its numpad key in the [GameplayDebuggerHUD]) is its index in that list.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="collect">
+			<return type="Dictionary" />
+			<param index="0" name="target" type="Node" />
+			<param index="1" name="category_names" type="PackedStringArray" />
+			<param index="2" name="viewer" type="PlayerController" />
+			<description>
+				Runs each named category's [method GameplayDebuggerCategory.collect_data] for [param target]. Keyed by category name, plus [code]_target_found[/code].
+			</description>
+		</method>
+		<method name="get_categories">
+			<return type="GameplayDebuggerCategory[]" />
+			<description>
+				Every category, in slot order.
+			</description>
+		</method>
+		<method name="get_category">
+			<return type="GameplayDebuggerCategory" />
+			<param index="0" name="name" type="String" />
+			<description>
+				The category of that name, or [code]null[/code].
+			</description>
+		</method>
+		<method name="get_category_names">
+			<return type="PackedStringArray" />
+			<description>
+				Every category name, in slot order.
+			</description>
+		</method>
+		<method name="register_category">
+			<return type="void" />
+			<param index="0" name="category" type="GameplayDebuggerCategory" />
+			<description>
+				Adds a category, or replaces the one with the same name.
+			</description>
+		</method>
+		<method name="unregister_category">
+			<return type="void" />
+			<param index="0" name="name" type="String" />
+			<description>
+				Removes a category.
+			</description>
+		</method>
+	</methods>
+</class>

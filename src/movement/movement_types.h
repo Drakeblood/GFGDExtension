@@ -4,6 +4,7 @@
 #include <godot_cpp/classes/ref.hpp>
 #include <godot_cpp/classes/ref_counted.hpp>
 #include <godot_cpp/core/binder_common.hpp>
+#include <godot_cpp/core/object_id.hpp>
 #include <godot_cpp/variant/basis.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/vector3.hpp>
@@ -265,7 +266,11 @@ private:
 	float line_dist;
 	Vector3 normal;
 	Vector3 point;
-	Object* collider;
+	// Held by id, not by pointer: a floor result outlives a frame, and the
+	// body under the character can be freed in between (a platform removed, a
+	// log despawned). get_collider() then reports null instead of a dangling
+	// pointer.
+	ObjectID collider_id;
 
 	// The surface's own motion, as the sweep reported it. Only bodies Godot
 	// tracks the movement of fill this in - an AnimatableBody3D does, a
@@ -297,8 +302,8 @@ public:
 	Vector3 get_point() const { return point; }
 	void set_point(const Vector3& value) { point = value; }
 
-	Object* get_collider() const { return collider; }
-	void set_collider(Object* value) { collider = value; }
+	Object* get_collider() const { return ObjectDB::get_instance(collider_id); }
+	void set_collider(Object* value) { collider_id = value != nullptr ? value->get_instance_id() : ObjectID(); }
 
 	Vector3 get_collider_velocity() const { return collider_velocity; }
 	void set_collider_velocity(const Vector3& value) { collider_velocity = value; }

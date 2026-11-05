@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="DebugReplicator" inherits="Node" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		The debug tools' network link for one player.
+	</brief_description>
+	<description>
+		One sits under every [PlayerController] (named [code]DebugReplicator[/code]), on the server and on the owning client, so its remote calls have the same path on both ends and only that client may use them.
+		- Console: a client's [constant ConsoleManager.FLAG_SERVER] commands and cheats travel up as text and run on the server as that player; their output travels back.
+		- Gameplay debugger: the client tells the server what it looks at and which categories are on; the server collects those categories every [code]application/game_framework/debug/gameplay_debugger_refresh_interval[/code] seconds and sends them to that client only.
+		For the server's own player nothing goes over the network.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="client_output">
+			<return type="void" />
+			<param index="0" name="text" type="String" />
+			<param index="1" name="level" type="int" />
+			<description>
+				Remote call: console output from the server.
+			</description>
+		</method>
+		<method name="client_receive_view">
+			<return type="void" />
+			<param index="0" name="target" type="NodePath" />
+			<param index="1" name="data" type="Dictionary" />
+			<description>
+				Remote call: collected gameplay debugger data from the server.
+			</description>
+		</method>
+		<method name="get_player_controller" qualifiers="const">
+			<return type="PlayerController" />
+			<description>
+				The controller this replicator belongs to.
+			</description>
+		</method>
+		<method name="get_view_data" qualifiers="const">
+			<return type="Dictionary" />
+			<description>
+				The last data the server sent: category name -&gt; that category's collected [Dictionary].
+			</description>
+		</method>
+		<method name="get_view_data_age" qualifiers="const">
+			<return type="float" />
+			<description>
+				Seconds since the last data arrived, or [code]-1[/code] before any did.
+			</description>
+		</method>
+		<method name="get_view_data_target" qualifiers="const">
+			<return type="NodePath" />
+			<description>
+				The node path the last data is for.
+			</description>
+		</method>
+		<method name="request_exec">
+			<return type="void" />
+			<param index="0" name="line" type="String" />
+			<description>
+				Runs a console line on the server as this player.
+			</description>
+		</method>
+		<method name="request_view">
+			<return type="void" />
+			<param index="0" name="active" type="bool" />
+			<param index="1" name="target" type="NodePath" />
+			<param index="2" name="categories" type="PackedStringArray" />
+			<description>
+				Asks the server to collect [param categories] for the node at [param target] (or to stop, with [param active] [code]false[/code]).
+			</description>
+		</method>
+		<method name="send_output">
+			<return type="void" />
+			<param index="0" name="text" type="String" />
+			<param index="1" name="level" type="int" />
+			<description>
+				Server: shows text in this player's console.
+			</description>
+		</method>
+		<method name="server_exec">
+			<return type="void" />
+			<param index="0" name="line" type="String" />
+			<description>
+				Remote call: a console line from the owning client.
+			</description>
+		</method>
+		<method name="server_set_view">
+			<return type="void" />
+			<param index="0" name="active" type="bool" />
+			<param index="1" name="target" type="NodePath" />
+			<param index="2" name="categories" type="PackedStringArray" />
+			<description>
+				Remote call: what the owning client wants to see.
+			</description>
+		</method>
+	</methods>
+</class>

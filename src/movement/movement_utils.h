@@ -31,8 +31,7 @@ namespace GFGD
 // asked to simulate a hypothetical.
 namespace MovementUtils
 {
-// Godot works in metres where Unreal works in centimetres, so every constant
-// lifted from CharacterMovementComponent is its value divided by 100.
+// Every distance here is in metres.
 
 // How close to the floor the capsule is kept. Below the minimum it is pushed
 // out, above the maximum it is pulled down, and in between it is left alone -
@@ -121,8 +120,8 @@ struct GroundMoveSettings
 	float capsule_half_height;
 
 	// How far in from the capsule's edge the ground still has to be for the
-	// character to count as standing. Zero disables perching entirely, which is
-	// also Unreal's default.
+	// character to count as standing. Zero, the default, disables perching
+	// entirely.
 	float perch_radius_threshold;
 
 	// Extra height above a walkable floor that a perched character is allowed to
@@ -237,8 +236,8 @@ bool would_capsule_fit(const Body& body, const Transform3D& at, float radius, fl
 //
 // A shape sweep that lands on the lip of a step reports a normal blended between
 // the two faces meeting there, and that blend reads as unwalkable even when the
-// surface under the contact is flat. Unreal keeps a separate ImpactNormal for
-// exactly this; Godot does not, so the surface has to be asked directly.
+// surface under the contact is flat. Godot reports only that one normal, so
+// the surface has to be asked directly.
 // Returns a zero vector when nothing is there.
 Vector3 surface_normal_at(const Body& body, const Vector3& point, const Vector3& up, float probe_distance);
 
@@ -260,7 +259,7 @@ bool is_within_edge_tolerance(const Vector3& capsule_center, const Vector3& impa
 // capsule's feet.
 //
 // When perching is switched on, this is also where it happens - and it cuts both
-// ways, exactly as it does in Unreal. A narrow probe that finds ground lets a
+// ways. A narrow probe that finds ground lets a
 // character keep standing where the full-width test said the surface was
 // unwalkable; a narrow probe that finds nothing invalidates the floor and drops
 // the character, even when the full-width test was happy. That second half is

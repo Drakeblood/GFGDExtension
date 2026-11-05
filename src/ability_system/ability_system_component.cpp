@@ -1036,7 +1036,7 @@ void AbilitySystemComponent::fire_effect_cues(const Ref<ActiveGameplayEffect>& a
 	parameters["stack_count"] = active->stack_count;
 	parameters["effect_path"] = loadable_path(effect);
 
-	// What Unreal calls RawMagnitude: how strong this application is - the first
+	// The raw magnitude: how strong this application is - the first
 	// modifier's magnitude, stacks included. A hit spark scales with it.
 	const TypedArray<AttributeModifier> modifiers = effect->get_modifiers();
 	if (!modifiers.is_empty())
@@ -1166,8 +1166,8 @@ void AbilitySystemComponent::emit_cue(const StringName& cue_tag_name, CueEvent e
 
 void AbilitySystemComponent::run_cue_handler(const StringName& cue_tag_name, CueEvent event, const Dictionary& parameters)
 {
-	// A dedicated server has nobody to show anything to - Unreal skips cues there
-	// too. It still counts and sends them.
+	// A dedicated server has nobody to show anything to, so cues are skipped
+	// there. It still counts and sends them.
 	World* world = get_world_node();
 	if (world != nullptr && world->get_net_mode() == World::NET_MODE_DEDICATED_SERVER) { return; }
 
@@ -1219,9 +1219,8 @@ void AbilitySystemComponent::run_cue_handler(const StringName& cue_tag_name, Cue
 
 	// A lasting effect with a period executes its cues on every tick, while the
 	// same cue is already running under the character from when the effect was
-	// added. That instance is the one to tell - Unreal hands an execute to the
-	// existing cue actor too - rather than a new one per tick piling up for as
-	// long as the effect lasts.
+	// added. That instance is the one to tell, rather than a new one per tick
+	// piling up for as long as the effect lasts.
 	if (event == CUE_EXECUTED && !has_location)
 	{
 		const ObjectID* id = active_cue_nodes.getptr(cue_tag_name);
@@ -1272,8 +1271,8 @@ void AbilitySystemComponent::run_cue_handler(const StringName& cue_tag_name, Cue
 	}
 	else
 	{
-		// An executed scene owns its own end - Unreal's cue actor calls
-		// EndGameplayCue - and one with no _on_execute has no way to have one:
+		// An executed scene owns its own end, and one with no _on_execute has
+		// no way to have one:
 		// nothing else knows it is there, so it would stay for good, one more per
 		// execute. Freed at once, and said once, rather than kept on a guessed
 		// lifetime.
@@ -1523,6 +1522,76 @@ Dictionary AbilitySystemComponent::serialize_ability(const Ref<GameplayAbility>&
 	return data;
 }
 
+Dictionary AbilitySystemComponent::get_debug_snapshot() const
+{
+	Dictionary snapshot;
+	String role = "standalone";
+	if (is_replicated_client()) { role = "client (replicated mirror)"; }
+	else if (get_world_node() != nullptr && get_world_node()->is_networked()) { role = has_authority() ? "server" : "client"; }
+	snapshot["role"] = role;
+	snapshot["replication_mode"] = (int)replication_mode;
+	snapshot["owner_peer"] = get_owner_peer_id();
+	snapshot["avatar"] = get_parent() != nullptr ? String(get_parent()->get_name()) : String();
+	snapshot["state_received"] = replication_state_received;
+
+	Dictionary attributes;
+	Ref<AttributeSet> set = get_attribute_set();
+	if (set.is_valid())
+	{
+		const PackedStringArray names = set->get_attribute_names();
+		for (int i = 0; i < names.size(); i++)
+		{
+			attributes[names[i]] = Array::make(set->get_base_value(names[i]), set->get_current_value(names[i]));
+		}
+	}
+	snapshot["attributes"] = attributes;
+
+	Dictionary tags;
+	Ref<GameplayTagContainer> owned = get_owned_gameplay_tags();
+	const PackedStringArray owned_names = tag_names_of(owned);
+	for (int i = 0; i < owned_names.size(); i++)
+	{
+		tags[owned_names[i]] = gameplay_tag_count_container->get_tag_count(owned_names[i]);
+	}
+	snapshot["tags"] = tags;
+	snapshot["blocked_ability_tags"] = tag_names_of(get_blocked_ability_tags());
+
+	Array effects;
+	for (int i = 0; i < active_effects.size(); i++)
+	{
+		const Ref<ActiveGameplayEffect>& active = active_effects[i];
+		if (active.is_null()) { continue; }
+		Dictionary data = serialize_effect(active);
+		const String path = active->effect.is_valid() ? active->effect->get_path() : String();
+		data["name"] = path.is_empty() ? String("(built in code)") : path.get_file().get_basename();
+		data["replicated"] = active->replicated;
+		effects.push_back(data);
+	}
+	snapshot["effects"] = effects;
+
+	Array abilities;
+	for (int i = 0; i < activatable_abilities.size(); i++)
+	{
+		Ref<GameplayAbility> ability = activatable_abilities[i];
+		if (ability.is_null()) { continue; }
+		Dictionary data = serialize_ability(ability);
+		data["cooldown_remaining"] = ability->get_cooldown_time_remaining();
+		data["last_failure"] = ability->get_last_failure_reason();
+		data["input_pressed"] = ability->get_is_input_pressed();
+		data["time_active"] = ability->get_is_active() ? ability->get_time_active() : 0.0;
+		abilities.push_back(data);
+	}
+	snapshot["abilities"] = abilities;
+
+	PackedStringArray cues;
+	for (const KeyValue<StringName, int>& entry : active_cue_counts)
+	{
+		if (entry.value > 0) { cues.push_back(String(entry.key)); }
+	}
+	snapshot["active_cues"] = cues;
+	return snapshot;
+}
+
 Dictionary AbilitySystemComponent::build_full_state(int for_peer) const
 {
 	Dictionary state;
@@ -1692,7 +1761,7 @@ bool AbilitySystemComponent::expects_client_target_data(const Ref<GameplayAbilit
 
 void AbilitySystemComponent::send_gameplay_event(const StringName& event_tag, const Dictionary& payload)
 {
-	// Running abilities first, as Unreal does: an ability waiting for this event
+	// Running abilities first: an ability waiting for this event
 	// hears it before any ability it triggers starts.
 	emit_signal("gameplay_event", event_tag, payload);
 
@@ -2125,6 +2194,7 @@ void AbilitySystemComponent::_bind_methods()
 	ClassDB::bind_method(D_METHOD("add_loose_gameplay_tag", "tag", "count"), &AbilitySystemComponent::add_loose_gameplay_tag, DEFVAL(1));
 	ClassDB::bind_method(D_METHOD("remove_loose_gameplay_tag", "tag", "count"), &AbilitySystemComponent::remove_loose_gameplay_tag, DEFVAL(1));
 
+	ClassDB::bind_method(D_METHOD("get_debug_snapshot"), &AbilitySystemComponent::get_debug_snapshot);
 	ClassDB::bind_method(D_METHOD("ability_local_input_pressed", "action_name"), &AbilitySystemComponent::ability_local_input_pressed);
 	ClassDB::bind_method(D_METHOD("ability_local_input_released", "action_name"), &AbilitySystemComponent::ability_local_input_released);
 

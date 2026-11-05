@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="DebugDraw" inherits="Object" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Debug shapes and text in the 3D world. Engine singleton.
+	</brief_description>
+	<description>
+		[code]DebugDraw.line(a, b, Color.RED, 2.0)[/code] from any script. A [param duration] of [code]0[/code] draws for one frame - call it every frame to keep a shape up; a positive duration keeps it that many seconds. Shapes are unlit and drawn on top of everything; text is drawn in screen space at the projected point, centred.
+		Nothing is drawn in a release build unless the debug tools are enabled there ([code]application/game_framework/debug/enable_in_release[/code]).
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="arrow">
+			<return type="void" />
+			<param index="0" name="from" type="Vector3" />
+			<param index="1" name="to" type="Vector3" />
+			<param index="2" name="color" type="Color" default="Color(1, 0, 0, 1)" />
+			<param index="3" name="duration" type="float" default="0.0" />
+			<description>
+				A line with an arrow head at [param to].
+			</description>
+		</method>
+		<method name="axes">
+			<return type="void" />
+			<param index="0" name="transform" type="Transform3D" />
+			<param index="1" name="size" type="float" default="0.5" />
+			<param index="2" name="duration" type="float" default="0.0" />
+			<description>
+				The basis of [param transform] as red, green and blue arrows.
+			</description>
+		</method>
+		<method name="box">
+			<return type="void" />
+			<param index="0" name="center" type="Vector3" />
+			<param index="1" name="size" type="Vector3" />
+			<param index="2" name="color" type="Color" default="Color(1, 0, 0, 1)" />
+			<param index="3" name="duration" type="float" default="0.0" />
+			<description>
+				An axis-aligned box.
+			</description>
+		</method>
+		<method name="clear">
+			<return type="void" />
+			<description>
+				Removes every shape, the timed ones included.
+			</description>
+		</method>
+		<method name="line">
+			<return type="void" />
+			<param index="0" name="from" type="Vector3" />
+			<param index="1" name="to" type="Vector3" />
+			<param index="2" name="color" type="Color" default="Color(1, 0, 0, 1)" />
+			<param index="3" name="duration" type="float" default="0.0" />
+			<description>
+				A line from [param from] to [param to].
+			</description>
+		</method>
+		<method name="point">
+			<return type="void" />
+			<param index="0" name="position" type="Vector3" />
+			<param index="1" name="size" type="float" default="0.1" />
+			<param index="2" name="color" type="Color" default="Color(1, 0, 0, 1)" />
+			<param index="3" name="duration" type="float" default="0.0" />
+			<description>
+				A small 3D cross.
+			</description>
+		</method>
+		<method name="sphere">
+			<return type="void" />
+			<param index="0" name="center" type="Vector3" />
+			<param index="1" name="radius" type="float" />
+			<param index="2" name="color" type="Color" default="Color(1, 0, 0, 1)" />
+			<param index="3" name="duration" type="float" default="0.0" />
+			<description>
+				Three circles around [param center].
+			</description>
+		</method>
+		<method name="text">
+			<return type="void" />
+			<param index="0" name="position" type="Vector3" />
+			<param index="1" name="text" type="String" />
+			<param index="2" name="color" type="Color" default="Color(1, 1, 1, 1)" />
+			<param index="3" name="duration" type="float" default="0.0" />
+			<description>
+				Text at a world position.
+			</description>
+		</method>
+		<method name="transformed_box">
+			<return type="void" />
+			<param index="0" name="transform" type="Transform3D" />
+			<param index="1" name="size" type="Vector3" />
+			<param index="2" name="color" type="Color" default="Color(1, 0, 0, 1)" />
+			<param index="3" name="duration" type="float" default="0.0" />
+			<description>
+				A box of [param size] placed by [param transform].
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="enabled" type="bool" setter="set_enabled" getter="is_enabled" default="true">
+			When [code]false[/code], nothing is drawn and new shapes are ignored.
+		</member>
+	</members>
+</class>

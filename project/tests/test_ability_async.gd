@@ -1,7 +1,7 @@
 extends SceneTree
 
 # AbilityAsync: waiting on an AbilitySystemComponent from outside any ability -
-# a HUD, a quest, a door. Unreal's UAbilityAsync.
+# a HUD, a quest, a door.
 #
 # What it promises, and what each section holds it to: it lives without anyone
 # keeping a variable for it (the target holds it); it triggers on every change,

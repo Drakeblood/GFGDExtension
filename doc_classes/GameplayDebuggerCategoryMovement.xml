@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="GameplayDebuggerCategoryMovement" inherits="GameplayDebuggerCategory" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Gameplay debugger category: [CharacterMovementComponent] state.
+	</brief_description>
+	<description>
+		Mode, speed, floor, base and layered moves on the server; on a client the distance between the local and the server position (prediction error or interpolation lag). Draws the floor normal and velocity.
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="category_name" type="String" setter="set_category_name" getter="get_category_name" overrides="GameplayDebuggerCategory" default="&quot;Movement&quot;" />
+	</members>
+</class>

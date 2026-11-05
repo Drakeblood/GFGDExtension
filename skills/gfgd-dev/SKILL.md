@@ -5,7 +5,7 @@ description: Use when working inside the GFGD GDExtension repository itself - th
 
 # Working on GFGD itself
 
-An Unreal-inspired game framework for Godot 4.6+, built as a GDExtension. Library name `GFGD`,
+A game framework for Godot 4.6+, built as a GDExtension. Library name `GFGD`,
 entry symbol `gfgd_library_init`, `api_version` 4.7, `compatibility_minimum` 4.6.
 
 ```
@@ -287,6 +287,13 @@ correction of the right size after the server moves the character - on a clean l
 the debug delay-and-drop queue at 50 ms, 10 ms jitter and 5 % loss. About 25 seconds. Letting the
 owner apply the replicated transform, dropping custom flags on the server, and rolling back without
 replaying each turn it red.
+
+`test_gas_replication.gd` is the other multi-process test (a server, an owning client, an observer).
+Both start their background processes with `OS.create_process` and `--log-file <user dir file>`,
+**never `OS.execute_with_pipe` left unread**: a pipe nobody drains while the foreground client runs
+fills up, the process writing to it blocks inside its next `print`, and the test fails as "nothing
+arrived" with only the engine banner in the server output. That is exactly how
+`test_gas_replication` failed for weeks.
 
 `test_gas.gd` pins the ability system's rules on one machine: the attribute formula, aggregate
 stacking (limits, MULTIPLY raised to the stack, removing single stacks, one dose expiring at a time),

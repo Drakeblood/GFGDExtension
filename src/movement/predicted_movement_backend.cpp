@@ -1,6 +1,11 @@
 #include "movement/predicted_movement_backend.h"
 
+#include <godot_cpp/classes/engine.hpp>
 #include <godot_cpp/classes/node.hpp>
+#include <godot_cpp/classes/node2d.hpp>
+#include <godot_cpp/classes/node3d.hpp>
+#include <godot_cpp/classes/scene_tree.hpp>
+#include <godot_cpp/classes/window.hpp>
 #include <godot_cpp/classes/project_settings.hpp>
 #include <godot_cpp/classes/time.hpp>
 #include <godot_cpp/core/class_db.hpp>
@@ -217,6 +222,41 @@ void PredictedMovementBackend::tick_autonomous(TComponent* component, double del
 	send_moves(component);
 }
 
+// The server's state moved into this client's frame of reference. On the same
+// base as the client's own state, the server's offset on the base is placed on
+// the client's copy of the base: the copy lags behind the server's (it is
+// interpolated), and at speed that lag alone is a world-space error far over
+// tolerance on every tick - a correction per packet and a character that judders
+// on a moving truck. Off a base, or on different ones, the world position stands.
+static Ref<MovementState> in_client_frame(const Ref<MovementState>& client_state, const Ref<MovementState>& authority)
+{
+	if (client_state.is_null() || !authority->has_base() || !client_state->has_base() || authority->get_base_id() != client_state->get_base_id())
+	{
+		return authority;
+	}
+
+	const Vector3 offset = authority->get_base_relative_position() - client_state->get_base_relative_position();
+	Object* base = ObjectDB::get_instance(ObjectID(static_cast<uint64_t>(authority->get_base_id())));
+	Vector3 world_offset;
+	if (Node3D* base_3d = Object::cast_to<Node3D>(base))
+	{
+		world_offset = base_3d->get_global_basis().xform(offset);
+	}
+	else if (Node2D* base_2d = Object::cast_to<Node2D>(base))
+	{
+		const Vector2 moved = base_2d->get_global_transform().basis_xform(Vector2(offset.x, offset.y));
+		world_offset = Vector3(moved.x, moved.y, 0.0f);
+	}
+	else
+	{
+		return authority;
+	}
+
+	Ref<MovementState> moved = authority->duplicate_state(true);
+	moved->set_position(client_state->get_position() + world_offset);
+	return moved;
+}
+
 template <typename TComponent>
 void PredictedMovementBackend::apply_pending_ack(TComponent* component)
 {
@@ -228,10 +268,10 @@ void PredictedMovementBackend::apply_pending_ack(TComponent* component)
 	has_pending_ack = false;
 
 	const int64_t frame = pending_ack_frame;
-	const Ref<MovementState> authority = pending_ack_state;
+	const Ref<MovementState> received = pending_ack_state;
 	pending_ack_state.unref();
 
-	if (authority.is_null() || frame <= last_acked_frame)
+	if (received.is_null() || frame <= last_acked_frame)
 	{
 		return;
 	}
@@ -266,6 +306,7 @@ void PredictedMovementBackend::apply_pending_ack(TComponent* component)
 		last_acked_frame = frame;
 
 		const Ref<MovementState> present = component->get_state();
+		const Ref<MovementState> authority = in_client_frame(present, received);
 		last_ack_error = present->get_position().distance_to(authority->get_position());
 		if (present->should_reconcile(authority, position_tolerance, velocity_tolerance))
 		{
@@ -294,6 +335,7 @@ void PredictedMovementBackend::apply_pending_ack(TComponent* component)
 
 	const SavedMove acked = saved_moves[index];
 	saved_moves = saved_moves.slice(index + 1);
+	const Ref<MovementState> authority = in_client_frame(acked.state, received);
 
 	last_ack_error = acked.state->get_position().distance_to(authority->get_position());
 
@@ -672,6 +714,15 @@ Array PredictedMovementBackend::pack_state(const Ref<MovementState>& state)
 	packed.push_back(state->get_movement_mode());
 	packed.push_back(state->get_is_crouching());
 	packed.push_back(state->get_extra());
+
+	// The base, as a path: an ObjectID means nothing on another machine, but a
+	// replicated platform has the same path everywhere. With it the receiver can
+	// compare where the character stands ON the platform instead of where it is
+	// in the world - which on a moving platform differs between machines by
+	// however far behind their copies of the platform are.
+	Node* base = state->has_base() ? Object::cast_to<Node>(ObjectDB::get_instance(ObjectID(static_cast<uint64_t>(state->get_base_id())))) : nullptr;
+	packed.push_back(base != nullptr && base->is_inside_tree() ? String(base->get_path()) : String());
+	packed.push_back(state->get_base_relative_position());
 	return packed;
 }
 
@@ -699,6 +750,20 @@ Ref<MovementState> PredictedMovementBackend::unpack_state(const Array& packed)
 	state->set_movement_mode(StringName(packed[3]));
 	state->set_is_crouching(packed[4]);
 	state->set_extra(packed[5]);
+
+	// The base, resolved to this machine's copy of the node. Optional, so an older
+	// peer's acknowledgement still unpacks.
+	if (packed.size() >= 8 && packed[6].get_type() == Variant::STRING && packed[7].get_type() == Variant::VECTOR3)
+	{
+		const String path = packed[6];
+		SceneTree* tree = Object::cast_to<SceneTree>(Engine::get_singleton()->get_main_loop());
+		Node* base = !path.is_empty() && tree != nullptr && tree->get_root() != nullptr ? tree->get_root()->get_node_or_null(NodePath(path)) : nullptr;
+		if (base != nullptr)
+		{
+			state->set_base_id(static_cast<int64_t>(base->get_instance_id()));
+			state->set_base_relative_position(packed[7]);
+		}
+	}
 	return state;
 }
 

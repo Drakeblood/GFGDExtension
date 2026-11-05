@@ -6,9 +6,15 @@
 #include <godot_cpp/classes/input_map.hpp>
 #include <godot_cpp/classes/multiplayer_api.hpp>
 #include <godot_cpp/classes/multiplayer_peer.hpp>
+#include <godot_cpp/classes/project_settings.hpp>
+#include <godot_cpp/classes/resource_loader.hpp>
+#include <godot_cpp/classes/script.hpp>
 #include <godot_cpp/variant/packed_byte_array.hpp>
 #include <godot_cpp/variant/vector2.hpp>
 
+#include "debug/cheat_manager.h"
+#include "debug/debug_replicator.h"
+#include "debug/debug_tools.h"
 #include "framework/input_component.h"
 #include "framework/local_player.h"
 #include "framework/pawn.h"
@@ -60,6 +66,44 @@ void PlayerController::_enter_tree()
 
 	configure_rpcs();
 	set_process(true);
+
+	// Deferred: adding children while entering the tree is not allowed. Nothing
+	// calls it before a player opens a debug overlay, so the frame does not matter.
+	if (DebugTools::is_enabled() && get_node_or_null(NodePath("DebugReplicator")) == nullptr)
+	{
+		callable_mp(this, &PlayerController::create_debug_replicator).call_deferred();
+	}
+}
+
+void PlayerController::create_debug_replicator()
+{
+	if (!is_inside_tree() || get_node_or_null(NodePath("DebugReplicator")) != nullptr) { return; }
+	DebugReplicator* replicator = memnew(DebugReplicator);
+	replicator->set_name("DebugReplicator");
+	add_child(replicator);
+}
+
+Ref<CheatManager> PlayerController::get_cheat_manager()
+{
+	if (cheat_manager.is_valid()) { return cheat_manager; }
+	if (!DebugTools::is_enabled()) { return cheat_manager; }
+
+	const String script_path = ProjectSettings::get_singleton()->get_setting("application/game_framework/debug/cheat_manager_script", String());
+	if (!script_path.is_empty())
+	{
+		Ref<Script> script = ResourceLoader::get_singleton()->load(script_path);
+		if (script.is_valid())
+		{
+			cheat_manager = script->call("new");
+		}
+		if (cheat_manager.is_null())
+		{
+			WARN_PRINT(vformat("GFGD: cheat_manager_script \"%s\" is not a script extending CheatManager. Using CheatManager.", script_path));
+		}
+	}
+	if (cheat_manager.is_null()) { cheat_manager.instantiate(); }
+	cheat_manager->setup(this);
+	return cheat_manager;
 }
 
 void PlayerController::configure_rpcs()
@@ -144,6 +188,8 @@ const PackedStringArray& PlayerController::get_replicated_action_list()
 			// The engine's own menu actions are handled by the interface on the
 			// machine they were pressed on, so sending them would be noise.
 			if (action_name.begins_with("ui_")) { continue; }
+			// Nor are the debug tools' keys - they open overlays on this machine.
+			if (DebugTools::is_debug_action(action_name)) { continue; }
 
 			replicated_action_cache.push_back(action_name);
 		}
@@ -426,6 +472,7 @@ void PlayerController::_bind_methods()
 	ClassDB::bind_method(D_METHOD("set_replicated_actions", "value"), &PlayerController::set_replicated_actions);
 	ADD_PROPERTY(PropertyInfo(Variant::PACKED_STRING_ARRAY, "replicated_actions"), "set_replicated_actions", "get_replicated_actions");
 
+	ClassDB::bind_method(D_METHOD("get_cheat_manager"), &PlayerController::get_cheat_manager);
 	ClassDB::bind_method(D_METHOD("server_receive_input", "action_names", "pressed", "strengths"), &PlayerController::server_receive_input);
 
 	ADD_SIGNAL(MethodInfo("local_player_changed", PropertyInfo(Variant::OBJECT, "local_player")));

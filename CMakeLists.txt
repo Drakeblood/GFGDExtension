@@ -52,7 +52,7 @@ string(REPLACE ".universal" "" GODOTCPP_SUFFIX "${GODOTCPP_SUFFIX}")
 # Now we can specify our own project which will inherit any global cmake properties or variables that have been defined.
 project(GFGDExtension
     VERSION 1.0
-    DESCRIPTION "GFGD - an Unreal Engine inspired game framework for Godot built as a GDExtension."
+    DESCRIPTION "GFGD - a game framework for Godot built as a GDExtension."
     HOMEPAGE_URL "https://github.com/Drakeblood/GFGDExtension"
     LANGUAGES CXX
 )
@@ -131,9 +131,16 @@ set_target_properties(${LIBNAME}
 set(GODOT_ADDON_DIR "addons/gfgdextension" CACHE STRING "Addon folder inside the Godot project")
 set(GODOT_PROJECT_BINARY_DIR "${PROJECT_SOURCE_DIR}/${GODOT_PROJECT_DIR}/${GODOT_ADDON_DIR}/bin/${GODOTCPP_PLATFORM}")
 
-add_custom_command(TARGET ${LIBNAME} POST_BUILD
+# A separate always-run target rather than a POST_BUILD step: POST_BUILD only
+# fires when the library relinks, so an up-to-date build never refilled an addon
+# bin/ that had been emptied since - pack_addon.ps1 -Build windows,android then
+# shipped the freshly rebuilt android libraries and no Windows ones at all.
+# copy_if_different keeps it a no-op when the addon copy is already current.
+add_custom_target(${LIBNAME}_addon ALL
     # Only the platforms already in use have a folder checked in, so ios and web
     # would otherwise fail the copy on a clean checkout.
     COMMAND ${CMAKE_COMMAND} -E make_directory "${GODOT_PROJECT_BINARY_DIR}"
-    COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:${LIBNAME}>" "${GODOT_PROJECT_BINARY_DIR}/$<TARGET_FILE_NAME:${LIBNAME}>"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:${LIBNAME}>" "${GODOT_PROJECT_BINARY_DIR}/$<TARGET_FILE_NAME:${LIBNAME}>"
+    VERBATIM
 )
+add_dependencies(${LIBNAME}_addon ${LIBNAME})

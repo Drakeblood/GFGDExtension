@@ -24,8 +24,8 @@ public:
 		OVERRIDE = 2,
 	};
 
-	// Where the number comes from. Unreal's FGameplayEffectModifierMagnitude,
-	// minus custom calculation classes: anything stranger than these three is a
+	// Where the number comes from. There are no custom calculation classes:
+	// anything stranger than these three is a
 	// SET_BY_CALLER value the code making the spec works out itself.
 	enum MagnitudeType
 	{

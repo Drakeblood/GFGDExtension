@@ -4,7 +4,7 @@
 		Finds the handler for a gameplay cue tag.
 	</brief_description>
 	<description>
-		Unreal's GameplayCueManager, minus the asset scanning: the handlers are whatever the cue tables name. Loads the tables in [code]application/game_framework/gameplay_cue_tables[/code] on the first cue, and caches every answer. A C++ singleton, not an autoload.
+		There is no asset scanning: the handlers are whatever the cue tables name. Loads the tables in [code]application/game_framework/gameplay_cue_tables[/code] on the first cue, and caches every answer. A C++ singleton, not an autoload.
 	</description>
 	<tutorials>
 	</tutorials>

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="GameConsole" inherits="CanvasLayer" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		The drop-down in-game console.
+	</brief_description>
+	<description>
+		The [World] adds one in debug builds (setting [code]application/game_framework/debug/console[/code]). The [code]gfgd_debug_console[/code] action (the key left of 1 by default) steps through two sizes, then closed; Esc closes it from either:
+		- [constant MODE_BAR]: a command line at the bottom of the screen. As you type, the matching commands, variables and cheats appear above it with their arguments and descriptions ([method ConsoleManager.get_info]); after a space, the one command's usage. Up/Down select a suggestion, or walk the history ([code]user://gfgd_console_history.txt[/code]) when the line is empty; Tab completes; Enter runs. What the command prints shows above the line until the next keystroke.
+		- [constant MODE_FULL]: the console from the top of the screen - what was typed and what it printed - with the command line under it. PageUp/PageDown scroll.
+		The game's own log is not shown: it is in the log file and the terminal (start the game with [code]--log[/code] for a terminal window on Windows). The [code]console.engine_log[/code] variable adds engine warnings and errors ([code]1[/code]) or everything ([code]2[/code]) to the full console, through a [GameConsoleLogger].
+		While it is open the game gets no input ([method PlayerInput.block_gameplay_input]) and no mouse event reaches it; the mouse is left as it was, and the wheel scrolls the full console.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="add_line">
+			<return type="void" />
+			<param index="0" name="text" type="String" />
+			<param index="1" name="level" type="int" />
+			<description>
+				Adds a line of output with a [enum ConsoleManager.OutputLevel] colour.
+			</description>
+		</method>
+		<method name="clear_log">
+			<return type="void" />
+			<description>
+				Clears the full console.
+			</description>
+		</method>
+		<method name="is_open" qualifiers="const">
+			<return type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="set_open">
+			<return type="void" />
+			<param index="0" name="value" type="bool" />
+			<description>
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="mode" type="int" setter="set_mode" getter="get_mode" enum="GameConsole.Mode" default="0">
+			The console's size.
+		</member>
+	</members>
+	<constants>
+		<constant name="MODE_CLOSED" value="0" enum="Mode">
+			Not shown.
+		</constant>
+		<constant name="MODE_BAR" value="1" enum="Mode">
+			The command line at the bottom of the screen, with suggestions above it.
+		</constant>
+		<constant name="MODE_FULL" value="2" enum="Mode">
+			The full console from the top of the screen.
+		</constant>
+	</constants>
+</class>

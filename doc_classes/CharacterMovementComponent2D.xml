@@ -6,7 +6,7 @@
 	<description>
 		The 3D component's twin, and deliberately a twin rather than a shared base: Godot keeps 2D and 3D in separate hierarchies all the way down, and GFGD already follows that with [PlayerStart2D] and [PlayerStart3D].
 		What [i]is[/i] shared is everything with no dimension in it. [MovementState], [MovementInput], [ProposedMove], [FloorResult] and [MovementMode] are the same classes as in 3D; a 2D state keeps its position in the x and y of a [Vector3] and leaves z alone. That way there is one set of types, one mode contract and one prediction story rather than two.
-		[b]Units are pixels[/b], and the defaults are Unreal's centimetre values unchanged - which is what the usual "a metre is a hundred pixels" convention makes them. The 3D component divides the same numbers by a hundred.
+		[b]Units are pixels[/b], with the usual "a metre is a hundred pixels" convention: the defaults are the 3D component's multiplied by a hundred.
 		[b]Up is negative Y.[/b] Godot's 2D screen axis points down, so [member up_direction] defaults to [code](0, -1)[/code].
 		Not in the 2D component yet: crouching, swimming, flying, moving platforms, layered moves and transitions. Those are 3D only for now.
 	</description>
@@ -115,6 +115,12 @@
 			<return type="float" />
 			<description>
 				The 2D equivalent of [method CharacterMovementComponent.get_capsule_radius].
+			</description>
+		</method>
+		<method name="get_base_velocity" qualifiers="const">
+			<return type="Vector2" />
+			<description>
+				The velocity of the base where the character stands, measured from how far the base moved over the last tick (so a spinning base counts its speed at the character, not at its centre). Zero without a base. This is what [member impart_base_velocity] hands over on leaving it.
 			</description>
 		</method>
 		<method name="get_current_floor" qualifiers="const">
@@ -365,7 +371,7 @@
 			The 2D equivalent of [member CharacterMovementComponent.ground_friction].
 		</member>
 		<member name="impart_base_velocity" type="bool" setter="set_impart_base_velocity" getter="get_impart_base_velocity" default="true">
-			The 2D equivalent of [member CharacterMovementComponent.impart_base_velocity].
+			Hands the base's velocity to the character when it leaves the base into the air - a jump, walking off its edge - so a jump from a moving lift keeps the lift's momentum instead of dropping straight down. While the character stands on the base nothing is added: following it ([member move_with_base]) already does the carrying. Stepping from one base onto another hands nothing over. Measured at the character's feet, see [method get_base_velocity].
 		</member>
 		<member name="jump_velocity" type="float" setter="set_jump_velocity" getter="get_jump_velocity" default="420.0">
 			Upward speed applied on [method jump], in pixels per second.
@@ -405,6 +411,8 @@
 		</member>
 		<member name="move_with_base" type="bool" setter="set_move_with_base" getter="get_move_with_base" default="true">
 			Carries the character along with whatever it is standing on. There is no [code]rotate_with_base[/code] twin here: the 2D component writes only a position back to the body, so there is no character rotation for a platform to turn.
+			The base is tracked whether or not this is on - only the following is switched off - so the setting can be toggled at any time without the character jumping by everything the base did meanwhile.
+			What counts as a base: any walkable floor, unless its node defines [code]_can_be_base_for_character(body)[/code] and returns [code]false[/code] for this character - e.g. a loose rigid body that rolls under the feet. Such a floor is still walked on, it just does not carry the character.
 		</member>
 		<member name="out_of_water_jump_velocity" type="float" setter="set_out_of_water_jump_velocity" getter="get_out_of_water_jump_velocity" default="420.0">
 			The push a jump gives while swimming, in pixels per second. Taking it hands over to [code]Falling[/code] in the same tick - see [member CharacterMovementComponent.out_of_water_jump_velocity] for why.

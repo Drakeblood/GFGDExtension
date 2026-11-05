@@ -29,8 +29,7 @@ class MovementBackend;
 class MovementMode;
 class Pawn;
 
-// Walking, falling and jumping for a pawn, with the property names Unreal's
-// CharacterMovementComponent uses and none of its architecture.
+// Walking, falling and jumping for a pawn.
 //
 // Attach as a child of the node being moved, beside the Pawn - the same shape
 // AbilitySystemComponent has. The body itself may be any PhysicsBody3D; nothing
@@ -102,6 +101,10 @@ private:
 	Transform3D base_last_transform;
 	bool has_base_last_transform;
 
+	// The base's velocity where the character stands, measured from what the
+	// base actually did over the last tick. Handed over on leaving it.
+	Vector3 base_velocity;
+
 	// Scratch for the narrow floor test, so the perch path does not allocate and
 	// does not have to write its answer over the result it is reading from.
 	Ref<FloorResult> perch_floor;
@@ -137,7 +140,7 @@ private:
 	// pushed a tenth of the way walks at a tenth of the speed.
 	float min_analog_walk_speed;
 
-	// Crouching. Unreal defaults its equivalent off; this defaults on, because a
+	// Crouching. On by default, because a
 	// want_crouch that silently does nothing is a worse first experience than a
 	// character that crouches when asked.
 	bool can_crouch;
@@ -155,7 +158,7 @@ private:
 	float floor_sweep_distance;
 	float max_step_height;
 
-	// Zero disables perching, which is also Unreal's default. Raise it and a
+	// Zero, the default, disables perching. Raise it and a
 	// character keeps its footing with part of the capsule hanging over an edge.
 	float perch_radius_threshold;
 
@@ -398,7 +401,7 @@ public:
 	// Scaling only the acceleration - which is what falls out of using the input
 	// vector as an acceleration and nothing else - lets every input eventually
 	// reach the same top speed, so a gentle push is a slow start rather than a
-	// walk. Unreal calls the same factor AnalogInputModifier.
+	// walk.
 	float get_analog_max_speed(const Vector3& move_input, float base_max_speed) const;
 
 	float get_max_acceleration() const { return max_acceleration; }
@@ -504,6 +507,7 @@ public:
 	// Records what the character ended the tick standing on, and where it stands
 	// relative to it. Called once per simulated frame, after the modes have run.
 	void save_base_location();
+	Vector3 get_base_velocity() const { return base_velocity; }
 
 	bool get_replicate_movement_mode() const { return replicate_movement_mode; }
 	void set_replicate_movement_mode(bool value) { replicate_movement_mode = value; }
@@ -547,9 +551,8 @@ private:
 	// peer, because a MultiplayerSynchronizer only pairs up with its counterpart
 	// when both sides sit at the same path.
 	//
-	// Unreal replicates the same thing as ACharacter::ReplicatedMovementMode, but
-	// under COND_SimulatedOnly: an autonomous proxy predicts its own mode, so
-	// sending it one would fight the prediction. Here the owner still receives
+	// An autonomous proxy predicts its own mode, so sending it one would fight
+	// the prediction. The owner still receives
 	// it and drops it - see set_replicated_movement_mode - because hiding the
 	// synchronizer from the owner would hide this node from the owner's remote
 	// calls, and the prediction's acknowledgements are sent to exactly that.
@@ -562,7 +565,8 @@ private:
 
 	// Moves the character by however much its base moved, by rebuilding the world
 	// transform from the base's current one and the stored relative offset.
-	void update_based_movement();
+	void update_based_movement(double delta);
+	bool can_be_base(Object* collider) const;
 
 	// The node behind MovementState::base_id, or null once it is gone.
 	Node3D* resolve_base() const;

@@ -149,9 +149,8 @@ void WalkingMode::simulation_tick(const Ref<MovementTickParams>& params)
 	}
 	else if (!settings.can_walk_off_ledges)
 	{
-		// Stop at the edge rather than step off it. Unreal works out how far along
-		// the move it could still have gone; this gives the whole move back, which
-		// is blunter but keeps the promise the flag makes - the character never
+		// Stop at the edge rather than step off it. The whole move is given back
+		// rather than the part that would still fit, which is blunter but keeps the promise the flag makes - the character never
 		// falls off on its own.
 		transform = Transform3D(start_state->get_rotation(), start_state->get_position());
 		velocity = velocity.slide(up);

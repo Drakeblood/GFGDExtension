@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="DebugCamera" inherits="Camera3D" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		A free-flying camera for looking at the game from anywhere, on this machine only.
+	</brief_description>
+	<description>
+		The [GameplayDebuggerHUD] creates and removes it ([code]gfgd_debug_free_camera[/code], Tab by default, or [code]gd.freecam[/code]). W A S D fly along the view, Q and E go down and up, the mouse looks around, Shift is faster, Ctrl slower, and the wheel changes [member speed]. The keys are physical, so they sit in the same place on any keyboard layout.
+		It moves in real time, so it keeps flying with the game slowed down ([code]slomo[/code]) or paused. It ignores input while the console is open.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="start_from">
+			<return type="void" />
+			<param index="0" name="transform" type="Transform3D" />
+			<param index="1" name="field_of_view" type="float" />
+			<description>
+				Places the camera at [param transform] with [param field_of_view], keeping only its yaw and pitch.
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="look_sensitivity" type="float" setter="set_look_sensitivity" getter="get_look_sensitivity" default="0.003">
+			Radians per pixel of mouse movement.
+		</member>
+		<member name="speed" type="float" setter="set_speed" getter="get_speed" default="8.0">
+			Flying speed in metres per second, before Shift or Ctrl.
+		</member>
+	</members>
+</class>

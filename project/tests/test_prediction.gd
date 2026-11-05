@@ -47,16 +47,17 @@ func _initialize() -> void:
 			"--probe", "res://tests/prediction_probe.gd",
 		]
 
-		var server_arguments: PackedStringArray = ["--headless", "--path", project, "--", "--server", "--port", str(port)]
+		# The server writes to a log file, so its own chatter stays out of the report unless the run
+		# fails and it is needed. Not a pipe: one nobody reads while the client runs fills up, and a
+		# process writing to a full pipe stops dead (test_gas_replication did exactly that).
+		var server_log := OS.get_user_data_dir().path_join("prediction_server_%d.log" % index)
+		var server_arguments: PackedStringArray = ["--headless", "--log-file", server_log, "--path", project, "--", "--server", "--port", str(port)]
 		server_arguments.append_array(network)
-		# Piped, so the server's own chatter stays out of the report unless the
-		# run fails and it is needed.
-		var server: Dictionary = OS.execute_with_pipe(executable, server_arguments, false)
-		if server.is_empty():
+		var server_pid: int = OS.create_process(executable, server_arguments)
+		if server_pid <= 0:
 			print("    FAIL could not start the server")
 			failed.append(configuration["name"])
 			continue
-		var server_pid: int = server["pid"]
 
 		# The server needs a moment to be listening; the client retries nothing.
 		OS.delay_msec(1500)
@@ -77,9 +78,8 @@ func _initialize() -> void:
 
 		if exit_code != 0:
 			failed.append(configuration["name"])
-			var server_output: FileAccess = server["stdio"]
 			print("--- server output ---")
-			print(server_output.get_as_text())
+			print(FileAccess.get_file_as_string(server_log))
 
 	if failed.is_empty():
 		print("test_prediction: all checks passed")

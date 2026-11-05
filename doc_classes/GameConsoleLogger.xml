@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="GameConsoleLogger" inherits="Logger" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Queues engine output for the [GameConsole].
+	</brief_description>
+	<description>
+		A [Logger] the console registers with [method OS.add_logger] while [code]console.engine_log[/code] is above [code]0[/code]. It can be called from any thread, so it only queues; the console shows the queue on the main thread.
+	</description>
+	<tutorials>
+	</tutorials>
+</class>

@@ -5,7 +5,7 @@
 	</brief_description>
 	<description>
 		Attach as a child of the node being moved, beside the [Pawn] - the same shape [AbilitySystemComponent] has. The body itself may be any [PhysicsBody3D]; nothing here calls [method CharacterBody3D.move_and_slide], so a [CharacterBody3D] is a sensible default rather than a requirement.
-		Property names follow Unreal's CharacterMovementComponent, but the values are metric: Godot works in metres where Unreal works in centimetres, so [member max_walk_speed] defaults to 6.0 rather than 600.
+		The values are metric, so [member max_walk_speed] defaults to 6.0 (metres per second).
 		How a character moves is decided by the [MovementMode] named in [method get_movement_mode], looked up in [member modes]. [WalkingMode] and [FallingMode] are registered automatically unless the project put its own mode under those names, and hand over to each other as the ground appears and disappears.
 		None of the simulation is stored on this node. It lives in a [MovementState], a tick is (state, input, delta) to state, and the body's transform is written exactly once at the end - which is what lets the same tick be replayed against a corrected state, the thing client prediction is.
 		The component simulates where the pawn has authority, and - with [member client_prediction] on - on the owning client too. Everywhere else, movement arrives through the transform replication the [Pawn] sets up.
@@ -104,7 +104,7 @@
 			<param index="1" name="base_max_speed" type="float" />
 			<description>
 				The speed cap for an input of this length: a stick pushed half way walks at half speed, not at full speed reached more slowly.
-				Scaling only the acceleration - which is what falls out of using the input vector as an acceleration and nothing else - would let every input eventually reach the same top speed, so a gentle push would be a slow start rather than a walk. Unreal calls the same factor AnalogInputModifier. An input of zero leaves the cap alone, because it is still what the braking below it is measured against.
+				Scaling only the acceleration - which is what falls out of using the input vector as an acceleration and nothing else - would let every input eventually reach the same top speed, so a gentle push would be a slow start rather than a walk. An input of zero leaves the cap alone, because it is still what the braking below it is measured against.
 			</description>
 		</method>
 		<method name="get_capsule_half_height" qualifiers="const">
@@ -117,6 +117,12 @@
 			<return type="float" />
 			<description>
 				The radius read off the body's [CapsuleShape3D], or a default when it has none.
+			</description>
+		</method>
+		<method name="get_base_velocity" qualifiers="const">
+			<return type="Vector3" />
+			<description>
+				The velocity of the base where the character stands, measured from how far the base moved over the last tick (so a spinning base counts its speed at the character, not at its centre). Zero without a base. This is what [member impart_base_velocity] hands over on leaving it.
 			</description>
 		</method>
 		<method name="get_current_floor" qualifiers="const">
@@ -333,11 +339,11 @@
 			Multiplies the friction used while braking. Raising it shortens the slide after the player lets go without making the character harder to steer.
 		</member>
 		<member name="can_crouch" type="bool" setter="set_can_crouch" getter="get_can_crouch" default="true">
-			Whether this character crouches at all. Unreal defaults its equivalent off; this defaults on, because a crouch request that silently does nothing is a worse first experience than a character that crouches when asked.
+			Whether this character crouches at all. On by default, because a crouch request that silently does nothing is a worse first experience than a character that crouches when asked.
 			Switching it on makes the component take ownership of the body's [CapsuleShape3D] - a shape authored once and shared between every pawn of a kind would otherwise crouch all of them at once.
 		</member>
 		<member name="can_walk_off_ledges" type="bool" setter="set_can_walk_off_ledges" getter="get_can_walk_off_ledges" default="true">
-			When false the character stops at a ledge instead of stepping off it. Unreal works out how far along the blocked move it could still have gone; this gives the whole move back, which is blunter but keeps the promise the flag makes - the character never walks off on its own.
+			When false the character stops at a ledge instead of stepping off it. The whole blocked move is given back rather than the part that would still fit, which is blunter but keeps the promise the flag makes - the character never walks off on its own.
 		</member>
 		<member name="client_prediction" type="bool" setter="set_client_prediction" getter="get_client_prediction" default="false">
 			The owning client simulates its own character immediately instead of waiting a round trip for the server to, and is corrected when the server disagrees. See [PredictedMovementBackend].
@@ -363,8 +369,7 @@
 			How quickly a character can change direction while still being pushed. This is steering, not stopping - stopping is [member braking_deceleration_walking]. Turning sharply at speed is what this number controls.
 		</member>
 		<member name="impart_base_velocity" type="bool" setter="set_impart_base_velocity" getter="get_impart_base_velocity" default="true">
-			Hands the platform's own velocity to the character when it leaves, so a jump from a moving lift keeps the lift's momentum instead of dropping straight down.
-			Only bodies Godot tracks the motion of report a velocity to take: an [AnimatableBody3D] does, a [StaticBody3D] pushed around by a script does not.
+			Hands the base's velocity to the character when it leaves the base into the air - a jump, walking off its edge - so a jump from a moving lift keeps the lift's momentum instead of dropping straight down. While the character stands on the base nothing is added: following it ([member move_with_base]) already does the carrying. Stepping from one base onto another hands nothing over. Measured at the character's feet, see [method get_base_velocity].
 		</member>
 		<member name="jump_velocity" type="float" setter="set_jump_velocity" getter="get_jump_velocity" default="5.2">
 			Upward speed applied on [method jump], in metres per second. Jump height is roughly this squared over twice [member gravity].
@@ -404,6 +409,8 @@
 		</member>
 		<member name="move_with_base" type="bool" setter="set_move_with_base" getter="get_move_with_base" default="true">
 			Carries the character along with whatever it is standing on. What is applied each tick is how much the base [i]moved[/i], not a rebuilt position from a stored offset - the difference matters, because rebuilding throws away the corrections the solver made during the tick and the two then fight each other a little more every frame.
+			The base is tracked whether or not this is on - only the following is switched off - so the setting can be toggled at any time without the character jumping by everything the base did meanwhile.
+			What counts as a base: any walkable floor, unless its node defines [code]_can_be_base_for_character(body)[/code] and returns [code]false[/code] for this character - e.g. a loose rigid body that rolls under the feet. Such a floor is still walked on, it just does not carry the character.
 		</member>
 		<member name="movement_mode" type="StringName" setter="set_movement_mode" getter="get_movement_mode">
 			The mode running right now. Not something you author - the knob for that is [member starting_mode], and during simulation modes hand over to each other. It is declared as a property so that it can be replicated; on a client it is written by the server and is the reason a pawn you do not own can be told apart walking from falling, which is what animation needs to know.
@@ -413,7 +420,7 @@
 		</member>
 		<member name="out_of_water_jump_velocity" type="float" setter="set_out_of_water_jump_velocity" getter="get_out_of_water_jump_velocity" default="5.2">
 			The push a jump gives while swimming, in metres per second. What gets a character out of a pool rather than bobbing against the lip of it.
-			Taking it hands over to [code]Falling[/code] in the same tick rather than staying to swim upward, because the swim speed cap and the surface damping would both brake the impulse away over the next few ticks. Unreal applies its [code]OutofWaterZ[/code] from [code]PhysicsVolumeChanged[/code] for exactly this reason.
+			Taking it hands over to [code]Falling[/code] in the same tick rather than staying to swim upward, because the swim speed cap and the surface damping would both brake the impulse away over the next few ticks.
 		</member>
 		<member name="perch_additional_height" type="float" setter="set_perch_additional_height" getter="get_perch_additional_height" default="0.4">
 			How far above a walkable floor a perched character may hang, on top of [member max_step_height]. Only consulted while already on the ground, and only when [member perch_radius_threshold] has switched perching on.
@@ -430,7 +437,7 @@
 			The same for velocity, in metres per second.
 		</member>
 		<member name="replicate_movement_mode" type="bool" setter="set_replicate_movement_mode" getter="get_replicate_movement_mode" default="true">
-			Sends [member movement_mode] from the server to every other peer. Unreal replicates the same thing as [code]ACharacter::ReplicatedMovementMode[/code], but only to simulated proxies: an autonomous proxy predicts its own mode, so sending it one would fight the prediction. Here the owner of a predicted character still receives it and drops it on arrival - hiding the synchronizer from the owner instead would hide this node from the owner's remote calls too, and the prediction's acknowledgements are sent to exactly this node.
+			Sends [member movement_mode] from the server to every other peer. An autonomous proxy predicts its own mode, so sending it one would fight the prediction: the owner of a predicted character still receives it and drops it on arrival - hiding the synchronizer from the owner instead would hide this node from the owner's remote calls too, and the prediction's acknowledgements are sent to exactly this node.
 		</member>
 		<member name="replicated_movement_mode" type="StringName" setter="set_replicated_movement_mode" getter="get_replicated_movement_mode">
 			What the mode replication reads and writes: [member movement_mode], except that a client predicting this character ignores what arrives. Not for game code.

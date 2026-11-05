@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="GameplayDebuggerCategoryNet" inherits="GameplayDebuggerCategory" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Gameplay debugger category: peers and network health.
+	</brief_description>
+	<description>
+		Every peer's round-trip time and packet loss as the server measures them, server frame rate, time scale and node count. Off by default.
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="category_name" type="String" setter="set_category_name" getter="get_category_name" overrides="GameplayDebuggerCategory" default="&quot;Net&quot;" />
+		<member name="enabled_by_default" type="bool" setter="set_enabled_by_default" getter="is_enabled_by_default" overrides="GameplayDebuggerCategory" default="false" />
+	</members>
+</class>

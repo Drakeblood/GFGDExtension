@@ -13,8 +13,7 @@ using namespace godot;
 
 namespace GFGD
 {
-// A gameplay cue handler with no instance of its own - Unreal's
-// GameplayCueNotify_Static. One resource answers every cue with its tag, on
+// A gameplay cue handler with no instance of its own. One resource answers every cue with its tag, on
 // every character, so it keeps no state: play a sound at the target, flash its
 // material, spawn something that looks after itself.
 //
@@ -56,8 +55,8 @@ protected:
 	static void _bind_methods();
 };
 
-// Finds the handler for a cue tag - Unreal's GameplayCueManager, minus the
-// asset scanning: the handlers are whatever the cue tables name.
+// Finds the handler for a cue tag. There is no asset scanning: the handlers
+// are whatever the cue tables name.
 //
 // A tag with no handler of its own falls back to its parent's, so
 // "Cue.Hit.Fire" plays "Cue.Hit"'s handler until it gets one. Answers are

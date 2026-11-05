@@ -138,7 +138,18 @@ every replay. `project/scripts/online_pawn.gd` dashes this way.
 ### 6. The movement base cannot be rewound
 
 As predicted. `rollback_to_state` drops the base; a replay collides against the present world.
-Characters replayed while standing on a fast platform drift and are corrected on the next ack.
+
+What was **not** predicted: comparing in world space on a moving platform corrects on every ack. The
+client's copy of the platform is interpolated, so it is behind the server's; at 14 m/s one tick of
+that lag is 0.23 m, over tolerance, and a rider on a truck bed was corrected ~60 times a second
+(887 corrections in 15 s, judder and sliding on screen). So an ack carries the base too — as a
+**node path** (the same on every machine for a replicated platform; an `ObjectID` is not) and the
+offset on it, `pack_state` fields 6 and 7, optional for older peers. `unpack_state` resolves the path
+to the client's own node, so the server's state arrives with a `base_id` that means something here.
+`in_client_frame()` then places the server's offset on the client's copy of the base, and both the
+tolerance check and the correction use that: only how far the rider is from where the server has it
+**on the platform** counts. Same ride after the change: 0 corrections. Tartacus' `ride` autotest is
+the end-to-end check (two riders standing on a pickup bed at full throttle up a road, then braking).
 
 ## Replication on the owning client
 
@@ -183,14 +194,14 @@ traffic, and it is compiled out of release builds. The demo takes `--net-latency
 ## Not done
 
 - **Simulated proxy smoothing.** Other players still snap to each replicated transform. Interpolation
-  (or Unreal's `SimulateMovement` extrapolation plus mesh smoothing) is the next most visible thing.
-- **Smoothing the correction itself.** A correction moves the capsule at once. Unreal smooths the
-  visible mesh toward the corrected capsule over a few frames; a game can do the same from
+  (or extrapolating with the movement code plus mesh smoothing) is the next most visible thing.
+- **Smoothing the correction itself.** A correction moves the capsule at once. Smoothing the
+  visible mesh toward the corrected capsule over a few frames hides it; a game can do that from
   `prediction_corrected` today.
 - **Clock sync and anti-cheat** — see item 3.
 - **Moves queued outside the tick** are not predicted; that is what custom flags are for.
 - **Root motion** replays against the animation as it is now, not as it was.
 - **2D end to end.** The 2D component has the same code path and passes `test_replay.gd`, but there
   is no 2D online level, so the two-process test covers 3D only.
-- **Bandwidth.** One ack per consumed tick per predicted pawn, full state each time. Unreal sends a
-  tiny "good move" ack and a full adjustment only on disagreement; that is the obvious saving.
+- **Bandwidth.** One ack per consumed tick per predicted pawn, full state each time. A
+  tiny "good move" ack with a full adjustment only on disagreement is the obvious saving.

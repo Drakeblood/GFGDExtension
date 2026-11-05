@@ -10,6 +10,18 @@ using namespace godot;
 
 namespace GFGD
 {
+int PlayerInput::gameplay_input_blocks = 0;
+
+void PlayerInput::block_gameplay_input()
+{
+	gameplay_input_blocks++;
+}
+
+void PlayerInput::unblock_gameplay_input()
+{
+	gameplay_input_blocks = gameplay_input_blocks > 0 ? gameplay_input_blocks - 1 : 0;
+}
+
 PlayerInput::PlayerInput()
 {
 	passthrough = false;
@@ -168,6 +180,7 @@ const PlayerInput::ActionState* PlayerInput::find_action_state(const StringName&
 
 bool PlayerInput::is_action_pressed(const StringName& action_name) const
 {
+	if (gameplay_input_blocks > 0) { return false; }
 	if (passthrough) { return Input::get_singleton()->is_action_pressed(action_name); }
 
 	const ActionState* action_state = find_action_state(action_name);
@@ -176,6 +189,7 @@ bool PlayerInput::is_action_pressed(const StringName& action_name) const
 
 bool PlayerInput::is_action_just_pressed(const StringName& action_name) const
 {
+	if (gameplay_input_blocks > 0) { return false; }
 	if (passthrough) { return Input::get_singleton()->is_action_just_pressed(action_name); }
 
 	const ActionState* action_state = find_action_state(action_name);
@@ -189,6 +203,7 @@ bool PlayerInput::is_action_just_pressed(const StringName& action_name) const
 
 bool PlayerInput::is_action_just_released(const StringName& action_name) const
 {
+	if (gameplay_input_blocks > 0) { return false; }
 	if (passthrough) { return Input::get_singleton()->is_action_just_released(action_name); }
 
 	const ActionState* action_state = find_action_state(action_name);
@@ -202,6 +217,7 @@ bool PlayerInput::is_action_just_released(const StringName& action_name) const
 
 float PlayerInput::get_action_strength(const StringName& action_name) const
 {
+	if (gameplay_input_blocks > 0) { return 0.0f; }
 	if (passthrough) { return Input::get_singleton()->get_action_strength(action_name); }
 
 	const ActionState* action_state = find_action_state(action_name);
@@ -210,6 +226,7 @@ float PlayerInput::get_action_strength(const StringName& action_name) const
 
 float PlayerInput::get_action_raw_strength(const StringName& action_name) const
 {
+	if (gameplay_input_blocks > 0) { return 0.0f; }
 	if (passthrough) { return Input::get_singleton()->get_action_raw_strength(action_name); }
 
 	const ActionState* action_state = find_action_state(action_name);
@@ -218,6 +235,7 @@ float PlayerInput::get_action_raw_strength(const StringName& action_name) const
 
 float PlayerInput::get_axis(const StringName& negative_action, const StringName& positive_action) const
 {
+	if (gameplay_input_blocks > 0) { return 0.0f; }
 	if (passthrough) { return Input::get_singleton()->get_axis(negative_action, positive_action); }
 
 	return get_action_strength(positive_action) - get_action_strength(negative_action);
@@ -225,6 +243,7 @@ float PlayerInput::get_axis(const StringName& negative_action, const StringName&
 
 Vector2 PlayerInput::get_vector(const StringName& negative_x, const StringName& positive_x, const StringName& negative_y, const StringName& positive_y, float deadzone) const
 {
+	if (gameplay_input_blocks > 0) { return Vector2(); }
 	if (passthrough) { return Input::get_singleton()->get_vector(negative_x, positive_x, negative_y, positive_y, deadzone); }
 
 	// Built from raw strengths so the circular deadzone below is applied once,
@@ -329,6 +348,9 @@ void PlayerInput::_bind_methods()
 	ClassDB::bind_static_method("PlayerInput", D_METHOD("device_slot_from_event", "event"), &PlayerInput::device_slot_from_event);
 
 	ClassDB::bind_method(D_METHOD("accepts_device_slot", "device_slot"), &PlayerInput::accepts_device_slot);
+	ClassDB::bind_static_method("PlayerInput", D_METHOD("block_gameplay_input"), &PlayerInput::block_gameplay_input);
+	ClassDB::bind_static_method("PlayerInput", D_METHOD("unblock_gameplay_input"), &PlayerInput::unblock_gameplay_input);
+	ClassDB::bind_static_method("PlayerInput", D_METHOD("is_gameplay_input_blocked"), &PlayerInput::is_gameplay_input_blocked);
 	ClassDB::bind_method(D_METHOD("feed_input_event", "event"), &PlayerInput::feed_input_event);
 	ClassDB::bind_method(D_METHOD("reset_action_states"), &PlayerInput::reset_action_states);
 	ClassDB::bind_method(D_METHOD("refresh_action_cache"), &PlayerInput::refresh_action_cache);

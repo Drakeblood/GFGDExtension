@@ -179,7 +179,7 @@ everywhere.
   AbilityAsync.wait_x(...).triggered` resumes on the first trigger but leaves it running — pass
   `only_trigger_once = true` for a one-off.
 - **A gameplay event sent on the server does not trigger a remote player's predicted ability.**
-  Events are local (as in Unreal) and a `LOCAL_PREDICTED` ability is triggered only where its owner
+  Events are local and a `LOCAL_PREDICTED` ability is triggered only where its owner
   is controlled - the client. Send the event where the thing happens on the owner's machine (an
   animation's hit frame plays there too), or make the ability `SERVER_ONLY`.
 - **A periodic effect's cue executes on every tick.** With a scene handler for that tag, the ticks go

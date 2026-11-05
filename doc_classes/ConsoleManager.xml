@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="ConsoleManager" inherits="Object" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Console commands and console variables. Engine singleton.
+	</brief_description>
+	<description>
+		Every script reaches it as [code]ConsoleManager[/code]. A console line is [code]name arg arg ...[/code]: arguments are separated by spaces, [code]"quoted text"[/code] is one argument and [code];[/code] separates commands. Names are case-insensitive. A line resolves, in order, to:
+		- a registered command ([method register_command]) - its [Callable] is called with the arguments converted to the method's declared parameter types: [int], [float], [bool] ([code]1/0/true/false/on/off[/code]), [String], [Vector3] as [code]x,y,z[/code], a [Resource] by its [code]res://[/code] path, a [GameplayTag] by name. Extra words go into a trailing [String] parameter;
+		- a console variable ([method register_variable]) - [code]name[/code] prints it, [code]name value[/code] sets it;
+		- a method of the player's [CheatManager] - always run on the server.
+		[constant FLAG_SERVER] commands typed on a client travel to the server through the player's [DebugReplicator] and run there as that player ([method get_executor]); whatever they print comes back to that client's console. [constant FLAG_CHEAT] commands run only while [method are_cheats_allowed].
+		Built-in commands: [code]dumpcommands[/code], [code]echo[/code], [code]exec[/code], [code]slomo[/code], [code]quit[/code], [code]clear[/code] (the [GameConsole]), [code]gd.toggle[/code], [code]gd.category[/code], [code]gd.target[/code], [code]gd.lock[/code], [code]gd.freecam[/code] (the [GameplayDebuggerHUD]); variables [code]cheats[/code] and [code]console.engine_log[/code] (the [GameConsole]).
+		Give every command a help text: the console shows it, with the arguments, next to each suggestion as you type. [code]user://autoexec.cfg[/code] runs at startup when it exists.
+		[codeblock]
+		func _ready() -&gt; void:
+		    ConsoleManager.register_command("give_wood", func(amount: int = 10) -&gt; void:
+		        wood += amount, "Adds wood.")
+		    ConsoleManager.register_variable("show_fps", false, "Shows the FPS counter.", ConsoleManager.FLAG_SAVED)
+		[/codeblock]
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="are_cheats_allowed" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Always [code]true[/code] in a debug build; otherwise the value of the [code]cheats[/code] variable (checked where the cheat runs - on the server).
+			</description>
+		</method>
+		<method name="describe" qualifiers="const">
+			<return type="String" />
+			<param index="0" name="name" type="String" />
+			<description>
+				A one-line usage and help text for a name ([code]name
+			</description>
+		</method>
+		<method name="execute">
+			<return type="bool" />
+			<param index="0" name="line" type="String" />
+			<description>
+				Runs a line as if it was typed into this machine's console. Returns [code]false[/code] if any part of it failed. A line forwarded to the server counts as a success once it is sent.
+			</description>
+		</method>
+		<method name="execute_file">
+			<return type="bool" />
+			<param index="0" name="path" type="String" />
+			<description>
+				Runs every line of a file. Lines starting with [code]#[/code] or [code]//[/code] are comments.
+			</description>
+		</method>
+		<method name="get_all_names" qualifiers="const">
+			<return type="PackedStringArray" />
+			<description>
+				Every command, variable and cheat name, sorted.
+			</description>
+		</method>
+		<method name="get_completions" qualifiers="const">
+			<return type="PackedStringArray" />
+			<param index="0" name="prefix" type="String" />
+			<description>
+				Command, variable and cheat names starting with [param prefix], then the ones merely containing it.
+			</description>
+		</method>
+		<method name="get_executor" qualifiers="const">
+			<return type="PlayerController" />
+			<description>
+				The [PlayerController] the running command acts for: the sender while the server runs a forwarded line, else this machine's player. May be [code]null[/code].
+			</description>
+		</method>
+		<method name="get_info" qualifiers="const">
+			<return type="Dictionary" />
+			<param index="0" name="name" type="String" />
+			<description>
+				A name's parts, as the console's suggestions show them: [code]name[/code], [code]kind[/code] ([code]"command"[/code], [code]"variable"[/code] or [code]"cheat"[/code]), [code]usage[/code] (the arguments, read off the method), [code]help[/code], [code]tags[/code] ([code]"cheat"[/code], [code]"server"[/code]) and, for a variable, [code]value[/code]. Empty for an unknown name.
+			</description>
+		</method>
+		<method name="get_variable" qualifiers="const">
+			<return type="Variant" />
+			<param index="0" name="name" type="String" />
+			<param index="1" name="default_value" type="Variant" default="null" />
+			<description>
+				The variable's current value, or [param default_value] when there is no such variable.
+			</description>
+		</method>
+		<method name="has_command" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="name" type="String" />
+			<description>
+				[code]true[/code] if a command of that name is registered.
+			</description>
+		</method>
+		<method name="has_variable" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="name" type="String" />
+			<description>
+				[code]true[/code] if a variable of that name is registered.
+			</description>
+		</method>
+		<method name="is_console_open" qualifiers="const">
+			<return type="bool" />
+			<description>
+				[code]true[/code] while the [GameConsole] overlay is open. The other debug overlays ignore their keys then.
+			</description>
+		</method>
+		<method name="print_error">
+			<return type="void" />
+			<param index="0" name="text" type="String" />
+			<description>
+				[method print_line] as an error.
+			</description>
+		</method>
+		<method name="print_line">
+			<return type="void" />
+			<param index="0" name="text" type="String" />
+			<param index="1" name="level" type="int" default="0" />
+			<description>
+				Prints to the console. While the server runs a line a client sent, the text goes back to that client's console.
+			</description>
+		</method>
+		<method name="print_warning">
+			<return type="void" />
+			<param index="0" name="text" type="String" />
+			<description>
+				[method print_line] as a warning.
+			</description>
+		</method>
+		<method name="register_command">
+			<return type="void" />
+			<param index="0" name="name" type="String" />
+			<param index="1" name="callable" type="Callable" />
+			<param index="2" name="help" type="String" default="&quot;&quot;" />
+			<param index="3" name="flags" type="int" default="0" />
+			<description>
+				Adds a command. [param callable] gets the line's arguments converted to its parameter types (see the class description), or one [PackedStringArray] with [constant FLAG_RAW_ARGS]. A non-null return value is printed. Registering a name again replaces the command.
+			</description>
+		</method>
+		<method name="register_variable">
+			<return type="Variant" />
+			<param index="0" name="name" type="String" />
+			<param index="1" name="default_value" type="Variant" />
+			<param index="2" name="help" type="String" default="&quot;&quot;" />
+			<param index="3" name="flags" type="int" default="0" />
+			<description>
+				Adds a console variable and returns the value now in effect - the saved one for a [constant FLAG_SAVED] variable that has one, else [param default_value]. Values set later are converted to the type of [param default_value]. Registering again keeps the current value.
+			</description>
+		</method>
+		<method name="set_command_usage">
+			<return type="void" />
+			<param index="0" name="name" type="String" />
+			<param index="1" name="usage" type="String" />
+			<description>
+				The arguments shown after a command's name, e.g. [code]"<path> [lb]count[lb]"[/code] - for a [constant FLAG_RAW_ARGS] command, whose parameters cannot be read off the method.
+			</description>
+		</method>
+		<method name="set_variable">
+			<return type="void" />
+			<param index="0" name="name" type="String" />
+			<param index="1" name="value" type="Variant" />
+			<description>
+				Sets a variable (converted to its type), saves it when it is [constant FLAG_SAVED] and emits [signal variable_changed].
+			</description>
+		</method>
+		<method name="unregister_command">
+			<return type="void" />
+			<param index="0" name="name" type="String" />
+			<description>
+				Removes a command.
+			</description>
+		</method>
+		<method name="unregister_variable">
+			<return type="void" />
+			<param index="0" name="name" type="String" />
+			<description>
+				Removes a console variable.
+			</description>
+		</method>
+	</methods>
+	<signals>
+		<signal name="output_printed">
+			<param index="0" name="text" type="String" />
+			<param index="1" name="level" type="int" />
+			<description>
+				Emitted for every line of console output. The [GameConsole] shows these; with nothing connected, output goes to stdout.
+			</description>
+		</signal>
+		<signal name="variable_changed">
+			<param index="0" name="name" type="String" />
+			<param index="1" name="value" type="Variant" />
+			<description>
+				Emitted when a console variable changes.
+			</description>
+		</signal>
+	</signals>
+	<constants>
+		<constant name="FLAG_NONE" value="0" enum="CommandFlags">
+			No flags.
+		</constant>
+		<constant name="FLAG_CHEAT" value="1" enum="CommandFlags">
+			Runs only while [method are_cheats_allowed].
+		</constant>
+		<constant name="FLAG_SERVER" value="2" enum="CommandFlags">
+			Runs on the server; a client forwards the line.
+		</constant>
+		<constant name="FLAG_SAVED" value="4" enum="CommandFlags">
+			Variables: kept in [code]user://gfgd_console.cfg[/code] across runs.
+		</constant>
+		<constant name="FLAG_RAW_ARGS" value="8" enum="CommandFlags">
+			Commands: the [Callable] gets one [PackedStringArray] with the raw words.
+		</constant>
+		<constant name="OUTPUT_INFO" value="0" enum="OutputLevel">
+			Ordinary output.
+		</constant>
+		<constant name="OUTPUT_COMMAND" value="1" enum="OutputLevel">
+			An echoed [code]&gt; line[/code].
+		</constant>
+		<constant name="OUTPUT_WARNING" value="2" enum="OutputLevel">
+			A warning.
+		</constant>
+		<constant name="OUTPUT_ERROR" value="3" enum="OutputLevel">
+			An error.
+		</constant>
+		<constant name="OUTPUT_LOG" value="4" enum="OutputLevel">
+			Captured engine output (print, push_warning, push_error).
+		</constant>
+	</constants>
+</class>

@@ -348,7 +348,7 @@ disconnect anything you connected, and start it with `run_task(MyTask.new())`.
 ## AbilityAsync — waiting from outside an ability
 
 A HUD, a quest or a door that wants to know when something happens on a component uses
-`AbilityAsync` — Unreal's `UAbilityAsync`. Where a task belongs to an ability and dies with it, an
+`AbilityAsync`. Where a task belongs to an ability and dies with it, an
 async belongs to the component it watches, **the target, which keeps it alive**: nothing has to hold
 a variable for it. It ends when the target is freed, when its optional **owner** node leaves the tree
 (or is freed), when `end_action()` is called, or — with `only_trigger_once` — after it first
@@ -371,7 +371,7 @@ await AbilityAsync.wait_gameplay_tag_removed(asc, &"State.Stunned", self, true).
 | `wait_gameplay_event(target, event_tag, ...)` | the payload |
 | `wait_gameplay_effect_applied(target, effect_tag = &"", ...)` | `{ effect, active_id }`, for effects whose `effect_tags` match (every effect when empty) |
 
-The default repeats, as in Unreal. Something already true when an async starts is delivered at the
+The default repeats. Something already true when an async starts is delivered at the
 end of the frame, once the caller has connected. It works on a replicated client too: the
 component's signals fire there as the server's state arrives, so a client's HUD is exactly what the
 async is for. Methods: `end_action()`, `is_active()`, `has_ended()`, `get_ability_system_component()`,
@@ -395,21 +395,20 @@ cues = { &"Cue.Hit": preload("res://cues/hit_spark.tscn"),      # a scene
          &"Cue.Shout": preload("res://cues/shout.tres") }       # a GameplayCueNotify
 ```
 
-- **A `GameplayCueNotify` resource** (Unreal's Static notify) is called with the character as target:
+- **A `GameplayCueNotify` resource** is called with the character as target:
   `_on_execute(target, parameters)`, `_on_active`, `_on_removed`. One resource serves every
   character, so it keeps no state.
-- **A `PackedScene`** (Unreal's Actor notify) is instanced. For an added cue it goes under the
+- **A `PackedScene`** is instanced. For an added cue it goes under the
   character and lives until the cue is removed: its root's `_on_active(parameters)` is called, then
   `_on_removed(parameters)` — after which it must free itself (to fade out) — or, without that
   method, it is freed at once. For an executed cue it calls `_on_execute(parameters)` and must free
   itself; with a `location` parameter it is placed in the world there instead of on the character.
-  **An executed scene must have `_on_execute` and free itself** (Unreal's cue actor calls
-  `EndGameplayCue` the same way): one without it is freed at once, with a warning. A one-shot with
+  **An executed scene must have `_on_execute` and free itself**: one without it is freed at once, with a warning. A one-shot with
   no script belongs in a `GameplayCueNotify` instead.
 - **An execute of a cue that is already added goes to the running instance**, not a new one: a
   lasting effect with a `period` executes its cues on every tick, and those ticks reach the scene
   under the character as `_on_execute(parameters)` (if it has one) - a pulse of the aura, not a new
-  aura per tick. Unreal hands an execute to the existing cue actor the same way. An execute with a
+  aura per tick. An execute with a
   `location` still spawns in the world.
 - A tag with no handler uses its **nearest parent's**: `Cue.Hit.Fire` plays `Cue.Hit` until it has its
   own. `GameplayCueManager.get_singleton().add_table(t)` adds a table at runtime.
@@ -427,14 +426,14 @@ added is removed when it ends.
 
 ### Gameplay events and triggers
 
-`asc.send_gameplay_event(&"Event.Hit", { "damage": 12 })` does two things, as in Unreal: running
+`asc.send_gameplay_event(&"Event.Hit", { "damage": 12 })` does two things: running
 abilities waiting in `wait_gameplay_event` hear it, and abilities whose `trigger_event_tags` match it
 are **activated** by it (a child tag matches: `Event.Hit.Head` triggers `Event.Hit`), reading the
 payload with `get_trigger_event_data()`. `_should_respond_to_event(tag, payload)` can turn one down.
 
-**Events are not replicated** — same as Unreal. The usual pattern is that the event happens on each
+**Events are not replicated.** The usual pattern is that the event happens on each
 machine by itself: the attack animation plays on the server and on the predicting client, and its
-hit frame sends the event on both. Where a trigger fires follows Unreal's rule: a `LOCAL_PREDICTED`
+hit frame sends the event on both. Where a trigger fires: a `LOCAL_PREDICTED`
 or `LOCAL_ONLY` ability triggers on the machine controlling its owner, a `SERVER_ONLY` one on the
 server. A predicted activation carries the payload with its request, so the server's copy runs with
 the client's data though the server never saw the event — check it before trusting it. The server
@@ -548,3 +547,20 @@ What is not there: predicted *effects* (a client never applies an effect, so a p
 cost shows up a round trip later), prediction keys for anything but activation, and a relevancy
 filter beyond "every ready peer".
 
+
+## Debugging — the GAS overlay
+
+Debug builds get an `AbilitySystemDebugger` under the root (the World adds it; switch it off with
+`application/game_framework/debug/gas_debugger = false`). **F3** shows it, **F4** steps to the next
+component in the tree (Input Map actions `gfgd_debug_gas_debugger` / `_next`); it starts on the
+local player's pawn. For the **server's** view of a component, with the client's differences
+listed, use the gameplay debugger's Abilities category (`'`, see `references/debug-tools.md`). It shows attributes (base vs current),
+owned tags with counts, tags blocking abilities, active effects (time left, stacks, granted tags),
+abilities (active / cooldown / **the reason of the last refusal** — `tags`, `cooldown`, `cost`...),
+active cues and a log of recent activations, refusals, effects and tag changes.
+
+On a client it shows the **replicated mirror** — what that client believes. When "the client does not
+see the tag", compare the overlay on both windows.
+
+The same data as a `Dictionary`: `asc.get_debug_snapshot()`; as text: `debugger.describe(asc)` —
+handy in automated tests to print the full state when a check fails.

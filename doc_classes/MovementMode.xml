@@ -6,7 +6,7 @@
 	<description>
 		A [Resource] rather than a [Node], so a mode can be authored inline in the inspector, shared between pawns, and written in GDScript without touching this extension. Register one by putting it in [member CharacterMovementComponent.modes] under the name modes will refer to it by.
 		The two halves are deliberately separate. [method _generate_move] proposes motion: it is side effect free, touches nothing, and can therefore be blended with other proposals - which is what will make a dash on top of a walk possible without the walking code ever hearing about dashes. [method _simulation_tick] executes it: sweeps, resolves collisions, writes the state.
-		Unreal's CharacterMovementComponent fuses the two inside each of its physics functions, and that is precisely why layering anything on top of it is painful.
+		Fusing the two into one function is precisely what makes layering anything on top of a movement mode painful.
 	</description>
 	<tutorials>
 	</tutorials>

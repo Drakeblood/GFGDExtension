@@ -66,9 +66,8 @@ private:
 	// activate while the owner has any of them.
 	Ref<GameplayEffect> cooldown_effect;
 
-	// Gameplay events that activate this ability by themselves - Unreal's
-	// AbilityTriggers with a GameplayEvent source. "Event" is triggered by
-	// "Event.Hit" too.
+	// Gameplay events that activate this ability by themselves. "Event" is
+	// triggered by "Event.Hit" too.
 	Ref<GameplayTagContainer> trigger_event_tags;
 
 	// The event that started the current activation, if one did.
@@ -97,8 +96,7 @@ private:
 	int next_sync_sequence;
 	Dictionary received_target_data;
 
-	// Persistent cues this activation added, removed when it ends - Unreal's
-	// bRemoveOnAbilityEnd, which is on by default there too.
+	// Persistent cues this activation added, removed when it ends.
 	PackedStringArray added_cues;
 
 public:

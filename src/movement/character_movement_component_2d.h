@@ -42,9 +42,8 @@ class Pawn;
 // leaves z alone, which keeps one set of types, one mode contract and one
 // prediction story instead of two.
 //
-// Units are pixels. The defaults are Unreal's centimetre values unchanged, which
-// is what the usual "a metre is a hundred pixels" convention makes them; the 3D
-// component divides the same numbers by a hundred.
+// Units are pixels, with "a metre is a hundred pixels": the defaults are the
+// 3D component's multiplied by a hundred.
 class CharacterMovementComponent2D : public Node
 {
 	GDCLASS(CharacterMovementComponent2D, Node)
@@ -91,6 +90,10 @@ private:
 	// character by the difference.
 	Transform2D base_last_transform;
 	bool has_base_last_transform;
+
+	// The base's velocity where the character stands, measured from what the
+	// base actually did over the last tick. Handed over on leaving it.
+	Vector2 base_velocity;
 
 	StringName queued_mode;
 	bool has_queued_mode;
@@ -348,6 +351,7 @@ public:
 	// Records what the character ended the tick standing on, and where it stands
 	// relative to it. Called once per simulated frame, after the modes have run.
 	void save_base_location();
+	Vector2 get_base_velocity() const { return base_velocity; }
 
 	void jump();
 	void stop_jumping();
@@ -372,7 +376,8 @@ private:
 	void resolve_updated_body();
 	void resolve_capsule_dimensions();
 	// Moves the character by however much its base moved.
-	void update_based_movement();
+	void update_based_movement(double delta);
+	bool can_be_base(Object* collider) const;
 
 	// The node behind MovementState::base_id, or null once it is gone.
 	Node2D* resolve_base() const;

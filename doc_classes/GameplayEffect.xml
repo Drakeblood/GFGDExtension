@@ -70,7 +70,7 @@
 			Every application is its own active effect.
 		</constant>
 		<constant name="STACKING_AGGREGATE" value="1" enum="StackingType">
-			Applications on one target share one active effect and add to its stack count. Unreal's AggregateByTarget.
+			Applications on one target share one active effect and add to its stack count.
 		</constant>
 		<constant name="CLEAR_ENTIRE_STACK" value="0" enum="StackExpiration">
 			The whole stack goes when the duration ends.

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="GameplayDebuggerCategoryAbilities" inherits="GameplayDebuggerCategory" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Gameplay debugger category: the server's [AbilitySystemComponent] state.
+	</brief_description>
+	<description>
+		Attributes, tags, effects, abilities and cues as the server has them; on a client also where the local mirror disagrees (missing or extra tags, different attribute values).
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="category_name" type="String" setter="set_category_name" getter="get_category_name" overrides="GameplayDebuggerCategory" default="&quot;Abilities&quot;" />
+	</members>
+</class>

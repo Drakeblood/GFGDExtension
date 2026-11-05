@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="GameplayDebuggerCategoryBasic" inherits="GameplayDebuggerCategory" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Gameplay debugger category: name, class, script, position, velocity, network authority and owner, controller.
+	</brief_description>
+	<description>
+		Draws a marker over the target, its velocity, and - on a client - where the server has it.
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="category_name" type="String" setter="set_category_name" getter="get_category_name" overrides="GameplayDebuggerCategory" default="&quot;Basic&quot;" />
+	</members>
+</class>

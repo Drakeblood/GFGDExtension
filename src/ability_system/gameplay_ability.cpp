@@ -219,8 +219,8 @@ bool GameplayAbility::check_cost() const
 	const Ref<GameplayEffectSpec> spec = make_outgoing_spec(cost_effect);
 	const TypedArray<AttributeModifier> modifiers = cost_effect->get_modifiers();
 
-	// The cost is affordable if applying it would leave nothing below zero -
-	// Unreal's CanApplyAttributeModifiers. A cost of 20 stamina with 19 left is
+	// The cost is affordable if applying it would leave nothing below zero.
+	// A cost of 20 stamina with 19 left is
 	// refused; with exactly 20 it goes through and leaves 0.
 	for (int i = 0; i < modifiers.size(); i++)
 	{

@@ -2,6 +2,8 @@
 
 A gameplay framework for **Godot 4.6+**, implemented in C++ as a GDExtension: game modes, controllers, possession, per-player input, an ability system — and one code path that runs the same game standalone, on a listen server, on a dedicated server and on a client.
 
+It is modelled on Unreal Engine: the Gameplay Framework (`GameMode`, `GameState`, `PlayerController`, `Pawn`, `PlayerState`, `LocalPlayer`, `GameInstance`), the Gameplay Ability System and the `CharacterMovementComponent`. The class names and the vocabulary are Unreal's on purpose, so anyone who knows them knows their way around here — but it is built for Godot rather than ported: scenes and nodes instead of actors, GDScript `await` instead of most ability tasks, metres instead of centimetres.
+
 ## Installing
 
 Grab the zip from [Releases](https://github.com/Drakeblood/GFGDExtension/releases) and unpack it into your project, so it ends up at `addons/gfgdextension/`. Or copy [`update_gfgd.ps1`](update_gfgd.ps1) into your project root and run `pwsh ./update_gfgd.ps1` with Godot closed. It downloads the latest release (or the one you pass with `-Tag`) and replaces the addon. Since the addon can be restored that way, add `addons/gfgdextension/` and `addons/gfgdextension.old/` to the game project's `.gitignore` instead of committing it. The addon's own [README](project/addons/gfgdextension/README.md#install) has the rest of the setup.
@@ -215,7 +217,7 @@ Split screen is deliberately left to the project: set `LocalPlayer.viewport_over
 
 `CharacterMovementComponent` gives a pawn walking, falling and jumping. Attach it beside the `Pawn`, on a root that is a `PhysicsBody3D` with a capsule; `updated_body_path` defaults to the parent and the modes register themselves.
 
-Property names follow Unreal's `CharacterMovementComponent` — `max_walk_speed`, `ground_friction`, `braking_deceleration_walking`, `jump_velocity`, `air_control`, `walkable_floor_angle` — because that is the vocabulary people already have. **The values are metric**: Godot works in metres where Unreal works in centimetres, so `max_walk_speed` defaults to `6.0`, not `600`.
+Property names follow Unreal's `CharacterMovementComponent` — `max_walk_speed`, `ground_friction`, `braking_deceleration_walking`, `jump_velocity`, `air_control`, `walkable_floor_angle` — because that is the vocabulary people already have. **The values are metric**: Godot works in metres where Unreal works in centimetres, so `max_walk_speed` defaults to `6.0`, not `600`. Divide anything lifted from an Unreal project by 100.
 
 Drive it with the `add_movement_input` the pawn already had, guarded by `has_authority()` the way the demo pawns are, and let the component consume it:
 
@@ -266,6 +268,16 @@ Smoothing for simulated proxies (other players snap to each replicated transform
 - **AbilitySystemComponent** (Node) — give/activate/cancel abilities, apply effects to itself or a target, owned tag counting and loose tags, gameplay cues (`execute`/`add`/`remove`, fired on every peer), exported `startup_abilities`, `startup_effects`, `attribute_set` (duplicated at runtime) and `replication_mode`. Signals: `ability_given`, `ability_activated`, `ability_activation_failed`, `ability_ended`, `owned_tag_changed`, `gameplay_effect_applied/removed/stack_changed`, `attribute_changed`, `gameplay_cue`, `replicated_state_received`.
 
 **It replicates.** The server's component is the truth and each client's a mirror: attributes, owned tags and gameplay cues reach every peer, active effects reach the owner or everyone (`replication_mode` `MIXED` or `FULL`), and the granted abilities reach the owner. The owner asks the server to activate an ability; a `LOCAL_PREDICTED` one it runs at once — its tags are there on the frame the button goes down — and the server runs it too, pays its cost, starts its cooldown and confirms, or refuses and the client's copy is cancelled. A `SERVER_ONLY` one runs on the server alone. A joining client is handed the whole state once. `tests/test_gas_replication.gd` checks all of it with a server, an owner and an observer in three processes; `tests/test_gas.gd` checks the rules on one machine.
+
+## Debug tools
+
+A console, cheats, a gameplay debugger and debug drawing; on in debug builds (`application/game_framework/debug/enable_in_release` keeps them in a release build). Every key is an Input Map action (`gfgd_debug_*`), which the editor adds to the project with defaults, so they are rebound in Project Settings > Input Map.
+
+- **Console** (`` ` ``) — `ConsoleManager` singleton: `register_command(name, callable, help, flags)` with arguments converted to the callable's parameter types, `register_variable(name, default, help, flags)` (`FLAG_SAVED` persists), `execute(line)`. `FLAG_SERVER` commands typed on a client run on the server as that player, and their output comes back. Two sizes: a command line at the bottom with suggestions (arguments and description of every match) as you type, then the full console with what was typed and printed. History, `dumpcommands`, `user://autoexec.cfg`. Game input is blocked while it is open. `--log` opens a terminal window with the game's log on Windows.
+- **CheatManager** — `application/game_framework/debug/cheat_manager_script`: every public method of the script is a command that runs on the server, on the typing player's controller (`PlayerController.get_cheat_manager()`). Built-in: `teleport`, `set_movement_mode`, `gas_add_tag`, `gas_apply_effect`, `gas_grant_ability`, `gas_set_attribute`...
+- **Gameplay debugger** (`'`) — follows the actor under the crosshair (Kp * locks it, Kp 0–9 toggle categories, Tab detaches a free camera, T moves the pawn to it). Categories (`GameplayDebuggerCategory`) collect on the **server** (`_collect_data`) and draw on the viewer (`_draw_data` → BBCode, `_draw_world` → `DebugDraw`), through a `DebugReplicator` under each `PlayerController`. Built-in: Basic, Abilities (with the client mirror's differences), Movement (with the client-server position error), Net. Game categories: `application/game_framework/debug/gameplay_debugger_categories`.
+- **DebugDraw** — singleton: `line`, `arrow`, `sphere`, `box`, `point`, `axes`, `text` with a colour and a duration.
+- **AbilitySystemDebugger** (F3/F4) — the local ability system state and an event log.
 
 ## Messaging
 

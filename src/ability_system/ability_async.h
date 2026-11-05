@@ -15,7 +15,7 @@ class AbilitySystemComponent;
 class GameplayEffect;
 
 // Something to wait for on an AbilitySystemComponent from anywhere - a HUD, a
-// quest, a door - rather than from inside an ability. Unreal's UAbilityAsync.
+// quest, a door - rather than from inside an ability.
 //
 // An AbilityTask belongs to an ability and dies with it. An AbilityAsync
 // belongs to the component it watches, the target: it is given one when it is

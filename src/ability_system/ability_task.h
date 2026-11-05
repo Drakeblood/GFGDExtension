@@ -16,9 +16,8 @@ class GameplayAbility;
 
 // Something an ability waits for, shaped for GDScript's await.
 //
-// Unreal needs AbilityTasks because C++ and Blueprints have no coroutines:
-// every "wait for X" has to be an object with callbacks. GDScript has await, so
-// the waiting itself is free; what a task adds is the two things await cannot
+// Without coroutines every "wait for X" would have to be an object with
+// callbacks. GDScript has await, so the waiting itself is free; what a task adds is the two things await cannot
 // do on its own.
 //
 // It dies with its ability. When the ability ends - finished, cancelled, or a

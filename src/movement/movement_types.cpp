@@ -330,7 +330,6 @@ FloorResult::FloorResult()
 	, line_dist(0.0f)
 	, normal(Vector3(0, 1, 0))
 	, point(Vector3())
-	, collider(nullptr)
 	, collider_velocity(Vector3())
 {
 }
@@ -350,7 +349,7 @@ void FloorResult::copy_from(const Ref<FloorResult>& other)
 	line_dist = other->line_dist;
 	normal = other->normal;
 	point = other->point;
-	collider = other->collider;
+	collider_id = other->collider_id;
 	collider_velocity = other->collider_velocity;
 }
 
@@ -363,7 +362,7 @@ void FloorResult::clear()
 	line_dist = 0.0f;
 	normal = Vector3(0, 1, 0);
 	point = Vector3();
-	collider = nullptr;
+	collider_id = ObjectID();
 	collider_velocity = Vector3();
 }
 

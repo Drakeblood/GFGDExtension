@@ -96,6 +96,15 @@ if ($Build) {
         Write-Host ""
         Write-Host "=== building $platform ===" -ForegroundColor Cyan
         & $buildAll $platform
+
+        # The build is what copies libraries into the addon; check it did, rather
+        # than packing an addon that silently lacks a platform it was asked for.
+        $platformBin = Join-Path $addon "bin/$platform"
+        $built = @(Get-ChildItem -LiteralPath $platformBin -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.Extension -in ".dll", ".so", ".dylib" })
+        if ($built.Count -eq 0) {
+            throw "Built $platform but $platformBin has no libraries - the copy into the addon did not happen."
+        }
     }
     Write-Host ""
 }

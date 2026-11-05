@@ -305,6 +305,13 @@
 				The attribute's value after modifiers. This is the one gameplay reads.
 			</description>
 		</method>
+		<method name="get_debug_snapshot" qualifiers="const">
+			<return type="Dictionary" />
+			<description>
+				Everything a debugger shows about this component, as plain data: [code]role[/code], [code]replication_mode[/code], [code]owner_peer[/code], [code]avatar[/code], [code]attributes[/code] (name → [code][base, current][/code]), [code]tags[/code] (name → count), [code]blocked_ability_tags[/code], [code]effects[/code] (id, name, policy, duration, remaining, stack, level, granted tags, whether it is a client's mirror), [code]abilities[/code] (name, input, policy, active, cooldown_remaining, last_failure, input_pressed, time_active) and [code]active_cues[/code].
+				On a replicated client it describes the mirror - what that client actually believes. [AbilitySystemDebugger] is built on it.
+			</description>
+		</method>
 		<method name="get_blocked_ability_tags" qualifiers="const">
 			<return type="GameplayTagContainer" />
 			<description>
@@ -458,7 +465,7 @@
 			<param index="0" name="event_tag" type="StringName" />
 			<param index="1" name="payload" type="Dictionary" default="{}" />
 			<description>
-				Tells this component's abilities that something happened - an animation reaching its hit frame, a projectile landing - with [param payload]. Running abilities waiting in [method GameplayAbility.wait_gameplay_event] hear it first; then every ability whose [member GameplayAbility.trigger_event_tags] match it is activated, where it may be triggered. Local to this machine: the event itself is not replicated - as in Unreal - but a predicted activation it triggers takes the payload to the server.
+				Tells this component's abilities that something happened - an animation reaching its hit frame, a projectile landing - with [param payload]. Running abilities waiting in [method GameplayAbility.wait_gameplay_event] hear it first; then every ability whose [member GameplayAbility.trigger_event_tags] match it is activated, where it may be triggered. Local to this machine: the event itself is not replicated, but a predicted activation it triggers takes the payload to the server.
 			</description>
 		</method>
 		<method name="server_ability_input">
@@ -649,7 +656,7 @@
 			Attributes, owned tags and gameplay cues to every peer, the ability list to the owner, active effects to nobody.
 		</constant>
 		<constant name="REPLICATION_MIXED" value="2" enum="ReplicationMode">
-			As minimal, and active effects to the owner - a player's HUD shows their own buffs. Unreal's recommendation for player-controlled characters.
+			As minimal, and active effects to the owner - a player's HUD shows their own buffs. The usual choice for player-controlled characters.
 		</constant>
 		<constant name="REPLICATION_FULL" value="3" enum="ReplicationMode">
 			As minimal, and active effects to every peer - an enemy's buffs can be shown above its head.

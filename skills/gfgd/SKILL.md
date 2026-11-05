@@ -1,11 +1,11 @@
 ---
 name: gfgd
-description: Use when working in a Godot project that has the GFGD game framework installed (addons/gfgdextension, an Unreal-inspired GDExtension). Covers World as the main loop, GameModeBase, GameStateBase, PlayerState, Controller/PlayerController/AIController, Pawn and possession, LocalPlayer, PlayerInput, InputRouter, InputComponent, PlayerStart2D/3D, NetDriver and replication, AbilitySystemComponent, GameplayAbility, GameplayEffect, AttributeSet, GameplayTag/Container/Table/Manager, NodePool, GameplayMessageRouter, PlayerVirtualJoystick, PlayerTouchButton, and the application/game_framework/* project settings. Read this before writing or debugging any script that touches those classes, before setting up a level, game mode or pawn, and whenever a GFGD feature silently does nothing.
+description: Use when working in a Godot project that has the GFGD game framework installed (addons/gfgdextension, a GDExtension). Covers World as the main loop, GameModeBase, GameStateBase, PlayerState, Controller/PlayerController/AIController, Pawn and possession, LocalPlayer, PlayerInput, InputRouter, InputComponent, PlayerStart2D/3D, NetDriver and replication, AbilitySystemComponent, GameplayAbility, GameplayEffect, AttributeSet, GameplayTag/Container/Table/Manager, NodePool, GameplayMessageRouter, PlayerVirtualJoystick, PlayerTouchButton, and the application/game_framework/* project settings. Read this before writing or debugging any script that touches those classes, before setting up a level, game mode or pawn, and whenever a GFGD feature silently does nothing.
 ---
 
 # GFGD
 
-An Unreal-inspired game framework for Godot 4.6+, built as a GDExtension. It replaces the
+A game framework for Godot 4.6+, built as a GDExtension. It replaces the
 "autoloads plus a scene tree" pattern with explicit lifetimes: things that belong to a level die
 with it, things that belong to the application do not.
 
@@ -169,6 +169,7 @@ func _process(delta: float) -> void:
 | Tags, tag tables, the tag editor | `references/gameplay-tags.md` |
 | `NodePool`, `GameplayMessageRouter`, saves | `references/pooling-and-messaging.md` |
 | Porting an existing game (especially from C#) onto GFGD | `references/migrating-from-csharp.md` |
+| Console commands, cheats, gameplay debugger categories, DebugDraw | `references/debug-tools.md` |
 | Getting an exact signature fast | `references/api-lookup.md` |
 
 ## Class map

@@ -52,6 +52,7 @@ CharacterMovementComponent::CharacterMovementComponent()
 	, capsule_shape_node(nullptr)
 	, backend(nullptr)
 	, has_base_last_transform(false)
+	, base_velocity()
 	, has_queued_mode(false)
 	, jump_pressed_latch(false)
 	, crouch_latch(false)
@@ -248,7 +249,7 @@ void CharacterMovementComponent::simulate_internal(double delta, const Ref<Movem
 	// After the teleport check, so a platform's motion is not mistaken for one,
 	// and before the modes run, so they start from where the platform has already
 	// put the character.
-	update_based_movement();
+	update_based_movement(delta);
 
 	if (given_input.is_valid())
 	{
@@ -639,10 +640,11 @@ Node3D* CharacterMovementComponent::resolve_base() const
 	return Object::cast_to<Node3D>(ObjectDB::get_instance(ObjectID(static_cast<uint64_t>(state->get_base_id()))));
 }
 
-void CharacterMovementComponent::update_based_movement()
+void CharacterMovementComponent::update_based_movement(double delta)
 {
-	if (!move_with_base || !state->has_base())
+	if (!state->has_base())
 	{
+		base_velocity = Vector3();
 		return;
 	}
 
@@ -662,6 +664,7 @@ void CharacterMovementComponent::update_based_movement()
 	{
 		base_last_transform = base_now;
 		has_base_last_transform = true;
+		base_velocity = Vector3();
 		return;
 	}
 
@@ -677,6 +680,17 @@ void CharacterMovementComponent::update_based_movement()
 
 	const Transform3D character(state->get_rotation(), state->get_position());
 	const Transform3D moved = base_delta * character;
+
+	// Where the character stands, so a spinning base hands over its tangential
+	// speed too, not only the speed of its centre.
+	base_velocity = delta > 0.0 ? (moved.origin - character.origin) / (real_t)delta : Vector3();
+
+	// The base is tracked either way - only the following is switched off - so
+	// turning it back on never applies everything the base did meanwhile at once.
+	if (!move_with_base)
+	{
+		return;
+	}
 
 	state->set_position(moved.origin);
 
@@ -697,23 +711,48 @@ void CharacterMovementComponent::update_based_movement()
 	state->set_rotation(Basis::looking_at(forward.normalized(), up_direction));
 }
 
-void CharacterMovementComponent::save_base_location()
+// Anything the character stands on is a base, unless it says otherwise by defining _can_be_base_for_character(body) and
+// returning false (a loose log that rolls under the feet, for example).
+bool CharacterMovementComponent::can_be_base(Object* collider) const
 {
-	if (!move_with_base)
+	Node3D* node = Object::cast_to<Node3D>(collider);
+	if (node == nullptr)
 	{
-		return;
+		return false;
 	}
 
+	static const StringName method("_can_be_base_for_character");
+	if (node->has_method(method))
+	{
+		return (bool)node->call(method, updated_body);
+	}
+
+	return true;
+}
+
+void CharacterMovementComponent::save_base_location()
+{
+	// Always tracked, whether or not the character follows it (move_with_base),
+	// so the base is never left stale.
 	Node3D* new_base = nullptr;
-	if (current_floor->is_walkable_floor())
+	if (current_floor->is_walkable_floor() && can_be_base(current_floor->get_collider()))
 	{
 		new_base = Object::cast_to<Node3D>(current_floor->get_collider());
 	}
 
 	if (new_base == nullptr)
 	{
+		// Leaving a base into the air - a jump, walking off its edge - keeps its
+		// momentum, so a jump from a moving lift goes with the lift. Only then:
+		// while standing on it, following the base already does the carrying.
+		if (impart_base_velocity && move_with_base && state->has_base() && is_falling())
+		{
+			state->set_velocity(state->get_velocity() + base_velocity);
+		}
+
 		state->clear_base();
 		has_base_last_transform = false;
+		base_velocity = Vector3();
 		return;
 	}
 
@@ -969,7 +1008,7 @@ float CharacterMovementComponent::get_immersion_depth_at(const Transform3D& from
 	// Somewhere at the surface, which is the only place the exact figure matters -
 	// it is what damps the rise and what scales the buoyancy, and a three-valued
 	// answer makes both of those step. Four more samples up the capsule is coarse
-	// next to Unreal's trace, but it is smooth enough that a character holding
+	// next to a full trace, but it is smooth enough that a character holding
 	// "up" settles instead of porpoising.
 	int submerged_samples = 3;
 	for (int i = 1; i <= 4; i++)
@@ -1489,6 +1528,7 @@ void CharacterMovementComponent::_bind_methods()
 	ClassDB::bind_method(D_METHOD("set_rotate_with_base", "value"), &CharacterMovementComponent::set_rotate_with_base);
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "rotate_with_base"), "set_rotate_with_base", "get_rotate_with_base");
 
+	ClassDB::bind_method(D_METHOD("get_base_velocity"), &CharacterMovementComponent::get_base_velocity);
 	ClassDB::bind_method(D_METHOD("get_impart_base_velocity"), &CharacterMovementComponent::get_impart_base_velocity);
 	ClassDB::bind_method(D_METHOD("set_impart_base_velocity", "value"), &CharacterMovementComponent::set_impart_base_velocity);
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "impart_base_velocity"), "set_impart_base_velocity", "get_impart_base_velocity");

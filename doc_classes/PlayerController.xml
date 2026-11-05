@@ -13,6 +13,12 @@
 	<tutorials>
 	</tutorials>
 	<methods>
+		<method name="get_cheat_manager">
+			<return type="CheatManager" />
+			<description>
+				The [CheatManager] the console's cheats run on, on the server. Created on first use from [code]application/game_framework/debug/cheat_manager_script[/code]; [code]null[/code] in a release build without the debug tools.
+			</description>
+		</method>
 		<method name="get_input_component" qualifiers="const">
 			<return type="InputComponent" />
 			<description>

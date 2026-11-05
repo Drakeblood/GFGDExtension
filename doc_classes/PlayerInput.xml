@@ -41,6 +41,12 @@
 				Adds a device to the set this player accepts. State is kept per contributing device, so letting go of the pad does not clear an action the keyboard is still holding.
 			</description>
 		</method>
+		<method name="block_gameplay_input" qualifiers="static">
+			<return type="void" />
+			<description>
+				While anything holds a block, every [PlayerInput] reports every action released. The [GameConsole] holds one while open. Counted: every call needs a matching [method unblock_gameplay_input].
+			</description>
+		</method>
 		<method name="device_slot_from_event" qualifiers="static">
 			<return type="int" />
 			<param index="0" name="event" type="InputEvent" />
@@ -117,6 +123,12 @@
 				Whether this player is holding [param action_name].
 			</description>
 		</method>
+		<method name="is_gameplay_input_blocked" qualifiers="static">
+			<return type="bool" />
+			<description>
+				[code]true[/code] while any block is held.
+			</description>
+		</method>
 		<method name="is_passthrough" qualifiers="const">
 			<return type="bool" />
 			<description>
@@ -140,6 +152,12 @@
 			<return type="void" />
 			<description>
 				Releases everything that is held, firing [method is_action_just_released] for it. Called when a pad is unplugged, so no button can stay stuck down with nothing left to release it. Worth calling yourself when the window loses focus.
+			</description>
+		</method>
+		<method name="unblock_gameplay_input" qualifiers="static">
+			<return type="void" />
+			<description>
+				Releases one [method block_gameplay_input].
 			</description>
 		</method>
 	</methods>

@@ -4,7 +4,7 @@
 		Something an ability waits for, shaped for await - and cancelled with the ability.
 	</brief_description>
 	<description>
-		Unreal needs AbilityTasks because C++ and Blueprints have no coroutines: every "wait for X" is an object with callbacks. GDScript has [code]await[/code], so the waiting is free; a task adds the two things [code]await[/code] cannot do by itself.
+		Without coroutines every "wait for X" would be an object with callbacks. GDScript has [code]await[/code], so the waiting is free; a task adds the two things [code]await[/code] cannot do by itself.
 		[b]It dies with its ability.[/b] When the ability ends - finished, cancelled, or a prediction the server refused - every task it runs is cancelled, and a cancelled task never emits [signal completed]: its connections are dropped, so a coroutine suspended on it is released and the code after its [code]await[/code] never runs. No [code]if not get_is_active(): return[/code] to remember after every wait.
 		[b]Some waits cross the network.[/b] [method GameplayAbility.sync_target_data] carries a value from the predicting client to the server's copy of the same activation.
 		Made by [GameplayAbility]'s [code]wait_*[/code] methods:

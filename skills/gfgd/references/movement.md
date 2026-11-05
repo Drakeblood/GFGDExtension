@@ -1,10 +1,10 @@
 # Character movement
 
-`CharacterMovementComponent` gives a pawn walking, falling and jumping, with the property names
-Unreal's `CharacterMovementComponent` uses.
+`CharacterMovementComponent` gives a pawn walking, falling and jumping, with the usual
+character movement property names.
 
-**Values are metric.** Godot works in metres where Unreal works in centimetres, so `max_walk_speed`
-defaults to `6.0`, not `600`. Divide any number lifted from an Unreal project by 100.
+**Values are metric.** `max_walk_speed` defaults to `6.0` (metres per second). A number from an
+engine that works in centimetres is divided by 100.
 
 **There is a map to try all of it on.** The demo project's *New Game* button, or
 `--level res://levels/test_level.tscn`. Eight stations along +X — walking, steps, slopes, a gap, a
@@ -95,9 +95,7 @@ position tells you where a pawn is, not whether it is walking or falling, and th
 question an animation graph asks first. Without it a client has to guess the mode back out of
 vertical velocity, which is wrong at the top of a jump and wrong on a ramp.
 
-Unreal replicates the same thing as `ACharacter::ReplicatedMovementMode`, but under
-`COND_SimulatedOnly` — an autonomous proxy predicts its own mode, so sending it one would fight the
-prediction. Here the owner of a predicted character still receives it and drops it on arrival; a
+An autonomous proxy predicts its own mode, so sending it one would fight the prediction. Here the owner of a predicted character still receives it and drops it on arrival; a
 character nobody predicts has its owner receive it like everybody else. Set
 `replicate_movement_mode = false` for a pawn whose mode nothing outside the simulation cares about.
 
@@ -154,9 +152,8 @@ func _simulation_tick(params: MovementTickParams) -> void:
 ```
 
 The split is the reason a dash on top of a walk will be possible without the walking code ever
-hearing about dashes: a proposal is side effect free, so proposals can be blended. Unreal's
-`CharacterMovementComponent` fuses the two inside each of its `Phys*` functions, which is precisely
-why layering anything on top of it is painful.
+hearing about dashes: a proposal is side effect free, so proposals can be blended. Fusing
+the two into one function is precisely what makes layering anything on top of a walk painful.
 
 `out_state` arrives holding a copy of the starting state, so a mode that returns without writing is
 correct rather than undefined.
@@ -209,9 +206,7 @@ it only ever **proposes** — it never sweeps, never writes state, and never kno
 active. The mode executes the mixed result.
 
 This is where the `_generate_move` / `_simulation_tick` split pays for itself. Mixing happens between
-the two, which is the only point at which motion is still a value rather than a position. Unreal's
-`CharacterMovementComponent` fuses proposal and execution inside each `Phys*` function, and that is
-exactly why layering anything on it is painful.
+the two, which is the only point at which motion is still a value rather than a position.
 
 ```gdscript
 var dash := LinearVelocityLayeredMove.new()
@@ -352,11 +347,14 @@ carried about the up axis only, so a tilting platform moves a character without 
 What is applied is the base's *delta*, not a position rebuilt from a stored offset. The difference is
 not academic: rebuilding overwrites every correction the solver made during the tick — the
 floor-height adjustment above all — and the two then fight each other a little more on every frame.
-The relative offset is still kept in `MovementState`, because that is what a client would be sent to
-place a character on the right platform, but it is not what drives the motion.
+The relative offset is still kept in `MovementState`, but it is not what drives the motion. It is
+what client prediction compares: a predicted character on a platform is checked against the server
+by where it stands **on** the platform, not in the world, because the client's copy of a moving
+platform lags the server's. The platform therefore needs the **same node path on every machine** (a
+replicated or level-placed node does); otherwise the comparison falls back to world space and a
+rider on a fast platform is corrected constantly.
 
-Expect roughly one physics frame of lag between platform and rider; Unreal has the same, for the same
-reason.
+Expect roughly one physics frame of lag between platform and rider.
 
 `impart_base_velocity` hands the platform's velocity back when the character leaves it, so a jump
 from a moving lift keeps the lift's momentum. **Use an `AnimatableBody3D` for a moving platform** —
@@ -388,15 +386,14 @@ waterline. Between them, holding *up* makes a character tread water at the surfa
 swimming clean out of the pool, arcing through the air and dropping back in.
 
 **Getting out of the water is the jump's job.** Taking it adds `out_of_water_jump_velocity` and
-switches to `Falling` in the same tick. That is not a shortcut — it is what Unreal does, applying its
-`OutofWaterZ` from `PhysicsVolumeChanged` once the character is already falling, because the swim
+switches to `Falling` in the same tick. That is not a shortcut: the swim
 speed cap and the surface damping would otherwise brake the impulse straight back down and the
 character would never leave the pool.
 
 ### Crouching
 
 `crouch()` and `un_crouch()` ask; the component decides on the next tick. `can_crouch` defaults to
-**on**, which is a deliberate divergence from Unreal — a crouch request that silently does nothing is
+**on**, on purpose — a crouch request that silently does nothing is
 a worse first experience than a character that crouches when asked.
 
 The capsule shrinks to `crouched_half_height` and the body drops by the difference, so the **feet
@@ -411,7 +408,7 @@ authored once and shared between every pawn of a kind would otherwise crouch all
 
 `can_walk_off_ledges` is on by default, and a character walks off an edge the moment the floor test
 stops finding ground under it. Turn it off and the character stops instead — the blocked move is
-given back whole, which is blunter than Unreal working out how far it could still have gone, but it
+given back whole, which is blunter than working out how far it could still have gone, but it
 keeps the promise the flag makes.
 
 Held back at a ledge, a character still settles about 3 cm below its flat-ground rest height. Two
@@ -425,8 +422,7 @@ gives up, and it does not accumulate.
 `perch_radius_threshold` is a **restriction**, not a licence, and is off (zero) by default. When a
 ground contact sits nearer the capsule's rim than this, the floor is re-tested with a narrower probe;
 if that probe finds nothing the character falls even though the full-width test was happy. Raising it
-therefore makes a character let go of a ledge *sooner*, which is what Unreal's wording says and the
-opposite of what the name suggests:
+therefore makes a character let go of a ledge *sooner*, the opposite of what the name suggests:
 
 | `perch_radius_threshold` | probe radius | walks this far past the edge before falling |
 |---|---|---|
@@ -461,8 +457,8 @@ honest; without it a character climbs anything by teleporting to the top of it.
 Two Godot-specific wrinkles are handled inside that check.
 
 A shape sweep landing on the lip of a step reports a normal blended between the top face and the
-front one, and that blend reads as unwalkable even when the surface underneath is flat. Unreal keeps
-a separate `ImpactNormal` for exactly this case; Godot has only the one, so the surface is asked
+front one, and that blend reads as unwalkable even when the surface underneath is flat. Godot reports
+only that one normal, so the surface is asked
 directly with a short ray before the climb is refused. That ray is **nudged into the surface along
 the direction of travel** first: the contact a sweep reports sits one collision margin in front of
 what it touched, and a ray from the point itself passes cleanly in front of the step and finds
@@ -484,7 +480,7 @@ step.
 
 ### Slopes
 
-Horizontal speed is maintained going up a ramp, which is Unreal's behaviour: a character climbing a
+Horizontal speed is maintained going up a ramp: a character climbing a
 30° slope covers ground as fast as one on the flat, and rises as well. `get_velocity()` therefore
 reports the flat speed, not the speed along the slope.
 
@@ -500,8 +496,7 @@ in the x and y of a `Vector3` and leaves z alone, so there is one set of types, 
 one prediction story rather than two. A GDScript mode reads `params.get_component_2d()` where a 3D
 one reads `get_component()`.
 
-**Units are pixels**, and the defaults are Unreal's centimetre values unchanged — which is what the
-usual "a metre is a hundred pixels" convention makes them. `max_walk_speed` is 600, `gravity` 980,
+**Units are pixels**, with the usual "a metre is a hundred pixels" convention. `max_walk_speed` is 600, `gravity` 980,
 `max_step_height` 45. The 3D component divides the same numbers by a hundred.
 
 **Up is negative Y**, because Godot's 2D screen axis points down. `up_direction` defaults to
@@ -671,7 +666,7 @@ How it *feels* at 120 ms is still something only a person at a window can judge.
 ## Not in yet
 
 A simulated proxy does not extrapolate: it follows the replicated transform and nothing else.
-Unreal's proxies run `SimulateMovement()` between updates — applying velocity, gravity and floor
-checks — with the replicated mode telling them which physics to run, and smooth the visible mesh
-separately from the snapping capsule. That is the other reason the mode is worth having on a client,
+Running the movement between updates — applying velocity, gravity and floor checks, with the
+replicated mode saying which mode to run — and smoothing the visible mesh separately from the
+snapping capsule is the obvious next step. That is the other reason the mode is worth having on a client,
 and it is what would make the difference visible under packet loss.

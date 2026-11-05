@@ -116,9 +116,7 @@ void SwimmingMode::simulation_tick(const Ref<MovementTickParams>& params)
 	// A jump while swimming is a push off the surface, which is what gets a
 	// character out of a pool instead of bobbing against the lip of it.
 	// A jump while swimming is a request to leave the water, and it hands over to
-	// falling in the same tick rather than staying to swim upward. Unreal does the
-	// same thing for the same reason: it applies OutofWaterZ from
-	// PhysicsVolumeChanged, once the character is already MOVE_Falling, because
+	// falling in the same tick rather than staying to swim upward, because
 	// swimming would brake the impulse straight back down - the speed cap and the
 	// surface damping both bite a rise this fast, and between them the character
 	// never gets out of the pool.

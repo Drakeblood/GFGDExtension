@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <class name="AbilityAsync" inherits="RefCounted" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
 	<brief_description>
-		A wait on an [AbilitySystemComponent] from outside any ability - a HUD, a quest, a door. Unreal's UAbilityAsync.
+		A wait on an [AbilitySystemComponent] from outside any ability - a HUD, a quest, a door.
 	</brief_description>
 	<description>
 		An [AbilityTask] belongs to an ability and dies with it. An AbilityAsync belongs to the component it watches, its target: the target keeps it alive, so nothing has to hold a variable for it. It ends when the target is freed, when the optional owner node leaves the tree or is freed, when [method end_action] is called, or - with [code]only_trigger_once[/code] - after it first triggers. Ended, it never triggers again, and a coroutine awaiting [signal triggered] is released without resuming.

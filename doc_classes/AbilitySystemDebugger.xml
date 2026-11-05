@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="AbilitySystemDebugger" inherits="CanvasLayer" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		In-game overlay for the ability system.
+	</brief_description>
+	<description>
+		Shows one [AbilitySystemComponent] at a time: attributes (base and current, modified ones highlighted), owned tags with their counts, tags blocking abilities, active effects with time left, stacks and granted tags, granted abilities with their state, cooldown and the reason of the last refused activation, active gameplay cues, and a short log of what just happened - activations, refusals, effects added and removed, tag changes, cues.
+		In debug builds the [World] adds one under the root as [code]AbilitySystemDebugger[/code], unless [code]application/game_framework/debug/gas_debugger[/code] is [code]false[/code]. It starts hidden: [member toggle_action] ([code]gfgd_debug_gas_debugger[/code], F3) shows it, [member cycle_action] (F4) steps through every component in the tree. It starts on the local player's pawn.
+		On a client it shows the replicated mirror - exactly what helps when a client "does not see" a tag or an effect the server has.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="cycle_target">
+			<return type="void" />
+			<description>
+				Shows the next [AbilitySystemComponent] in the tree.
+			</description>
+		</method>
+		<method name="describe" qualifiers="const">
+			<return type="String" />
+			<param index="0" name="component" type="AbilitySystemComponent" />
+			<description>
+				The overlay's text (BBCode) for [param component]. Usable without showing the overlay, e.g. to print a component's state from a test.
+			</description>
+		</method>
+		<method name="format_snapshot" qualifiers="static">
+			<return type="String" />
+			<param index="0" name="snapshot" type="Dictionary" />
+			<description>
+				The attribute, tag, effect, ability and cue sections (BBCode) of an [method AbilitySystemComponent.get_debug_snapshot] dictionary. The gameplay debugger's Abilities category uses it too.
+			</description>
+		</method>
+		<method name="get_target" qualifiers="const">
+			<return type="AbilitySystemComponent" />
+			<description>
+				The component being shown, or [code]null[/code].
+			</description>
+		</method>
+		<method name="set_target">
+			<return type="void" />
+			<param index="0" name="component" type="AbilitySystemComponent" />
+			<description>
+				Shows [param component] and starts a fresh event log for it.
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="cycle_action" type="StringName" setter="set_cycle_action" getter="get_cycle_action" default="&amp;&quot;gfgd_debug_gas_debugger_next&quot;">
+			Input action that steps to the next component while the overlay is shown.
+		</member>
+		<member name="log_size" type="int" setter="set_log_size" getter="get_log_size" default="14">
+			How many recent events the log keeps.
+		</member>
+		<member name="refresh_interval" type="float" setter="set_refresh_interval" getter="get_refresh_interval" default="0.1">
+			Seconds between redraws while shown.
+		</member>
+		<member name="shown" type="bool" setter="set_shown" getter="is_shown" default="false">
+			Whether the overlay is visible.
+		</member>
+		<member name="toggle_action" type="StringName" setter="set_toggle_action" getter="get_toggle_action" default="&amp;&quot;gfgd_debug_gas_debugger&quot;">
+			Input action that shows and hides the overlay.
+		</member>
+	</members>
+</class>

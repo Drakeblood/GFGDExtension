@@ -37,9 +37,9 @@ class AbilitySystemComponent : public Node
 	GDCLASS(AbilitySystemComponent, Node)
 
 public:
-	// How much of this component a client is sent. Unreal's
-	// EGameplayEffectReplicationMode, with NONE for a component that should
-	// stay local to every machine, as all of them did before replication.
+	// How much of this component a client is sent, with NONE for a component
+	// that should stay local to every machine, as all of them did before
+	// replication.
 	enum ReplicationMode
 	{
 		// Nothing is sent. Every peer runs its own component, as offline.
@@ -245,6 +245,10 @@ public:
 	void send_ability_target_data(const Ref<GameplayAbility>& ability, int sequence, const Dictionary& data);
 	bool expects_client_target_data(const Ref<GameplayAbility>& ability) const;
 
+	// Everything a debugger wants to show about this component, as plain data
+	// (see AbilitySystemDebugger). Works on the server and on a replicated client.
+	Dictionary get_debug_snapshot() const;
+
 	ReplicationMode get_replication_mode() const { return replication_mode; }
 	void set_replication_mode(ReplicationMode value) { replication_mode = value; }
 
@@ -316,7 +320,7 @@ private:
 
 	bool try_activate_ability_internal(const Ref<GameplayAbility>& ability, const StringName& event_tag = StringName(), const Dictionary& event_data = Dictionary());
 
-	// Unreal's HasNetworkAuthorityToActivateTriggeredAbility: a local or
+	// Whether an event may trigger the ability on this machine: a local or
 	// predicted ability is triggered where its owner is controlled, a
 	// server-only one on the server.
 	bool may_trigger_here(const Ref<GameplayAbility>& ability) const;

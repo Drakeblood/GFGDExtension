@@ -19,9 +19,7 @@ class AbilitySystemComponent;
 // (set-by-caller magnitudes, a hit position in context).
 //
 // The effect stays a shared, authored Resource; a spec is made per use and is
-// cheap. Unreal separates the two the same way, as UGameplayEffect and
-// FGameplayEffectSpec, and for the same reason: "fireball does 40 at level 3"
-// is one asset, not ten.
+// cheap, because "fireball does 40 at level 3" is one asset, not ten.
 class GameplayEffectSpec : public RefCounted
 {
 	GDCLASS(GameplayEffectSpec, RefCounted)

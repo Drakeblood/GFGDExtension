@@ -7,7 +7,7 @@ extends SceneTree
 # It is mostly a restriction on standing: it narrows the footprint that has to
 # have ground under it, so a character whose contact is out near the capsule's
 # rim loses its floor and falls instead of hanging off the edge. The threshold
-# defaults to 0, which is Unreal's default too and switches the whole test off.
+# defaults to 0, which switches the whole test off.
 #
 # The other half gives standing back, and it is much narrower. Reading
 # find_floor_basic, it needs three things at once: the wide sweep hits something

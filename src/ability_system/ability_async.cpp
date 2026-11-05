@@ -287,7 +287,7 @@ void AbilityAsyncWaitTag::on_activate()
 
 	had_tag = has_tag();
 
-	// Already in the state waited for: that counts, as in Unreal.
+	// Already in the state waited for: that counts.
 	if (had_tag == wait_for_added)
 	{
 		broadcast(tag_name);

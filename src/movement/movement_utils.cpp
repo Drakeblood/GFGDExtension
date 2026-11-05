@@ -192,8 +192,8 @@ bool step_up(const Body& body, const Transform3D& from, const Vector3& delta, co
 		}
 
 		// A sweep that lands on the lip of a step reports a normal blended between
-		// the top face and the front one - Godot has no equivalent of Unreal's
-		// separate ImpactNormal - and that blend reads as unwalkable even when the
+		// the top face and the front one - Godot reports only that one normal -
+		// and that blend reads as unwalkable even when the
 		// surface underneath is flat. Ask the surface itself before believing it.
 		bool landed_walkable = is_hit_surface_walkable(down_sweep.normal, up, settings.max_slope_cos);
 		if (!landed_walkable)
@@ -320,7 +320,7 @@ SlideResult move_along_floor(const Body& body, const Transform3D& from, const Ve
 
 float get_valid_perch_radius(const GroundMoveSettings& settings)
 {
-	// The 11 centimetre floor is Unreal's, and it is there so that a threshold
+	// The 11 centimetre floor is there so that a threshold
 	// larger than the capsule cannot collapse the test to a point.
 	return CLAMP(settings.capsule_radius - settings.perch_radius_threshold, 0.11f, settings.capsule_radius);
 }
@@ -639,8 +639,8 @@ static void find_floor_basic(const Body& body, const Transform3D& from, const Ve
 			// sweep reports there is blended between the top face and the drop - it
 			// stays walkable while tilting further and further, so the ground move
 			// follows it downhill and the character sinks along a slope that is not
-			// there. Unreal has a separate ImpactNormal for this; Godot has one
-			// normal, so the surface is asked directly.
+			// there. Godot reports one normal for the whole contact, so the
+			// surface is asked directly.
 			//
 			// Probed outwards from the capsule's axis, which is the direction the
 			// supporting surface is in when the character is overhanging. A contact

@@ -40,6 +40,16 @@
 #include "ability_system/attribute_set.h"
 #include "ability_system/attribute_modifier.h"
 #include "ability_system/ability_system_component.h"
+#include "ability_system/ability_system_debugger.h"
+#include "debug/cheat_manager.h"
+#include "debug/console_manager.h"
+#include "debug/debug_camera.h"
+#include "debug/debug_draw.h"
+#include "debug/debug_replicator.h"
+#include "debug/debug_tools.h"
+#include "debug/game_console.h"
+#include "debug/gameplay_debugger.h"
+#include "debug/gameplay_debugger_category.h"
 #include "ability_system/gameplay_ability.h"
 #include "ability_system/gameplay_effect.h"
 #include "ability_system/active_gameplay_effect.h"
@@ -132,6 +142,21 @@ static void register_gfgd_settings()
 	// it. Read when a predicted character spawns; ignored in release builds.
 	register_gfgd_setting("application/game_framework/debug/network_latency_ms", 0, Variant::INT, PROPERTY_HINT_RANGE, "0,1000,1,suffix:ms");
 	register_gfgd_setting("application/game_framework/debug/network_jitter_ms", 0, Variant::INT, PROPERTY_HINT_RANGE, "0,500,1,suffix:ms");
+	// Debug tools: the console, the gameplay debugger, the ability system
+	// debugger and DebugDraw. Always on in debug builds; enable_in_release
+	// keeps them in an exported release build too. Their keys are the
+	// gfgd_debug_* actions in the Input Map.
+	register_gfgd_setting("application/game_framework/debug/enable_in_release", false, Variant::BOOL);
+	register_gfgd_setting("application/game_framework/debug/console", true, Variant::BOOL);
+	register_gfgd_setting("application/game_framework/debug/gameplay_debugger", true, Variant::BOOL);
+	register_gfgd_setting("application/game_framework/debug/gas_debugger", true, Variant::BOOL);
+	register_gfgd_setting("application/game_framework/debug/gameplay_debugger_refresh_interval", 0.15, Variant::FLOAT, PROPERTY_HINT_RANGE, "0.02,2,0.01,suffix:s");
+	// A script extending CheatManager; its methods become console commands.
+	register_gfgd_setting("application/game_framework/debug/cheat_manager_script", String(), Variant::STRING, PROPERTY_HINT_FILE, "*.gd,*.cs");
+	// Scripts extending GameplayDebuggerCategory, after the built-in ones.
+	register_gfgd_setting("application/game_framework/debug/gameplay_debugger_categories", PackedStringArray(), Variant::PACKED_STRING_ARRAY,
+		PROPERTY_HINT_TYPE_STRING, vformat("%d/%d:*.gd,*.cs", Variant::STRING, PROPERTY_HINT_FILE));
+
 	register_gfgd_setting("application/game_framework/debug/network_packet_loss_percent", 0.0, Variant::FLOAT, PROPERTY_HINT_RANGE, "0,100,0.1,suffix:%");
 }
 
@@ -211,6 +236,30 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level)
 	GDREGISTER_CLASS(ActiveGameplayEffect);
 	GDREGISTER_CLASS(GameplayAbility);
 	GDREGISTER_CLASS(AbilitySystemComponent);
+	GDREGISTER_CLASS(AbilitySystemDebugger);
+
+	// Debug tools.
+	GDREGISTER_CLASS(ConsoleManager);
+	GDREGISTER_CLASS(CheatManager);
+	GDREGISTER_CLASS(DebugReplicator);
+	GDREGISTER_CLASS(GameConsoleLogger);
+	GDREGISTER_CLASS(GameConsole);
+	GDREGISTER_CLASS(DebugDraw);
+	GDREGISTER_INTERNAL_CLASS(DebugDrawNode);
+	GDREGISTER_INTERNAL_CLASS(DebugDrawCanvas);
+	GDREGISTER_CLASS(GameplayDebuggerCategory);
+	GDREGISTER_CLASS(GameplayDebuggerCategoryBasic);
+	GDREGISTER_CLASS(GameplayDebuggerCategoryAbilities);
+	GDREGISTER_CLASS(GameplayDebuggerCategoryMovement);
+	GDREGISTER_CLASS(GameplayDebuggerCategoryNet);
+	GDREGISTER_CLASS(GameplayDebugger);
+	GDREGISTER_CLASS(GameplayDebuggerHUD);
+	GDREGISTER_CLASS(DebugCamera);
+	ConsoleManager::create_singleton();
+	GameplayDebugger::create_singleton();
+	DebugDraw::create_singleton();
+	DebugTools::register_settings();
+	DebugTools::open_log_window_if_requested();
 
 	// Movement. The types come first because everything below hands them around,
 	// and the modes before the component, which instantiates them by default.
@@ -258,6 +307,9 @@ void uninitialize_gdextension_types(ModuleInitializationLevel p_level) {
 	if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
 		return;
 	}
+	DebugDraw::destroy_singleton();
+	GameplayDebugger::destroy_singleton();
+	ConsoleManager::destroy_singleton();
 	GameplayMessageRouter::destroy_singleton();
 	GameplayTagsManager::destroy_singleton();
 	GameplayCueManager::destroy_singleton();

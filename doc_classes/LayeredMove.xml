@@ -5,7 +5,7 @@
 	</brief_description>
 	<description>
 		A dash, a knockback, a gust of wind, an animation driving the character. Queue one with [method CharacterMovementComponent.queue_layered_move].
-		A layered move only ever [i]proposes[/i]. It never sweeps, never writes state, and never knows which mode is active - the mode executes the mixed result. That is the whole reason [MovementMode] was split into [method MovementMode._generate_move] and [method MovementMode._simulation_tick]: a proposal is side effect free, so proposals can be blended, and a dash becomes possible without the walking code ever hearing about dashes. Unreal's CharacterMovementComponent fuses the two inside each of its physics functions, which is exactly why layering anything on it is painful.
+		A layered move only ever [i]proposes[/i]. It never sweeps, never writes state, and never knows which mode is active - the mode executes the mixed result. That is the whole reason [MovementMode] was split into [method MovementMode._generate_move] and [method MovementMode._simulation_tick]: a proposal is side effect free, so proposals can be blended, and a dash becomes possible without the walking code ever hearing about dashes. Fusing the two into one function is exactly what makes layering anything on a movement component painful.
 		Mixing happens between the mode's proposal and its execution - the only point at which motion is still a value rather than a position.
 	</description>
 	<tutorials>

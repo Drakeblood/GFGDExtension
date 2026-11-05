@@ -32,8 +32,7 @@ public:
 		STACKING_NONE = 0,
 
 		// Applications of this effect on one target share a single active effect
-		// and add to its stack count, up to stack_limit. Unreal's
-		// AggregateByTarget.
+		// and add to its stack count, up to stack_limit.
 		STACKING_AGGREGATE = 1,
 	};
 

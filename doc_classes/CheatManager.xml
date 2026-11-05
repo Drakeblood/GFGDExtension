@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="CheatManager" inherits="RefCounted" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		A player's cheat commands, run on the server.
+	</brief_description>
+	<description>
+		Every [PlayerController] has one ([method PlayerController.get_cheat_manager]), made from [code]application/game_framework/debug/cheat_manager_script[/code] or this class. Every public method of it is a console command - in a script extending [CheatManager], [code]func give_money(amount: int = 100)[/code] is typed as [code]give_money 500[/code]. Methods starting with [code]_[/code] are not commands.
+		Cheats always run on the server, on the cheating player's own cheat manager: [method get_player_controller] is the player who typed it, and whatever the method changes is authoritative and replicates as usual. [method client_message] sends text back to that player's console. [method _get_command_help] gives each command a one-line help text.
+		Built-in cheats: [method teleport], [method where], [method set_movement_mode] and the [code]gas_*[/code] ones, which act on the pawn's [AbilitySystemComponent].
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_get_command_help" qualifiers="virtual const">
+			<return type="String" />
+			<param index="0" name="name" type="String" />
+			<description>
+				Return a one-line help text for the command [param name], or an empty string.
+			</description>
+		</method>
+		<method name="client_message" qualifiers="const">
+			<return type="void" />
+			<param index="0" name="text" type="String" />
+			<description>
+				Prints [param text] in the console of the player who ran the cheat.
+			</description>
+		</method>
+		<method name="gas_add_tag">
+			<return type="void" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+				Adds a loose gameplay tag to the pawn's ability system.
+			</description>
+		</method>
+		<method name="gas_apply_effect">
+			<return type="void" />
+			<param index="0" name="effect_path" type="String" />
+			<param index="1" name="level" type="float" default="1.0" />
+			<description>
+				Applies the [GameplayEffect] at [param effect_path] to the pawn.
+			</description>
+		</method>
+		<method name="gas_cancel_abilities">
+			<return type="void" />
+			<description>
+				Cancels every active ability.
+			</description>
+		</method>
+		<method name="gas_grant_ability">
+			<return type="void" />
+			<param index="0" name="ability_path" type="String" />
+			<param index="1" name="level" type="float" default="1.0" />
+			<description>
+				Grants the [GameplayAbility] at [param ability_path] to the pawn.
+			</description>
+		</method>
+		<method name="gas_remove_tag">
+			<return type="void" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+				Removes a loose gameplay tag from the pawn's ability system.
+			</description>
+		</method>
+		<method name="gas_set_attribute">
+			<return type="void" />
+			<param index="0" name="attribute_name" type="StringName" />
+			<param index="1" name="value" type="float" />
+			<description>
+				Sets an attribute's base value.
+			</description>
+		</method>
+		<method name="get_ability_system" qualifiers="const">
+			<return type="AbilitySystemComponent" />
+			<description>
+				The first [AbilitySystemComponent] under the player's pawn, or [code]null[/code].
+			</description>
+		</method>
+		<method name="get_command_help" qualifiers="const">
+			<return type="String" />
+			<param index="0" name="name" type="String" />
+			<description>
+				The help text of a command: [method _get_command_help], else the built-in one.
+			</description>
+		</method>
+		<method name="get_command_names" qualifiers="const">
+			<return type="PackedStringArray" />
+			<description>
+				Every method that is a command: the built-in ones and the script's public methods (inherited ones included).
+			</description>
+		</method>
+		<method name="get_pawn" qualifiers="const">
+			<return type="Pawn" />
+			<description>
+				The player's [Pawn], or [code]null[/code].
+			</description>
+		</method>
+		<method name="get_pawn_root" qualifiers="const">
+			<return type="Node" />
+			<description>
+				The root node of the player's pawn, or [code]null[/code].
+			</description>
+		</method>
+		<method name="get_player_controller" qualifiers="const">
+			<return type="PlayerController" />
+			<description>
+				The player this cheat manager belongs to.
+			</description>
+		</method>
+		<method name="get_world" qualifiers="const">
+			<return type="World" />
+			<description>
+				The [World].
+			</description>
+		</method>
+		<method name="set_movement_mode">
+			<return type="void" />
+			<param index="0" name="mode_name" type="StringName" />
+			<description>
+				Switches the pawn's [CharacterMovementComponent] to another mode ([code]Walking[/code], [code]Falling[/code], [code]Flying[/code]...).
+			</description>
+		</method>
+		<method name="teleport">
+			<return type="void" />
+			<param index="0" name="position" type="Vector3" />
+			<description>
+				Moves the pawn to [param position].
+			</description>
+		</method>
+		<method name="where" qualifiers="const">
+			<return type="void" />
+			<description>
+				Prints the pawn's position.
+			</description>
+		</method>
+	</methods>
+</class>

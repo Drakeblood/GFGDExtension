@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="GameplayDebuggerHUD" inherits="CanvasLayer" api_type="extension" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		The gameplay debugger overlay ([code]'[/code]).
+	</brief_description>
+	<description>
+		The [World] adds one in debug builds (setting [code]application/game_framework/debug/gameplay_debugger[/code]). The [code]gfgd_debug_gameplay_debugger[/code] action ([code]'[/code] by default) shows it. It then follows whatever is in the middle of the screen - the local pawn when nothing is - until [code]gfgd_debug_gameplay_debugger_lock[/code] (numpad *) pins the target. [code]gfgd_debug_category_0[/code]..[code]9[/code] (numpad 0-9) switch category slots. Every key is an Input Map action.
+		[code]gfgd_debug_free_camera[/code] (Tab) detaches the view into a [DebugCamera]: the pawn stands still and gets no input, targets are picked from wherever the camera flies, and [code]gfgd_debug_free_camera_teleport[/code] (T) moves the pawn there. The console command [code]gd.freecam[/code] does the same without the overlay.
+		Data comes from the server through the player's [DebugReplicator]; without a [PlayerController] it is collected locally.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="find_target_under_crosshair" qualifiers="const">
+			<return type="Node" />
+			<description>
+				The actor a ray from the middle of the screen hits, ignoring the local pawn (but not from the free camera). The ray is cast during the physics step, the only time the space may be queried; called outside it, this returns what the last step hit.
+			</description>
+		</method>
+		<method name="get_enabled_categories" qualifiers="const">
+			<return type="PackedStringArray" />
+			<description>
+				The names of the categories that are on.
+			</description>
+		</method>
+		<method name="get_free_camera" qualifiers="const">
+			<return type="DebugCamera" />
+			<description>
+				The free camera while it is on, else [code]null[/code].
+			</description>
+		</method>
+		<method name="get_target" qualifiers="const">
+			<return type="Node" />
+			<description>
+				The node being debugged.
+			</description>
+		</method>
+		<method name="resolve_actor" qualifiers="static">
+			<return type="Node" />
+			<param index="0" name="node" type="Node" />
+			<description>
+				The node a hit collider belongs to: the nearest ancestor in the [code]gameplay_debugger_target[/code] group, else a pawn's root, else the nearest one with a script.
+			</description>
+		</method>
+		<method name="set_target">
+			<return type="void" />
+			<param index="0" name="node" type="Node" />
+			<description>
+				Debugs [param node].
+			</description>
+		</method>
+		<method name="teleport_pawn_to_free_camera">
+			<return type="void" />
+			<description>
+				Moves the player's pawn to the free camera - through the [code]teleport[/code] cheat, so it runs on the server - and leaves the free camera.
+			</description>
+		</method>
+		<method name="toggle_category">
+			<return type="void" />
+			<param index="0" name="name" type="String" />
+			<description>
+				Switches a category on or off by name.
+			</description>
+		</method>
+		<method name="toggle_category_slot">
+			<return type="void" />
+			<param index="0" name="slot" type="int" />
+			<description>
+				Switches a category on or off by slot.
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="active" type="bool" setter="set_active" getter="is_active" default="false">
+			Whether the overlay is shown.
+		</member>
+		<member name="free_camera" type="bool" setter="set_free_camera" getter="is_free_camera">
+			Whether the view is detached into a [DebugCamera]. Turning it off returns to the camera it replaced, or to the pawn's camera when that one is gone.
+		</member>
+		<member name="locked" type="bool" setter="set_locked" getter="is_locked" default="false">
+			Whether the target stays put instead of following the crosshair.
+		</member>
+	</members>
+</class>

@@ -27,9 +27,9 @@ namespace GFGD
 //                   walking code ever hearing about dashes.
 //   simulation_tick executes it. Sweeps, resolves collisions, writes the state.
 //
-// CharacterMovementComponent in Unreal fuses the two inside each Phys* function,
-// and that is precisely why layering anything on top of it is painful. Keeping
-// them apart costs nothing here and cannot be retrofitted later.
+// Fusing the two into one function is precisely what makes layering anything
+// on top of a movement mode painful. Keeping them apart costs nothing and cannot
+// be retrofitted later.
 class MovementMode : public Resource
 {
 	GDCLASS(MovementMode, Resource)

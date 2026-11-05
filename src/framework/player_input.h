@@ -61,6 +61,8 @@ private:
 	TypedArray<StringName> cached_actions;
 	bool passthrough;
 
+	static int gameplay_input_blocks;
+
 public:
 	PlayerInput();
 	~PlayerInput();
@@ -106,6 +108,13 @@ public:
 	// to the engine's Input singleton and behaviour is identical to not using
 	// PlayerInput at all.
 	bool is_passthrough() const { return passthrough; }
+
+	// While anything holds a block, every PlayerInput reports every action
+	// released - the console uses it so typing does not walk the character
+	// around. Counted, so two overlays can block independently.
+	static void block_gameplay_input();
+	static void unblock_gameplay_input();
+	static bool is_gameplay_input_blocked() { return gameplay_input_blocks > 0; }
 
 protected:
 	static void _bind_methods();

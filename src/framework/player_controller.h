@@ -11,6 +11,7 @@ using namespace godot;
 
 namespace GFGD
 {
+class CheatManager;
 class InputComponent;
 class LocalPlayer;
 class PlayerInput;
@@ -49,6 +50,9 @@ private:
 	// Last state sent to the server, so only what changed goes over the wire.
 	Dictionary sent_action_state;
 
+	// Created on first use; see get_cheat_manager().
+	Ref<CheatManager> cheat_manager;
+
 public:
 	PlayerController();
 	~PlayerController();
@@ -85,6 +89,11 @@ public:
 	// and a human behind it.
 	bool is_local_player_controller() const;
 
+	// The console's cheat commands run on this, on the server. An instance of
+	// application/game_framework/debug/cheat_manager_script, or a plain
+	// CheatManager. Null in a release build without the debug tools.
+	Ref<CheatManager> get_cheat_manager();
+
 	PackedStringArray get_replicated_actions() const { return replicated_actions; }
 	void set_replicated_actions(const PackedStringArray& value);
 
@@ -100,6 +109,7 @@ protected:
 
 private:
 	void configure_rpcs();
+	void create_debug_replicator();
 	void pump_input(double delta);
 	void send_input_to_server();
 	const PackedStringArray& get_replicated_action_list();
