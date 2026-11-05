@@ -132,6 +132,8 @@ private:
 	Array asyncs;
 
 public:
+	// Every component in the tree is in this group, so tools can list them without searching the tree.
+	static constexpr const char* COMPONENTS_GROUP = "_gfgd_ability_system_components";
 	AbilitySystemComponent();
 	~AbilitySystemComponent();
 

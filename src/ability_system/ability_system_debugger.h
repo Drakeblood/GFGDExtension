@@ -27,10 +27,10 @@ class AbilitySystemComponent;
 // tag changes, cues).
 //
 // The World adds one in debug builds (application/game_framework/debug/
-// gas_debugger, on by default); it stays hidden until toggle_action
-// (gfgd_debug_gas_debugger, F3) is pressed. cycle_action
-// (gfgd_debug_gas_debugger_next, F4) steps through every component in the tree; it starts
-// on the local player's pawn. On a client it shows the replicated mirror, which
+// gas_debugger, on by default); it stays hidden until the console shows it:
+// gas.toggle, gas.next (steps through every component in the tree), gas.target
+// self|<path>. It starts on the local player's pawn. There are no keys by default;
+// a game can set toggle_action / cycle_action to its own Input Map actions. On a client it shows the replicated mirror, which
 // is exactly what is useful when a client "does not see" something.
 class AbilitySystemDebugger : public CanvasLayer
 {
@@ -55,6 +55,11 @@ public:
 	virtual void _ready() override;
 	virtual void _process(double delta) override;
 	virtual void _input(const Ref<InputEvent>& event) override;
+	virtual void _exit_tree() override;
+
+	void cmd_toggle(const PackedStringArray& args);
+	void cmd_next(const PackedStringArray& args);
+	void cmd_target(const PackedStringArray& args);
 
 	void set_toggle_action(const StringName& value) { toggle_action = value; }
 	StringName get_toggle_action() const { return toggle_action; }

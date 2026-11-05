@@ -57,8 +57,10 @@ String join(const PackedStringArray& items)
 
 AbilitySystemDebugger::AbilitySystemDebugger()
 {
-	toggle_action = DebugTools::ACTION_GAS_DEBUGGER;
-	cycle_action = DebugTools::ACTION_GAS_DEBUGGER_NEXT;
+	// No keys by default: the overlay is driven from the console (gas.toggle, gas.next,
+	// gas.target). A game that wants keys sets these to its own Input Map actions.
+	toggle_action = StringName();
+	cycle_action = StringName();
 	refresh_interval = 0.1;
 	log_size = 14;
 	panel = nullptr;
@@ -100,6 +102,71 @@ void AbilitySystemDebugger::_ready()
 
 	set_shown(false);
 	set_process_input(true);
+
+	if (ConsoleManager* console = ConsoleManager::get_singleton())
+	{
+		console->register_command("gas.toggle", callable_mp(this, &AbilitySystemDebugger::cmd_toggle), "Shows or hides the ability system debugger.", ConsoleManager::FLAG_RAW_ARGS);
+		console->register_command("gas.next", callable_mp(this, &AbilitySystemDebugger::cmd_next), "Shows the next AbilitySystemComponent in the tree.", ConsoleManager::FLAG_RAW_ARGS);
+		console->register_command("gas.target", callable_mp(this, &AbilitySystemDebugger::cmd_target), "Shows: self | <node path> (the component or a node above it).", ConsoleManager::FLAG_RAW_ARGS);
+		console->set_command_usage("gas.toggle", "[on|off]");
+		console->set_command_usage("gas.target", "self|<node path>");
+	}
+}
+
+void AbilitySystemDebugger::_exit_tree()
+{
+	if (ConsoleManager* console = ConsoleManager::get_singleton())
+	{
+		console->unregister_command("gas.toggle");
+		console->unregister_command("gas.next");
+		console->unregister_command("gas.target");
+	}
+}
+
+void AbilitySystemDebugger::cmd_toggle(const PackedStringArray& args)
+{
+	const String which = args.is_empty() ? String() : args[0].to_lower();
+	if (which == "on" || which == "1") { set_shown(true); }
+	else if (which == "off" || which == "0") { set_shown(false); }
+	else { set_shown(!is_shown()); }
+}
+
+void AbilitySystemDebugger::cmd_next(const PackedStringArray& /*args*/)
+{
+	if (!is_shown()) { set_shown(true); }
+	cycle_target();
+}
+
+void AbilitySystemDebugger::cmd_target(const PackedStringArray& args)
+{
+	ConsoleManager* console = ConsoleManager::get_singleton();
+	if (args.is_empty())
+	{
+		AbilitySystemComponent* current = get_target();
+		if (console != nullptr) { console->print_line(current != nullptr ? String(current->get_path()) : String("no target")); }
+		return;
+	}
+	AbilitySystemComponent* found = nullptr;
+	if (args[0] == "self") { found = find_default_target(); }
+	else if (is_inside_tree())
+	{
+		Node* node = get_tree()->get_root()->get_node_or_null(NodePath(args[0]));
+		found = Object::cast_to<AbilitySystemComponent>(node);
+		if (found == nullptr && node != nullptr)
+		{
+			// A pawn or an actor: its own component (searched under that node only).
+			TypedArray<Node> under = node->find_children("*", "AbilitySystemComponent", true, false);
+			if (!under.is_empty()) { found = Object::cast_to<AbilitySystemComponent>(under[0]); }
+		}
+	}
+	if (found == nullptr)
+	{
+		if (console != nullptr) { console->print_error("gas.target: no AbilitySystemComponent at \"" + args[0] + "\"."); }
+		return;
+	}
+	set_target(found);
+	set_shown(true);
+	refresh();
 }
 
 void AbilitySystemDebugger::_input(const Ref<InputEvent>& event)
@@ -144,8 +211,8 @@ bool AbilitySystemDebugger::is_shown() const
 Array AbilitySystemDebugger::find_components() const
 {
 	if (!is_inside_tree()) { return Array(); }
-	TypedArray<Node> found = get_tree()->get_root()->find_children("*", "AbilitySystemComponent", true, false);
-	return found;
+	// A group, not a search: this runs on every refresh while there is no target.
+	return get_tree()->get_nodes_in_group(AbilitySystemComponent::COMPONENTS_GROUP);
 }
 
 AbilitySystemComponent* AbilitySystemDebugger::find_default_target() const

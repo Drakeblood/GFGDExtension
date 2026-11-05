@@ -277,7 +277,7 @@ A console, cheats, a gameplay debugger and debug drawing; on in debug builds (`a
 - **CheatManager** — `application/game_framework/debug/cheat_manager_script`: every public method of the script is a command that runs on the server, on the typing player's controller (`PlayerController.get_cheat_manager()`). Built-in: `teleport`, `set_movement_mode`, `gas_add_tag`, `gas_apply_effect`, `gas_grant_ability`, `gas_set_attribute`...
 - **Gameplay debugger** (`'`) — follows the actor under the crosshair (Kp * locks it, Kp 0–9 toggle categories, Tab detaches a free camera, T moves the pawn to it). Categories (`GameplayDebuggerCategory`) collect on the **server** (`_collect_data`) and draw on the viewer (`_draw_data` → BBCode, `_draw_world` → `DebugDraw`), through a `DebugReplicator` under each `PlayerController`. Built-in: Basic, Abilities (with the client mirror's differences), Movement (with the client-server position error), Net. Game categories: `application/game_framework/debug/gameplay_debugger_categories`.
 - **DebugDraw** — singleton: `line`, `arrow`, `sphere`, `box`, `point`, `axes`, `text` with a colour and a duration.
-- **AbilitySystemDebugger** (F3/F4) — the local ability system state and an event log.
+- **AbilitySystemDebugger** (console: `gas.toggle`, `gas.next`, `gas.target self|<path>`; no keys by default) — the local ability system state and an event log.
 
 ## Messaging
 

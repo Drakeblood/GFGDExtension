@@ -27,6 +27,10 @@
 
     Object files and src/gen are build artefacts and are never copied.
 
+    Before anything else, every git-ignored file in the addon is deleted, so no
+    stale output survives. Tracked files are kept, and so are the bin/ libraries
+    of platforms that -Build is not rebuilding this run.
+
 .PARAMETER Build
     Platforms to compile first, by handing each to build_all.ps1. Without it
     nothing is compiled and whatever is already in bin/ is packed as it stands -
@@ -84,6 +88,28 @@ $addon = Join-Path $PSScriptRoot "project/addons/gfgdextension"
 if (-not (Test-Path -LiteralPath $addon)) {
     throw "Addon folder not found at $addon"
 }
+
+# --- clean ------------------------------------------------------------------
+# Everything git ignores inside the addon is produced by this script or by the
+# builds, so it is wiped first and nothing stale (a renamed source, a library
+# from an old naming scheme) survives into the pack. Tracked files and untracked
+# ones that are not ignored are left alone - those are hand-written.
+#
+# The one exception is the libraries of platforms not being built this run:
+# nothing would put them back, so cleaning them would ship an addon without
+# them. Repacking with no -Build therefore keeps bin/ entirely.
+$addonRelative = "project/addons/gfgdextension"
+$ignored = & git ls-files -z --others --ignored --exclude-standard --directory -- $addonRelative
+if ($LASTEXITCODE -ne 0) { throw "git ls-files failed - cannot tell which addon files are generated." }
+$keepBin = @("linux", "macos", "windows", "android", "ios", "web") | Where-Object { $_ -notin $Build }
+$removed = 0
+foreach ($path in ($ignored -split "`0" | Where-Object { $_ })) {
+    $inside = $path.Substring($addonRelative.Length + 1)
+    if ($inside -match '^bin/([^/]+)/' -and $Matches[1] -in $keepBin) { continue }
+    Remove-Item -LiteralPath (Join-Path $PSScriptRoot $path) -Recurse -Force
+    $removed++
+}
+Write-Host "clean        $removed ignored item(s) removed" -ForegroundColor DarkGray
 
 # --- build ------------------------------------------------------------------
 # Before anything is assembled, so a failed compile stops the script rather than

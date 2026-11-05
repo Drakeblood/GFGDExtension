@@ -120,6 +120,8 @@ void AbilitySystemComponent::_ready()
 {
 	if (Engine::get_singleton()->is_editor_hint()) { return; }
 
+	add_to_group(COMPONENTS_GROUP);
+
 	configure_rpcs();
 
 	if (Pawn* pawn = Pawn::find_in(get_parent()))

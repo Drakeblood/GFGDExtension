@@ -9,6 +9,7 @@
 #include <godot_cpp/classes/node3d.hpp>
 #include <godot_cpp/classes/performance.hpp>
 #include <godot_cpp/classes/rigid_body3d.hpp>
+#include <godot_cpp/classes/viewport.hpp>
 #include <godot_cpp/classes/scene_tree.hpp>
 #include <godot_cpp/classes/script.hpp>
 #include <godot_cpp/core/class_db.hpp>
@@ -110,6 +111,8 @@ Node* GameplayDebuggerCategory::find_component(Node* target, const String& class
 {
 	if (target == nullptr) { return nullptr; }
 	if (target->is_class(class_name)) { return target; }
+	// A deep search from the root window would walk the whole tree every frame.
+	if (Object::cast_to<Viewport>(target) != nullptr) { return nullptr; }
 
 	Node* root = target;
 	if (Pawn* pawn = Object::cast_to<Pawn>(target)) { root = pawn->get_pawn_root(); }

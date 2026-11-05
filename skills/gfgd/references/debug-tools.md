@@ -16,7 +16,6 @@ Each has its own on/off setting in `application/game_framework/debug/`.
 | `gfgd_debug_category_0` … `_9` | Kp 0–9 | toggle category slots |
 | `gfgd_debug_free_camera` | Tab | free camera on/off (while the debugger is shown) |
 | `gfgd_debug_free_camera_teleport` | T (physical) | move your pawn to the free camera |
-| `gfgd_debug_gas_debugger` / `_next` | F3 / F4 | the ability system overlay |
 
 The editor writes them into the project the first time it loads the extension, so they are rebound
 in **Project Settings > Input Map** (or by a game's controls menu at runtime, via `InputMap`). A
@@ -50,7 +49,8 @@ ConsoleManager.execute("give_wood 5; echo done")
   `user://autoexec.cfg` runs at startup (`exec <file>` runs any file).
 - Built-ins: `dumpcommands [filter]` (everything with its description), `echo`, `exec`,
   `slomo <scale>` (local `Engine.time_scale`), `quit`, `clear`, `gd.toggle`, `gd.category [name|slot]`,
-  `gd.target self|aim|<path>`, `gd.lock`, `gd.freecam`; variables `cheats`, `console.engine_log`.
+  `gd.target self|aim|<path>`, `gd.lock`, `gd.freecam`, `gas.toggle [on|off]`, `gas.next`,
+  `gas.target self|<path>` (the ability system overlay has no keys by default); variables `cheats`, `console.engine_log`.
 - **Write a help text** for every command (`register_command`'s third argument, a cheat's
   `_get_command_help`): the console shows it next to each suggestion as you type. Arguments are read
   off the method; a `FLAG_RAW_ARGS` command sets them with `set_command_usage(name, "<path> [count]")`.
@@ -107,7 +107,8 @@ global `print()` wins; use `client_message()` for console output. Built-in cheat
 `'` shows the overlay. It follows the actor in the middle of the screen (ray from the camera,
 skipping the local pawn; the hit collider is resolved to the nearest ancestor in group
 `gameplay_debugger_target`, else a pawn root, else the nearest scripted node), the local pawn when
-nothing is hit. Kp * locks, Kp 0–9 toggle categories.
+nothing is hit. Kp * locks, Kp 0–9 toggle categories. `gameplay_debugger_key_hints = false` hides the key line in the overlay (for a game
+that lists the keys on its own controls screen).
 
 Data flow: the client sends `(target path, enabled categories)` once on change; the
 **server** collects every `gameplay_debugger_refresh_interval` (0.15 s) and sends the result to that

@@ -106,6 +106,7 @@ private:
 	// What the aim ray hit on the last physics step, and a gd.target aim waiting for it.
 	ObjectID aimed_id;
 	bool aim_lock_pending;
+	double aim_accumulator; // the aim ray runs a few times a second, not every physics step
 
 	// Free camera: the camera, the one it replaced, and the mouse mode to restore.
 	ObjectID free_camera_id;

@@ -29,8 +29,6 @@ namespace DebugTools
 	constexpr const char* ACTION_GAMEPLAY_DEBUGGER_LOCK = "gfgd_debug_gameplay_debugger_lock";
 	constexpr const char* ACTION_FREE_CAMERA = "gfgd_debug_free_camera";
 	constexpr const char* ACTION_FREE_CAMERA_TELEPORT = "gfgd_debug_free_camera_teleport";
-	constexpr const char* ACTION_GAS_DEBUGGER = "gfgd_debug_gas_debugger";
-	constexpr const char* ACTION_GAS_DEBUGGER_NEXT = "gfgd_debug_gas_debugger_next";
 	// gfgd_debug_category_0 .. gfgd_debug_category_9 toggle the gameplay
 	// debugger's category slots (numpad 0-9 by default).
 	constexpr int CATEGORY_SLOTS = 10;
@@ -59,6 +57,8 @@ namespace DebugTools
 	bool is_action_pressed(const Ref<InputEvent>& event, const StringName& action);
 
 	// The keys bound to an action, for on-screen hints ("F3", "Kp 1").
+	// A key name as printed on the keyboard: "'" for Apostrophe, "Num *" for Kp Multiply.
+	String friendly_key_name(const String& name);
 	String describe_action(const StringName& action);
 
 	// The first PlayerController sitting at this machine, or null.

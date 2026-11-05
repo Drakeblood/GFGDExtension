@@ -35,8 +35,6 @@ Vector<DefaultAction> default_actions()
 	actions.push_back({ DebugTools::ACTION_GAMEPLAY_DEBUGGER_LOCK, KEY_KP_MULTIPLY, false });
 	actions.push_back({ DebugTools::ACTION_FREE_CAMERA, KEY_TAB, false });
 	actions.push_back({ DebugTools::ACTION_FREE_CAMERA_TELEPORT, KEY_T, true });
-	actions.push_back({ DebugTools::ACTION_GAS_DEBUGGER, KEY_F3, false });
-	actions.push_back({ DebugTools::ACTION_GAS_DEBUGGER_NEXT, KEY_F4, false });
 	for (int slot = 0; slot < DebugTools::CATEGORY_SLOTS; slot++)
 	{
 		actions.push_back({ String(DebugTools::category_action(slot)), Key(KEY_KP_0 + slot), false });
@@ -128,6 +126,24 @@ bool DebugTools::is_action_pressed(const Ref<InputEvent>& event, const StringNam
 	return event->is_action_pressed(action, false, true);
 }
 
+String DebugTools::friendly_key_name(const String& name)
+{
+	// Godot's key names, as a player reads them on the keyboard.
+	static const char* const pairs[][2] = {
+		{ "QuoteLeft", "`" }, { "Apostrophe", "'" }, { "Semicolon", ";" }, { "Comma", "," }, { "Period", "." },
+		{ "Slash", "/" }, { "BackSlash", "\\" }, { "BracketLeft", "[" }, { "BracketRight", "]" }, { "Minus", "-" },
+		{ "Equal", "=" }, { "Kp Multiply", "Num *" }, { "Kp Add", "Num +" }, { "Kp Subtract", "Num -" },
+		{ "Kp Divide", "Num /" }, { "Kp Period", "Num ." }, { "Kp Enter", "Num Enter" },
+	};
+	String text = name.replace(" (Physical)", "");
+	for (const auto& pair : pairs)
+	{
+		if (text == pair[0]) { return pair[1]; }
+	}
+	if (text.begins_with("Kp ")) { return "Num " + text.substr(3); }
+	return text;
+}
+
 String DebugTools::describe_action(const StringName& action)
 {
 	InputMap* input_map = InputMap::get_singleton();
@@ -140,8 +156,8 @@ String DebugTools::describe_action(const StringName& action)
 		Ref<InputEventKey> key = events[i];
 		if (key.is_valid())
 		{
-			keys.push_back(key->as_text_keycode().is_empty() || key->get_keycode() == KEY_NONE
-				? key->as_text_physical_keycode() : key->as_text_keycode());
+			keys.push_back(friendly_key_name(key->as_text_keycode().is_empty() || key->get_keycode() == KEY_NONE
+				? key->as_text_physical_keycode() : key->as_text_keycode()));
 			continue;
 		}
 		Ref<InputEvent> other = events[i];

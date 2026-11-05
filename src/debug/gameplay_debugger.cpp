@@ -34,6 +34,7 @@ GameplayDebugger* GameplayDebugger::singleton = nullptr;
 namespace
 {
 const char* CATEGORIES_SETTING = "application/game_framework/debug/gameplay_debugger_categories";
+const char* KEY_HINTS_SETTING = "application/game_framework/debug/gameplay_debugger_key_hints";
 const char* COLOR_HEAD = "#ffd36e";
 const char* COLOR_DIM = "#9aa4b1";
 const char* COLOR_GOOD = "#8fe388";
@@ -200,6 +201,7 @@ GameplayDebuggerHUD::GameplayDebuggerHUD()
 	text_accumulator = 0.0;
 	local_collect_accumulator = 0.0;
 	aim_lock_pending = false;
+	aim_accumulator = 0.0;
 	sent_active = false;
 	mouse_mode_before = Input::MOUSE_MODE_VISIBLE;
 }
@@ -428,12 +430,21 @@ Node* GameplayDebuggerHUD::resolve_actor(Node* node)
 	SceneTree* tree = node->get_tree();
 	Node* scene = tree != nullptr ? tree->get_current_scene() : nullptr;
 
-	for (Node* current = node; current != nullptr && current != scene; current = current->get_parent())
+	// Walks up to the scene (or the level under the root window, when the
+	// level is not the current scene) - never into the root window itself.
+	// Only a node and its direct children are looked at on the way: a deep
+	// search on every ancestor would end up searching the whole tree.
+	for (Node* current = node; current != nullptr && current != scene && !Object::cast_to<Viewport>(current); current = current->get_parent())
 	{
 		if (current->is_in_group("gameplay_debugger_target")) { return current; }
-		if (Pawn::find_in(current) != nullptr) { return current; }
+		if (Object::cast_to<Pawn>(current) != nullptr) { return current; }
+		const int count = current->get_child_count();
+		for (int i = 0; i < count; i++)
+		{
+			if (Object::cast_to<Pawn>(current->get_child(i)) != nullptr) { return current; }
+		}
 	}
-	for (Node* current = node; current != nullptr && current != scene; current = current->get_parent())
+	for (Node* current = node; current != nullptr && current != scene && !Object::cast_to<Viewport>(current); current = current->get_parent())
 	{
 		if (current->get_script().get_type() != Variant::NIL) { return current; }
 	}
@@ -532,11 +543,15 @@ Dictionary GameplayDebuggerHUD::current_data(bool& waiting) const
 	return replicator->get_view_data();
 }
 
-void GameplayDebuggerHUD::_physics_process(double /*delta*/)
+void GameplayDebuggerHUD::_physics_process(double delta)
 {
 	// The aim ray lives here: the physics space can only be queried during the
 	// physics step (with physics on its own thread, not at all outside it).
 	if (!active && !aim_lock_pending) { return; }
+
+	aim_accumulator += delta;
+	if (!aim_lock_pending && aim_accumulator < 0.1) { return; }
+	aim_accumulator = 0.0;
 
 	Node* aimed = find_target_under_crosshair();
 	aimed_id = aimed != nullptr ? aimed->get_instance_id() : ObjectID();
@@ -613,14 +628,24 @@ void GameplayDebuggerHUD::refresh_text()
 	const String head = String("[color=") + COLOR_HEAD + "][b]";
 	const String end_head = "[/b][/color]";
 	String out = head + String("GAMEPLAY DEBUGGER") + end_head + String("\n");
-	out += String("[color=") + COLOR_DIM + "]" + DebugTools::describe_action(DebugTools::ACTION_GAMEPLAY_DEBUGGER) + " close   "
-		+ DebugTools::describe_action(DebugTools::ACTION_GAMEPLAY_DEBUGGER_LOCK) + " lock target   "
-		+ DebugTools::describe_action(DebugTools::category_action(0)) + "... categories   "
-		+ DebugTools::describe_action(DebugTools::ACTION_FREE_CAMERA) + " free camera[/color]\n";
+	// The key hints can be turned off when the game lists these keys elsewhere (its own controls screen).
+	const bool key_hints = bool(ProjectSettings::get_singleton()->get_setting(KEY_HINTS_SETTING, true));
+	if (key_hints)
+	{
+		out += String("[color=") + COLOR_DIM + "]" + DebugTools::describe_action(DebugTools::ACTION_GAMEPLAY_DEBUGGER) + " close   "
+			+ DebugTools::describe_action(DebugTools::ACTION_GAMEPLAY_DEBUGGER_LOCK) + " lock target   "
+			+ DebugTools::describe_action(DebugTools::category_action(0)) + "-" + DebugTools::describe_action(DebugTools::category_action(DebugTools::CATEGORY_SLOTS - 1)).replace("Num ", "") + " categories   "
+			+ DebugTools::describe_action(DebugTools::ACTION_FREE_CAMERA) + " free camera[/color]\n";
+	}
 	if (is_free_camera())
 	{
-		out += String("[color=") + COLOR_GOOD + "]free camera[/color]  [color=" + COLOR_DIM + "]WASD QE, mouse, Shift/Ctrl, wheel = speed, "
-			+ DebugTools::describe_action(DebugTools::ACTION_FREE_CAMERA_TELEPORT) + " = move your pawn here[/color]\n";
+		out += String("[color=") + COLOR_GOOD + "]free camera[/color]";
+		if (key_hints)
+		{
+			out += String("  [color=") + COLOR_DIM + "]WASD QE, mouse, Shift/Ctrl, wheel = speed, "
+				+ DebugTools::describe_action(DebugTools::ACTION_FREE_CAMERA_TELEPORT) + " = move your pawn here[/color]";
+		}
+		out += "\n";
 	}
 
 	Node* target = get_target();

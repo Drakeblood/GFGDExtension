@@ -150,6 +150,8 @@ static void register_gfgd_settings()
 	register_gfgd_setting("application/game_framework/debug/console", true, Variant::BOOL);
 	register_gfgd_setting("application/game_framework/debug/gameplay_debugger", true, Variant::BOOL);
 	register_gfgd_setting("application/game_framework/debug/gas_debugger", true, Variant::BOOL);
+	// Off: the gameplay debugger overlay does not print its keys (for a game that lists them on its own controls screen).
+	register_gfgd_setting("application/game_framework/debug/gameplay_debugger_key_hints", true, Variant::BOOL);
 	register_gfgd_setting("application/game_framework/debug/gameplay_debugger_refresh_interval", 0.15, Variant::FLOAT, PROPERTY_HINT_RANGE, "0.02,2,0.01,suffix:s");
 	// A script extending CheatManager; its methods become console commands.
 	register_gfgd_setting("application/game_framework/debug/cheat_manager_script", String(), Variant::STRING, PROPERTY_HINT_FILE, "*.gd,*.cs");
