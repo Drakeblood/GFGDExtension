@@ -4,7 +4,7 @@
 		The gameplay debugger overlay ([code]'[/code]).
 	</brief_description>
 	<description>
-		The [World] adds one in debug builds (setting [code]application/game_framework/debug/gameplay_debugger[/code]). The [code]gfgd_debug_gameplay_debugger[/code] action ([code]'[/code] by default) shows it. It then follows whatever is in the middle of the screen - the local pawn when nothing is - until [code]gfgd_debug_gameplay_debugger_lock[/code] (numpad *) pins the target. [code]gfgd_debug_category_0[/code]..[code]9[/code] (numpad 0-9) switch category slots. Every key is an Input Map action.
+		The [World] adds one in debug builds (setting [code]application/game_framework/debug/gameplay_debugger[/code]). The [code]gfgd_debug_gameplay_debugger[/code] action ([code]'[/code] by default) shows it. The first time it opens it is pinned ([member locked]) to the local pawn. [code]gfgd_debug_gameplay_debugger_lock[/code] (numpad *) unpins it: it then follows whatever is in the middle of the screen - the local pawn when nothing is - until the same action pins the target again. Later openings keep the target and the pin they were closed with. [code]gfgd_debug_category_0[/code]..[code]9[/code] (numpad 0-9) switch category slots. Every key is an Input Map action.
 		[code]gfgd_debug_free_camera[/code] (Tab) detaches the view into a [DebugCamera]: the pawn stands still and gets no input, targets are picked from wherever the camera flies, and [code]gfgd_debug_free_camera_teleport[/code] (T) moves the pawn there. The console command [code]gd.freecam[/code] does the same without the overlay.
 		Data comes from the server through the player's [DebugReplicator]; without a [PlayerController] it is collected locally.
 	</description>

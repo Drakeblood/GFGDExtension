@@ -68,10 +68,12 @@ private:
 };
 
 // The overlay - one per machine with a screen, added by the World. The
-// gameplay_debugger action (' by default) shows it; it then follows whatever
-// is in the middle of the screen (the local pawn when nothing is), until the
-// lock action (numpad *) pins the current target. The category actions
-// (numpad 0-9) switch categories on and off.
+// gameplay_debugger action (' by default) shows it. The first time it opens it
+// is pinned to the local pawn; the lock action (numpad *) unpins it, and it then
+// follows whatever is in the middle of the screen (the local pawn when nothing
+// is) until the lock action pins the current target again. Later openings keep
+// the target and the pin they were closed with. The category actions (numpad
+// 0-9) switch categories on and off.
 //
 // The free camera action (Tab) detaches the view into a DebugCamera while the
 // overlay is shown - the pawn stands still, targets are picked from wherever the
@@ -87,6 +89,8 @@ class GameplayDebuggerHUD : public CanvasLayer
 private:
 	bool active;
 	bool locked;
+	// Not shown yet this session: the first opening starts on the local pawn.
+	bool never_shown;
 	ObjectID target_id;
 	PackedStringArray enabled_categories;
 	bool enabled_initialized;

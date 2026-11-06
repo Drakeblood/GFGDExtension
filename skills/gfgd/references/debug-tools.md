@@ -104,10 +104,11 @@ global `print()` wins; use `client_message()` for console output. Built-in cheat
 
 ## Gameplay debugger
 
-`'` shows the overlay. It follows the actor in the middle of the screen (ray from the camera,
+`'` shows the overlay. The first opening is pinned (locked) to the local pawn; Kp * unpins it, and it
+then follows the actor in the middle of the screen (ray from the camera,
 skipping the local pawn; the hit collider is resolved to the nearest ancestor in group
 `gameplay_debugger_target`, else a pawn root, else the nearest scripted node), the local pawn when
-nothing is hit. Kp * locks, Kp 0–9 toggle categories. `gameplay_debugger_key_hints = false` hides the key line in the overlay (for a game
+nothing is hit, until Kp * pins it again. Later openings keep the target and the pin. Kp 0–9 toggle categories. `gameplay_debugger_key_hints = false` hides the key line in the overlay (for a game
 that lists the keys on its own controls screen).
 
 Data flow: the client sends `(target path, enabled categories)` once on change; the

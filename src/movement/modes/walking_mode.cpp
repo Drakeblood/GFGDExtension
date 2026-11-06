@@ -81,17 +81,23 @@ void WalkingMode::simulation_tick(const Ref<MovementTickParams>& params)
 
 	const Ref<FloorResult> floor = component->get_current_floor();
 
-	// Captured before the post-move floor test overwrites it. Leaving a platform -
-	// by jumping or by walking off the end - has to hand back the platform's own
-	// motion, and by then the floor result no longer describes the platform.
-	const Vector3 base_velocity = component->get_impart_base_velocity() ? floor->get_collider_velocity() : Vector3();
+	// Leaving the ground - by jumping or by walking off the end - hands over the
+	// motion of the base the character stood on, but not here: the component does
+	// it once, in save_base_location, and only for a real base. Adding the floor's
+	// own velocity here as well counted a platform twice and gave the speed of
+	// things that never carried the character (a rolling log) on top of its own.
 
 	// A jump leaves the ground before anything else happens this tick, so the
 	// upward velocity is not immediately flattened by the walking solver.
 	if (input->get_want_jump() && component->get_jump_velocity() > 0.0f)
 	{
 		velocity += up * component->get_jump_velocity();
-		velocity += base_velocity;
+
+		// The character is off the ground now. Left in place, the floor would
+		// keep the base for the whole jump (the falling mode only looks for a
+		// floor on the way down), so the platform would go on carrying the
+		// character through the air instead of handing over its motion once.
+		floor->clear();
 
 		out_state->set_position(transform.origin);
 		out_state->set_rotation(transform.basis);
@@ -173,7 +179,6 @@ void WalkingMode::simulation_tick(const Ref<MovementTickParams>& params)
 	}
 	else
 	{
-		velocity += base_velocity;
 		component->queue_next_mode(StringName(CharacterMovementComponent::MODE_FALLING));
 	}
 

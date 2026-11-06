@@ -82,17 +82,18 @@ void WalkingMode2D::simulation_tick(const Ref<MovementTickParams>& params)
 
 	const Ref<FloorResult> floor = component->get_current_floor();
 
-	// Captured before the post-move floor test overwrites it. Leaving a platform -
-	// by jumping or by walking off the end - has to hand back the platform's own
-	// motion, and by then the floor result no longer describes the platform.
-	const Vector2 base_velocity = component->get_impart_base_velocity()
-		? MovementUtils2D::to_2d(floor->get_collider_velocity())
-		: Vector2();
+	// Leaving the ground hands over the base's motion once, in the component's
+	// save_base_location, and only for a real base - not the floor's own velocity
+	// here, which counted a platform twice and gave the speed of things that never
+	// carried the character.
 
 	if (input->get_want_jump() && component->get_jump_velocity() > 0.0f)
 	{
 		velocity += up * component->get_jump_velocity();
-		velocity += base_velocity;
+
+		// Off the ground now: without this the floor keeps the base for the whole
+		// jump and the platform carries the character through the air.
+		floor->clear();
 
 		out_state->set_position(MovementUtils2D::to_3d(transform.get_origin()));
 		out_state->set_velocity(MovementUtils2D::to_3d(velocity));
@@ -123,7 +124,6 @@ void WalkingMode2D::simulation_tick(const Ref<MovementTickParams>& params)
 	}
 	else
 	{
-		velocity += base_velocity;
 		component->queue_next_mode(StringName(CharacterMovementComponent2D::MODE_FALLING));
 	}
 

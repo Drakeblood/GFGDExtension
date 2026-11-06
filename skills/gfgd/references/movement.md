@@ -357,9 +357,12 @@ rider on a fast platform is corrected constantly.
 Expect roughly one physics frame of lag between platform and rider.
 
 `impart_base_velocity` hands the platform's velocity back when the character leaves it, so a jump
-from a moving lift keeps the lift's momentum. **Use an `AnimatableBody3D` for a moving platform** —
-it is the body Godot tracks the motion of, and therefore the only one that reports a velocity to
-take. A `StaticBody3D` pushed around by a script carries the character fine but hands back nothing.
+from a moving lift keeps the lift's momentum. It is handed over once, on the tick the character
+leaves, and it is the base's motion measured at the feet over the last tick (`get_base_velocity`) —
+so it works for any base that moves, however it is moved. Only a real base hands anything over: a
+body whose `_can_be_base_for_character` returns `false` (a loose log that rolls under the feet) gives
+nothing on the way off either, however fast it moves. **Use an `AnimatableBody3D` for a moving
+platform** all the same — it is what pushes other bodies along properly.
 
 ### Swimming
 

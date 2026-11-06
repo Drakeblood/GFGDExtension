@@ -195,6 +195,7 @@ GameplayDebuggerHUD::GameplayDebuggerHUD()
 {
 	active = false;
 	locked = false;
+	never_shown = true;
 	enabled_initialized = false;
 	panel = nullptr;
 	label = nullptr;
@@ -329,7 +330,22 @@ void GameplayDebuggerHUD::set_active(bool value)
 	set_process(value);
 	if (value)
 	{
+		// Opened for the first time: what is usually wanted is the player's own
+		// character, not whatever the camera happens to be looking past. Pinned,
+		// so the aim ray does not take it away a moment later. A target chosen
+		// before that (gd.target) is kept. Without a pawn yet (a menu) the next
+		// opening tries again.
+		if (never_shown && get_target() == nullptr)
+		{
+			Node* own = default_target();
+			if (own != nullptr)
+			{
+				set_target(own);
+				locked = true;
+			}
+		}
 		if (get_target() == nullptr) { set_target(default_target()); }
+		if (get_target() != nullptr) { never_shown = false; }
 		sync_request();
 		refresh_text();
 	}
