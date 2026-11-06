@@ -57,6 +57,9 @@ CharacterMovementComponent::CharacterMovementComponent()
 	, jump_pressed_latch(false)
 	, crouch_latch(false)
 	, custom_input_flags_latch(0)
+	, held_custom_input_flags(0)
+	, facing_input_latch()
+	, has_facing_input_latch(false)
 	, up_direction(Vector3(0, 1, 0))
 	, gravity(9.8f)
 	, gravity_scale(1.0f)
@@ -262,11 +265,9 @@ void CharacterMovementComponent::simulate_internal(double delta, const Ref<Movem
 
 	// Inside the tick and before anything moves, so whatever a game does with its
 	// own bits - queue a dash, start a sprint - happens on this tick, on every
-	// machine that runs it and on every replay of it.
-	if (input->get_custom_flags() != 0)
-	{
-		emit_signal("custom_input_flags", input->get_custom_flags());
-	}
+	// machine that runs it and on every replay of it. On every tick, zero
+	// included: a held bit that is gone has to be seen going.
+	emit_signal("custom_input_flags", input->get_custom_flags());
 
 	// Before the modes run, so a mode that is about to move sees the size the
 	// character will be moving at.
@@ -347,6 +348,12 @@ bool CharacterMovementComponent::is_replaying() const
 void CharacterMovementComponent::add_custom_input_flags(int flags)
 {
 	custom_input_flags_latch |= flags & MovementInput::CUSTOM_FLAGS_MASK;
+}
+
+void CharacterMovementComponent::set_facing_input(const Vector3& direction)
+{
+	facing_input_latch = direction;
+	has_facing_input_latch = true;
 }
 
 void CharacterMovementComponent::run_mode_tick(double delta)
@@ -610,7 +617,7 @@ void CharacterMovementComponent::gather_input(int64_t frame, double tick_delta)
 	// that travels to the server or is replayed has to crouch by itself, without
 	// a latch on the other machine to read.
 	input->set_want_crouch(crouch_latch);
-	input->set_custom_flags(custom_input_flags_latch);
+	input->set_custom_flags(custom_input_flags_latch | held_custom_input_flags);
 
 	if (pawn == nullptr)
 	{
@@ -628,6 +635,14 @@ void CharacterMovementComponent::gather_input(int64_t frame, double tick_delta)
 	// so the raw vector is however many frames happened to fit. Left alone,
 	// walking speed would rise with the frame rate.
 	input->set_move_input(pawn->consume_movement_input_vector().limit_length(1.0f));
+
+	// After the pawn's gather, which is where a game calls set_facing_input.
+	// Read once and dropped, so a heading nobody renews does not stick.
+	if (has_facing_input_latch)
+	{
+		input->set_facing_direction(facing_input_latch.slide(up_direction));
+		has_facing_input_latch = false;
+	}
 }
 
 Node3D* CharacterMovementComponent::resolve_base() const
@@ -865,22 +880,40 @@ void CharacterMovementComponent::apply_state_to_body()
 
 void CharacterMovementComponent::apply_rotation(double delta)
 {
-	if (!orient_rotation_to_movement || delta <= 0.0)
+	if (delta <= 0.0)
 	{
 		return;
 	}
 
-	const Vector3 flat_velocity = state->get_velocity().slide(up_direction);
-	if (flat_velocity.length_squared() < ROTATION_SPEED_THRESHOLD_SQUARED)
+	Vector3 facing;
+	if (input->has_facing())
 	{
-		return;
+		// A requested heading wins, and turns the character even standing still.
+		facing = input->get_facing_direction().slide(up_direction);
+		if (facing.length_squared() < CMP_EPSILON)
+		{
+			return;
+		}
 	}
+	else
+	{
+		if (!orient_rotation_to_movement)
+		{
+			return;
+		}
+		facing = state->get_velocity().slide(up_direction);
+		if (facing.length_squared() < ROTATION_SPEED_THRESHOLD_SQUARED)
+		{
+			return;
+		}
+	}
+	facing.normalize();
 
 	const Basis current = state->get_rotation();
-	const Basis target = Basis::looking_at(flat_velocity.normalized(), up_direction);
+	const Basis target = Basis::looking_at(facing, up_direction);
 
 	const Vector3 current_forward = -current.get_column(2);
-	const float angle = current_forward.angle_to(flat_velocity.normalized());
+	const float angle = current_forward.angle_to(facing);
 	if (angle < (float)CMP_EPSILON)
 	{
 		return;
@@ -1291,6 +1324,10 @@ void CharacterMovementComponent::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_movement_backend"), &CharacterMovementComponent::get_movement_backend);
 	ClassDB::bind_method(D_METHOD("is_replaying"), &CharacterMovementComponent::is_replaying);
 	ClassDB::bind_method(D_METHOD("add_custom_input_flags", "flags"), &CharacterMovementComponent::add_custom_input_flags);
+	ClassDB::bind_method(D_METHOD("get_held_custom_input_flags"), &CharacterMovementComponent::get_held_custom_input_flags);
+	ClassDB::bind_method(D_METHOD("set_held_custom_input_flags", "flags"), &CharacterMovementComponent::set_held_custom_input_flags);
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "held_custom_input_flags", PROPERTY_HINT_FLAGS, "Custom 0,Custom 1,Custom 2,Custom 3,Custom 4,Custom 5,Custom 6,Custom 7,Custom 8,Custom 9,Custom 10,Custom 11,Custom 12,Custom 13,Custom 14,Custom 15", PROPERTY_USAGE_NONE), "set_held_custom_input_flags", "get_held_custom_input_flags");
+	ClassDB::bind_method(D_METHOD("set_facing_input", "direction"), &CharacterMovementComponent::set_facing_input);
 	ClassDB::bind_method(D_METHOD("server_receive_moves", "first_frame", "move_inputs", "flags"), &CharacterMovementComponent::server_receive_moves);
 	ClassDB::bind_method(D_METHOD("client_receive_move_ack", "frame", "packed_state"), &CharacterMovementComponent::client_receive_move_ack);
 	ClassDB::bind_method(D_METHOD("get_replicated_movement_mode"), &CharacterMovementComponent::get_replicated_movement_mode);

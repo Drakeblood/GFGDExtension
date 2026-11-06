@@ -19,6 +19,7 @@ MovementInput::MovementInput()
 	, want_jump(false)
 	, want_crouch(false)
 	, custom_flags(0)
+	, facing_index(-1)
 	, frame(0)
 {
 }
@@ -33,7 +34,31 @@ void MovementInput::reset()
 	want_jump = false;
 	want_crouch = false;
 	custom_flags = 0;
+	facing_index = -1;
 	frame = 0;
+}
+
+Vector3 MovementInput::get_facing_direction() const
+{
+	if (facing_index < 0)
+	{
+		return Vector3();
+	}
+	const float angle = (float)facing_index * (float)Math::TAU / (float)FACING_STEPS;
+	return Vector3(Math::sin(angle), 0.0f, Math::cos(angle));
+}
+
+void MovementInput::set_facing_direction(const Vector3& direction)
+{
+	const Vector2 flat(direction.x, direction.z);
+	if (!flat.is_finite() || flat.length_squared() < 1e-8f)
+	{
+		facing_index = -1;
+		return;
+	}
+	const float angle = Math::atan2(direction.x, direction.z);
+	const int step = (int)Math::round(angle / (float)Math::TAU * (float)FACING_STEPS);
+	facing_index = ((step % FACING_STEPS) + FACING_STEPS) % FACING_STEPS;
 }
 
 void MovementInput::copy_from(const Ref<MovementInput>& other)
@@ -44,6 +69,7 @@ void MovementInput::copy_from(const Ref<MovementInput>& other)
 	want_jump = other->want_jump;
 	want_crouch = other->want_crouch;
 	custom_flags = other->custom_flags;
+	facing_index = other->facing_index;
 	frame = other->frame;
 }
 
@@ -55,6 +81,7 @@ Ref<MovementInput> MovementInput::duplicate_input() const
 	copy->want_jump = want_jump;
 	copy->want_crouch = want_crouch;
 	copy->custom_flags = custom_flags;
+	copy->facing_index = facing_index;
 	copy->frame = frame;
 	return copy;
 }
@@ -81,6 +108,14 @@ void MovementInput::_bind_methods()
 	ClassDB::bind_method(D_METHOD("set_custom_flags", "value"), &MovementInput::set_custom_flags);
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "custom_flags", PROPERTY_HINT_FLAGS, "Custom 0,Custom 1,Custom 2,Custom 3,Custom 4,Custom 5,Custom 6,Custom 7,Custom 8,Custom 9,Custom 10,Custom 11,Custom 12,Custom 13,Custom 14,Custom 15"), "set_custom_flags", "get_custom_flags");
 	ClassDB::bind_method(D_METHOD("has_custom_flag", "flag"), &MovementInput::has_custom_flag);
+
+	ClassDB::bind_method(D_METHOD("get_facing_index"), &MovementInput::get_facing_index);
+	ClassDB::bind_method(D_METHOD("set_facing_index", "value"), &MovementInput::set_facing_index);
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "facing_index", PROPERTY_HINT_RANGE, "-1,4095,1"), "set_facing_index", "get_facing_index");
+	ClassDB::bind_method(D_METHOD("has_facing"), &MovementInput::has_facing);
+	ClassDB::bind_method(D_METHOD("get_facing_direction"), &MovementInput::get_facing_direction);
+	ClassDB::bind_method(D_METHOD("set_facing_direction", "direction"), &MovementInput::set_facing_direction);
+	BIND_CONSTANT(FACING_STEPS);
 
 	ClassDB::bind_method(D_METHOD("reset"), &MovementInput::reset);
 	ClassDB::bind_method(D_METHOD("copy_from", "other"), &MovementInput::copy_from);

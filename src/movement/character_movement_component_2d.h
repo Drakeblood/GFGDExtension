@@ -100,6 +100,7 @@ private:
 	bool jump_pressed_latch;
 	bool crouch_latch;
 	int custom_input_flags_latch;
+	int held_custom_input_flags;
 
 	// Scratch each layered move writes its proposal into, so mixing does not
 	// allocate per move per tick.
@@ -359,6 +360,11 @@ public:
 	// Custom bits for the next tick's input, handed back through the
 	// custom_input_flags signal inside that tick on every machine that runs it.
 	void add_custom_input_flags(int flags);
+
+	// Bits on every tick's input until changed - a held button. See
+	// CharacterMovementComponent.set_held_custom_input_flags.
+	int get_held_custom_input_flags() const { return held_custom_input_flags; }
+	void set_held_custom_input_flags(int flags) { held_custom_input_flags = flags & MovementInput::CUSTOM_FLAGS_MASK; }
 
 	bool get_client_prediction() const { return client_prediction; }
 	void set_client_prediction(bool value) { client_prediction = value; }

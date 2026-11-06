@@ -60,10 +60,14 @@ public:
 		PREDICTION_ROLE_SERVER = 3,
 	};
 
-	// Bits of the per-move flags word on the wire. The high sixteen carry
-	// MovementInput::custom_flags.
+	// Bits of the per-move flags word on the wire. Bit 2 says a heading is
+	// requested and bits 3-14 carry it (MovementInput::facing_index); the high
+	// sixteen carry MovementInput::custom_flags.
 	static constexpr int WIRE_FLAG_JUMP = 1 << 0;
 	static constexpr int WIRE_FLAG_CROUCH = 1 << 1;
+	static constexpr int WIRE_FLAG_FACING = 1 << 2;
+	static constexpr int WIRE_FACING_SHIFT = 3;
+	static constexpr int WIRE_FACING_MASK = 0xFFF;
 	static constexpr int WIRE_CUSTOM_FLAGS_SHIFT = 16;
 
 private:

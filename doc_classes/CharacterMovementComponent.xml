@@ -263,6 +263,19 @@
 				Remote call, from the owning client to the server: the client's newest unacknowledged moves, for frames [param first_frame] onward. Dropped unless it comes from the pawn's owner, and every direction is clamped to length 1 on arrival whatever the client sent. Sent by [PredictedMovementBackend]; not for game code.
 			</description>
 		</method>
+		<method name="set_facing_input">
+			<return type="void" />
+			<param index="0" name="direction" type="Vector3" />
+			<description>
+				Which way the character should face on the tick being gathered. Call it from [code]Pawn._gather_movement_input[/code], once per tick; a heading nobody renews is dropped. It travels with the move ([member MovementInput.facing_index]), so the predicting client, the server and every replay turn the same way. While it is given it wins over [member orient_rotation_to_movement], at [member rotation_rate_deg], and turns the character even standing still - walking backwards while dragging something, strafing while aiming.
+				[codeblock]
+				func _gather_movement_input(_delta: float) -&gt; void:
+				    add_movement_input(camera_relative_direction)
+				    if dragging:
+				        movement.set_facing_input(grab_point - body.global_position)
+				[/codeblock]
+			</description>
+		</method>
 		<method name="set_velocity">
 			<return type="void" />
 			<param index="0" name="value" type="Vector3" />
@@ -368,6 +381,17 @@
 		<member name="ground_friction" type="float" setter="set_ground_friction" getter="get_ground_friction" default="8.0">
 			How quickly a character can change direction while still being pushed. This is steering, not stopping - stopping is [member braking_deceleration_walking]. Turning sharply at speed is what this number controls.
 		</member>
+		<member name="held_custom_input_flags" type="int" setter="set_held_custom_input_flags" getter="get_held_custom_input_flags" default="0">
+			Custom bits that stay on every tick's input until changed - the state of a held button, where [method add_custom_input_flags] is a press. A press-and-release pair of bits loses the release whenever the move that carried it is lost, the two land on one tick, or the button comes up while input is not being read; a held bit is simply absent from the next tick. [signal custom_input_flags] fires on every tick, so a game sees the bit go.
+				[codeblock]
+				func _on_sprint_pressed() -&gt; void:
+				    movement.held_custom_input_flags |= FLAG_SPRINT
+				func _on_sprint_released() -&gt; void:
+				    movement.held_custom_input_flags &amp;= ~FLAG_SPRINT
+				func _on_custom_input_flags(flags: int) -&gt; void:
+				    sprinting = flags &amp; FLAG_SPRINT != 0
+				[/codeblock]
+		</member>
 		<member name="impart_base_velocity" type="bool" setter="set_impart_base_velocity" getter="get_impart_base_velocity" default="true">
 			Hands the base's velocity to the character when it leaves the base into the air - a jump, walking off its edge - so a jump from a moving lift keeps the lift's momentum instead of dropping straight down. While the character stands on the base nothing is added: following it ([member move_with_base]) already does the carrying. Stepping from one base onto another hands nothing over. Only a real base hands anything over: a body that refuses to be one ([code]_can_be_base_for_character[/code] returning [code]false[/code], a loose rolling log for example) gives nothing, however fast it moves under the feet. Handed over once, on the tick the character leaves. Measured at the character's feet, see [method get_base_velocity].
 		</member>
@@ -416,7 +440,7 @@
 			The mode running right now. Not something you author - the knob for that is [member starting_mode], and during simulation modes hand over to each other. It is declared as a property so that it can be replicated; on a client it is written by the server and is the reason a pawn you do not own can be told apart walking from falling, which is what animation needs to know.
 		</member>
 		<member name="orient_rotation_to_movement" type="bool" setter="set_orient_rotation_to_movement" getter="get_orient_rotation_to_movement" default="false">
-			When true, the character turns to face the direction it is moving, at [member rotation_rate_deg].
+			When true, the character turns to face the direction it is moving, at [member rotation_rate_deg]. A heading given through [method set_facing_input] wins over it for that tick.
 		</member>
 		<member name="out_of_water_jump_velocity" type="float" setter="set_out_of_water_jump_velocity" getter="get_out_of_water_jump_velocity" default="5.2">
 			The push a jump gives while swimming, in metres per second. What gets a character out of a pool rather than bobbing against the lip of it.
@@ -478,7 +502,7 @@
 		<signal name="custom_input_flags">
 			<param index="0" name="flags" type="int" />
 			<description>
-				Emitted inside a tick whose input carries custom flags - see [method add_custom_input_flags] - before the movement mode runs, so a layered move queued from here starts on this very tick. Fires on the predicting client, on the server, and again on every replay; that is the point.
+				Emitted inside every tick with that tick's custom flags - see [method add_custom_input_flags] and [member held_custom_input_flags] - before the movement mode runs. Zero included, so a held bit is seen going, so a layered move queued from here starts on this very tick. Fires on the predicting client, on the server, and again on every replay; that is the point.
 			</description>
 		</signal>
 		<signal name="layered_move_finished">

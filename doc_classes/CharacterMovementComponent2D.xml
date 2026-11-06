@@ -370,6 +370,9 @@
 		<member name="ground_friction" type="float" setter="set_ground_friction" getter="get_ground_friction" default="8.0">
 			The 2D equivalent of [member CharacterMovementComponent.ground_friction].
 		</member>
+		<member name="held_custom_input_flags" type="int" setter="set_held_custom_input_flags" getter="get_held_custom_input_flags" default="0">
+			The 2D equivalent of [member CharacterMovementComponent.held_custom_input_flags].
+		</member>
 		<member name="impart_base_velocity" type="bool" setter="set_impart_base_velocity" getter="get_impart_base_velocity" default="true">
 			Hands the base's velocity to the character when it leaves the base into the air - a jump, walking off its edge - so a jump from a moving lift keeps the lift's momentum instead of dropping straight down. While the character stands on the base nothing is added: following it ([member move_with_base]) already does the carrying. Stepping from one base onto another hands nothing over. Measured at the character's feet, see [method get_base_velocity].
 		</member>
@@ -449,7 +452,7 @@
 		<signal name="custom_input_flags">
 			<param index="0" name="flags" type="int" />
 			<description>
-				Emitted inside a tick whose input carries custom flags - see [method add_custom_input_flags] - before the movement mode runs, so a layered move queued from here starts on this very tick. Fires on the predicting client, on the server, and again on every replay; that is the point.
+				Emitted inside every tick with that tick's custom flags - see [method add_custom_input_flags] and [member held_custom_input_flags] - before the movement mode runs. Zero included, so a held bit is seen going, so a layered move queued from here starts on this very tick. Fires on the predicting client, on the server, and again on every replay; that is the point.
 			</description>
 		</signal>
 		<signal name="layered_move_finished">

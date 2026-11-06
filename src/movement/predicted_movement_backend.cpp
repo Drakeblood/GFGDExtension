@@ -555,6 +555,7 @@ void PredictedMovementBackend::receive_moves(int64_t first_frame, const PackedVe
 		move->set_want_jump((bits & WIRE_FLAG_JUMP) != 0);
 		move->set_want_crouch((bits & WIRE_FLAG_CROUCH) != 0);
 		move->set_custom_flags((int)((bits >> WIRE_CUSTOM_FLAGS_SHIFT) & MovementInput::CUSTOM_FLAGS_MASK));
+		move->set_facing_index((bits & WIRE_FLAG_FACING) != 0 ? (int)((bits >> WIRE_FACING_SHIFT) & WIRE_FACING_MASK) : -1);
 
 		incoming_moves.push_back(move);
 		last_received_frame = frame;
@@ -608,6 +609,10 @@ void PredictedMovementBackend::send_moves(Node* node)
 		bits |= input->get_want_jump() ? WIRE_FLAG_JUMP : 0;
 		bits |= input->get_want_crouch() ? WIRE_FLAG_CROUCH : 0;
 		bits |= ((uint32_t)input->get_custom_flags() & MovementInput::CUSTOM_FLAGS_MASK) << WIRE_CUSTOM_FLAGS_SHIFT;
+		if (input->has_facing())
+		{
+			bits |= WIRE_FLAG_FACING | (((uint32_t)input->get_facing_index() & WIRE_FACING_MASK) << WIRE_FACING_SHIFT);
+		}
 
 		move_inputs.set(i, input->get_move_input());
 		flags.set(i, (int32_t)bits);

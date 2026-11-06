@@ -22,11 +22,23 @@
 				An independent copy of this input. What a prediction history keeps for every tick it may have to replay.
 			</description>
 		</method>
+		<method name="get_facing_direction" qualifiers="const">
+			<return type="Vector3" />
+			<description>
+				The requested heading as a horizontal unit vector, or [code]Vector3.ZERO[/code] when there is none. See [member facing_index].
+			</description>
+		</method>
 		<method name="has_custom_flag" qualifiers="const">
 			<return type="bool" />
 			<param index="0" name="flag" type="int" />
 			<description>
 				Whether any bit of [param flag] is set in [member custom_flags].
+			</description>
+		</method>
+		<method name="has_facing" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Whether this tick asks for a heading - [member facing_index] is not [code]-1[/code].
 			</description>
 		</method>
 		<method name="reset">
@@ -35,10 +47,20 @@
 				Clears every field.
 			</description>
 		</method>
+		<method name="set_facing_direction">
+			<return type="void" />
+			<param index="0" name="direction" type="Vector3" />
+			<description>
+				Sets [member facing_index] from a direction, rounded to the nearest of [constant FACING_STEPS] headings around world up. A direction with no horizontal part clears the request.
+			</description>
+		</method>
 	</methods>
 	<members>
 		<member name="custom_flags" type="int" setter="set_custom_flags" getter="get_custom_flags" default="0">
 			Sixteen bits a game gives its own meaning - a dash, a sprint, a mantle. They travel with the input, so an action carried in them happens on the same tick on the client that predicts it, on the server and on every replay. Set them with [method CharacterMovementComponent.add_custom_input_flags] and act on them from [signal CharacterMovementComponent.custom_input_flags]. Bits above the sixteenth are dropped.
+		</member>
+		<member name="facing_index" type="int" setter="set_facing_index" getter="get_facing_index" default="-1">
+			Which way the character wants to face on this tick: a heading around world up, in steps of [code]TAU / FACING_STEPS[/code] (0 faces +Z), or [code]-1[/code] for no request. Kept as the step rather than a vector so the predicting client and the server turn from bit-identical numbers - the wire carries only the step. Set it through [method CharacterMovementComponent.set_facing_input].
 		</member>
 		<member name="frame" type="int" setter="set_frame" getter="get_frame" default="0">
 			The tick this input belongs to, on the clock of the machine that gathered it. A predicting client numbers its moves with it, and the server answers with the last one it simulated - which is the whole basis of reconciliation.
@@ -53,4 +75,9 @@
 			Whether a jump was asked for this tick.
 		</member>
 	</members>
+	<constants>
+		<constant name="FACING_STEPS" value="4096">
+			How many headings [member facing_index] tells apart - twelve bits on the wire, under a tenth of a degree each.
+		</constant>
+	</constants>
 </class>

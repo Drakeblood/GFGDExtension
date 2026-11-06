@@ -44,6 +44,14 @@ private:
 	// See CharacterMovementComponent::add_custom_input_flags.
 	int custom_flags;
 
+	// Which way the character wants to face on this tick, as a heading around
+	// world up in FACING_STEPS steps, or -1 for no request (then the component
+	// falls back to orient_rotation_to_movement). Kept as the step rather than a
+	// vector so the client and the server rotate from bit-identical numbers: the
+	// wire carries only the step, and a client that predicted with the unrounded
+	// angle would drift from every acknowledgement it gets.
+	int facing_index;
+
 	// The tick this input belongs to. Unused while the server is the only thing
 	// simulating, and the one field a client would have to send for a server to
 	// be able to say "I processed up to here" - which is the whole basis of
@@ -70,6 +78,15 @@ public:
 	void set_custom_flags(int value) { custom_flags = value & CUSTOM_FLAGS_MASK; }
 	bool has_custom_flag(int flag) const { return (custom_flags & flag) != 0; }
 
+	int get_facing_index() const { return facing_index; }
+	void set_facing_index(int value) { facing_index = (value < 0) ? -1 : (value % FACING_STEPS); }
+	bool has_facing() const { return facing_index >= 0; }
+
+	// Horizontal unit vector of the requested heading, or zero when there is none.
+	Vector3 get_facing_direction() const;
+	// Rounded to the nearest step. A direction with no horizontal part clears it.
+	void set_facing_direction(const Vector3& direction);
+
 	void reset();
 	void copy_from(const Ref<MovementInput>& other);
 	Ref<MovementInput> duplicate_input() const;
@@ -77,6 +94,9 @@ public:
 	// Only this many bits are sent over the wire; anything above them is dropped
 	// here rather than silently lost later.
 	static constexpr int CUSTOM_FLAGS_MASK = 0xFFFF;
+
+	// 12 bits on the wire: under a tenth of a degree per step.
+	static constexpr int FACING_STEPS = 4096;
 
 protected:
 	static void _bind_methods();

@@ -232,8 +232,12 @@ everywhere.
 - **A predicted dash, knockback or sprint snaps back a moment later, every time.** It was started from
   a button handler or a script outside the movement tick, so it began on the client at once and on the
   server whenever the action state arrived — or never. Set a bit with `add_custom_input_flags()` and
-  queue the move from the `custom_input_flags` signal: it fires inside the tick carrying the bit, on
-  both machines and on every replay.
+  queue the move from the `custom_input_flags` signal: it fires inside every tick, on both machines
+  and on every replay.
+- **Sprint sometimes stays on after the button is let go.** It was an "on" bit and an "off" bit, and
+  the "off" got lost — dropped with its move, sent on the same tick as the "on", or the button came up
+  while `wants_movement_input()` was false. Keep a held button in `held_custom_input_flags` and derive
+  the state from the bit on every tick (the signal fires with `0` too).
 - **On a predicting client, sounds and effects tied to movement signals play twice.** A correction
   replays ticks, and a replayed tick emits `movement_mode_changed`, `crouch_changed`,
   `layered_move_started` and `custom_input_flags` again. Check `is_replaying()` in a listener that

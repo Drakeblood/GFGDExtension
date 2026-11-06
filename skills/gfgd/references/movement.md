@@ -644,9 +644,33 @@ func _on_custom_input_flags(flags: int) -> void:  # inside the tick, everywhere
 		_movement.queue_layered_move(make_dash())
 ```
 
-The signal fires inside the tick that carries the bits — on the predicting client, on the server and
-on every replay — so the dash starts on the same tick everywhere. Done from the button instead, it
-starts at different times on the two machines and is corrected every time.
+The signal fires inside every tick — on the predicting client, on the server and on every replay —
+so the dash starts on the same tick everywhere. Done from the button instead, it starts at different
+times on the two machines and is corrected every time. It fires with `0` too, so a held state can be
+cleared on the tick its bit is gone.
+
+**A held button is a held bit, not a press and a release.** `held_custom_input_flags` stays on every
+tick's input until changed. Two one-shot bits for "sprint on" and "sprint off" get stuck the moment the
+release is lost — the move that carried it dropped, both bits on one tick, the button let go while
+input was not being read:
+
+```gdscript
+const FLAG_SPRINT := 1 << 1
+
+func _gather_movement_input(_delta: float) -> void:
+	_movement.held_custom_input_flags = FLAG_SPRINT if _input.is_action_pressed(&"sprint") else 0
+	# ...
+
+func _on_custom_input_flags(flags: int) -> void:
+	_sprinting = flags & FLAG_SPRINT != 0
+	_movement.max_walk_speed = sprint_speed if _sprinting else walk_speed
+```
+
+**Facing a point instead of the way you walk.** `set_facing_input(direction)`, called from
+`_gather_movement_input` once per tick, travels with the move (`MovementInput.facing_index`, 4096
+headings) and wins over `orient_rotation_to_movement` for that tick, at `rotation_rate_deg` — the
+character walks backwards dragging a log, strafes while aiming, turns even standing still. Stop
+calling it and the component goes back to orienting to movement.
 
 **Every signal fires again on a replay.** `movement_mode_changed`, `crouch_changed`,
 `layered_move_started`, `custom_input_flags` — a replayed tick is a tick. A listener that plays a

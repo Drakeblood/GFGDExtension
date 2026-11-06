@@ -46,6 +46,7 @@ CharacterMovementComponent2D::CharacterMovementComponent2D()
 	, jump_pressed_latch(false)
 	, crouch_latch(false)
 	, custom_input_flags_latch(0)
+	, held_custom_input_flags(0)
 	, up_direction(Vector2(0, -1))
 	, gravity(980.0f)
 	, gravity_scale(1.0f)
@@ -230,10 +231,8 @@ void CharacterMovementComponent2D::simulate_internal(double delta, const Ref<Mov
 		gather_input(backend != nullptr ? backend->get_sim_frame() : 0, delta);
 	}
 
-	if (input->get_custom_flags() != 0)
-	{
-		emit_signal("custom_input_flags", input->get_custom_flags());
-	}
+	// Every tick, zero included, so a held bit is seen going.
+	emit_signal("custom_input_flags", input->get_custom_flags());
 
 	update_crouch_state();
 
@@ -603,7 +602,7 @@ void CharacterMovementComponent2D::gather_input(int64_t frame, double tick_delta
 	input->set_frame(frame);
 	input->set_want_jump(jump_pressed_latch);
 	input->set_want_crouch(crouch_latch);
-	input->set_custom_flags(custom_input_flags_latch);
+	input->set_custom_flags(custom_input_flags_latch | held_custom_input_flags);
 
 	if (pawn == nullptr)
 	{
@@ -1131,6 +1130,9 @@ void CharacterMovementComponent2D::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_movement_backend"), &CharacterMovementComponent2D::get_movement_backend);
 	ClassDB::bind_method(D_METHOD("is_replaying"), &CharacterMovementComponent2D::is_replaying);
 	ClassDB::bind_method(D_METHOD("add_custom_input_flags", "flags"), &CharacterMovementComponent2D::add_custom_input_flags);
+	ClassDB::bind_method(D_METHOD("get_held_custom_input_flags"), &CharacterMovementComponent2D::get_held_custom_input_flags);
+	ClassDB::bind_method(D_METHOD("set_held_custom_input_flags", "flags"), &CharacterMovementComponent2D::set_held_custom_input_flags);
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "held_custom_input_flags", PROPERTY_HINT_FLAGS, "Custom 0,Custom 1,Custom 2,Custom 3,Custom 4,Custom 5,Custom 6,Custom 7,Custom 8,Custom 9,Custom 10,Custom 11,Custom 12,Custom 13,Custom 14,Custom 15", PROPERTY_USAGE_NONE), "set_held_custom_input_flags", "get_held_custom_input_flags");
 	ClassDB::bind_method(D_METHOD("server_receive_moves", "first_frame", "move_inputs", "flags"), &CharacterMovementComponent2D::server_receive_moves);
 	ClassDB::bind_method(D_METHOD("client_receive_move_ack", "frame", "packed_state"), &CharacterMovementComponent2D::client_receive_move_ack);
 	ClassDB::bind_method(D_METHOD("queue_next_mode", "mode_name"), &CharacterMovementComponent2D::queue_next_mode);

@@ -128,6 +128,14 @@ private:
 	// the next one.
 	int custom_input_flags_latch;
 
+	// Bits set on every tick's input until changed - a held button rather than a
+	// press. See set_held_custom_input_flags.
+	int held_custom_input_flags;
+
+	// set_facing_input() for the tick being gathered; consumed by it.
+	Vector3 facing_input_latch;
+	bool has_facing_input_latch;
+
 	// --- Settings -----------------------------------------------------------
 
 	Vector3 up_direction;
@@ -524,6 +532,23 @@ public:
 	// way to predict an action that changes movement: queue the dash from the
 	// signal, not from the button, and both sides start it on the same tick.
 	void add_custom_input_flags(int flags);
+
+	// Custom bits that stay on every tick's input until changed: the state of a
+	// held button. A press-and-release pair of add_custom_input_flags() bits
+	// loses the release whenever the move that carried it is lost, the two land
+	// on one tick, or the release happens while input is not being read; a held
+	// bit is simply absent on the next tick. custom_input_flags fires on every
+	// tick, so a game can clear its state on the tick the bit is gone.
+	int get_held_custom_input_flags() const { return held_custom_input_flags; }
+	void set_held_custom_input_flags(int flags) { held_custom_input_flags = flags & MovementInput::CUSTOM_FLAGS_MASK; }
+
+	// Which way the character should face on the tick being gathered - call it
+	// from Pawn._gather_movement_input, once per tick. The heading travels with
+	// the move (rounded to MovementInput.FACING_STEPS), so the predicting client,
+	// the server and every replay turn the same way. While it is given it wins
+	// over orient_rotation_to_movement, at the same rotation_rate_deg: walking
+	// backwards while dragging something, strafing while aiming.
+	void set_facing_input(const Vector3& direction);
 
 	bool get_client_prediction() const { return client_prediction; }
 	void set_client_prediction(bool value) { client_prediction = value; }

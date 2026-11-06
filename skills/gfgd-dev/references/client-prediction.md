@@ -43,7 +43,9 @@ Two things on the component *do* survive a tick and are handled explicitly:
 | `rollback_to_state` | both components | state + body + capsule + floor, together; base dropped |
 | `server_receive_moves`, `client_receive_move_ack` | both components | the two remote calls; the component is the node at the same path on both peers |
 | `MovementInput.custom_flags` | `src/movement/movement_types.*` | 16 game-defined bits that travel with the move |
-| `custom_input_flags` signal | both components | fires inside the tick carrying the bits, on every peer and every replay |
+| `custom_input_flags` signal | both components | fires inside every tick (zero included), on every peer and every replay |
+| `held_custom_input_flags` | both components | bits OR-ed into every gathered input until changed — held buttons |
+| `MovementInput.facing_index`, `set_facing_input` | `movement_types.*`, 3D component | requested heading, 12 bits on the wire; `apply_rotation` prefers it over orient-to-movement |
 | `MovementInput.copy_from` / `duplicate_input` | `movement_types.*` | the history keeps one per tick |
 | `MovementState` deep copy | `copy_from(other, true)`, `duplicate_state(true)` | duplicates layered moves too; only the history uses it |
 | `LayeredMove::duplicate_move` | `src/movement/layered_move.*` | `Resource::duplicate` + start time + started; virtual, `_duplicate_move` for scripts; `RootMotionLayeredMove` carries its mixer |
@@ -63,7 +65,7 @@ Moves are sampled once per physics tick — by the component's own `gather_input
 called `Pawn._gather_movement_input` — stamped with the backend's `sim_frame`, and sent every tick as
 `server_receive_moves(first_frame, PackedVector3Array, PackedInt32Array)`: the newest
 `max_moves_per_packet` unacknowledged moves, oldest first. The flags word is jump (bit 0), crouch
-(bit 1) and the custom flags in the high sixteen. Unreliable-ordered both ways.
+(bit 1), a facing request (bit 2, heading in bits 3–14) and the custom flags in the high sixteen. Unreliable-ordered both ways.
 
 The crouch and custom-flag latches were folded into the input in `gather_input` for this. Before, the
 crouch latch was read directly in `update_crouch_state`, which made the input not the whole of the
