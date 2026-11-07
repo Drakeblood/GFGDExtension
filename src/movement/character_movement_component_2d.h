@@ -175,6 +175,8 @@ public:
 	// The same tick with an input gathered elsewhere - received by the server or
 	// replayed by a predicting client. See CharacterMovementComponent.
 	void simulate_with_input(const Ref<MovementInput>& given_input, double delta);
+	// Moves the character with its base for one tick and nothing else (see the 3D component).
+	void follow_base(double delta);
 
 	// Makes new_state the present: state, body, capsule and cached floor
 	// together. The base is dropped; the next tick finds it again.
@@ -383,6 +385,7 @@ private:
 	void resolve_capsule_dimensions();
 	// Moves the character by however much its base moved.
 	void update_based_movement(double delta);
+	void adopt_external_move();
 	bool can_be_base(Object* collider) const;
 
 	// The node behind MovementState::base_id, or null once it is gone.
@@ -397,6 +400,7 @@ private:
 	void mix_layered_moves(const Ref<MovementTickParams>& params);
 	void retire_finished_layered_moves();
 	void resolve_queued_mode();
+	void on_movement_mode_changed(const StringName& previous_mode, const StringName& new_mode);
 	void apply_state_to_body();
 	void configure_rpcs();
 	void simulate_internal(double delta, const Ref<MovementInput>& given_input);

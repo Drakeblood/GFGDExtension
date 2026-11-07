@@ -207,6 +207,7 @@ void CharacterMovementComponent::_physics_process(double delta)
 	// server simulates everything; a client only a character it predicts.
 	if (pawn != nullptr && !pawn->has_authority() && !pawn->is_locally_predicted())
 	{
+		follow_proxy_base();
 		return;
 	}
 
@@ -225,13 +226,8 @@ void CharacterMovementComponent::simulate_with_input(const Ref<MovementInput>& g
 	simulate_internal(delta, given_input);
 }
 
-void CharacterMovementComponent::simulate_internal(double delta, const Ref<MovementInput>& given_input)
+void CharacterMovementComponent::adopt_external_move()
 {
-	if (delta <= 0.0 || updated_body == nullptr)
-	{
-		return;
-	}
-
 	// Something outside the simulation may have moved the body - a respawn, a
 	// teleport, a script setting position directly. Adopt it rather than fighting
 	// it, and drop the cached floor, which describes a place we are no longer in.
@@ -248,6 +244,74 @@ void CharacterMovementComponent::simulate_internal(double delta, const Ref<Movem
 		state->clear_base();
 		has_base_last_transform = false;
 	}
+}
+
+void CharacterMovementComponent::follow_base(double delta)
+{
+	if (delta <= 0.0 || updated_body == nullptr)
+	{
+		return;
+	}
+
+	// Only what the base did this tick: no input, no movement mode, no rotation.
+	// Without it a character carried by a platform moves only on the ticks it is
+	// simulated, and in between the platform drives on without it.
+	adopt_external_move();
+	update_based_movement(delta);
+	save_base_location();
+	apply_state_to_body();
+}
+
+void CharacterMovementComponent::launch(const Vector3& launch_velocity, bool horizontal_override, bool vertical_override)
+{
+	// Several launches before the next tick add up, the way two hits in one frame
+	// would; an override in any of them stands.
+	pending_launch_velocity += launch_velocity;
+	pending_launch_horizontal_override = pending_launch_horizontal_override || horizontal_override;
+	pending_launch_vertical_override = pending_launch_vertical_override || vertical_override;
+	has_pending_launch = true;
+}
+
+void CharacterMovementComponent::apply_pending_launch()
+{
+	if (!has_pending_launch)
+	{
+		return;
+	}
+	has_pending_launch = false;
+
+	const Vector3 up = up_direction;
+	const Vector3 current = state->get_velocity();
+	const Vector3 current_vertical = up * current.dot(up);
+	const Vector3 current_horizontal = current - current_vertical;
+	const Vector3 launch_vertical = up * pending_launch_velocity.dot(up);
+	const Vector3 launch_horizontal = pending_launch_velocity - launch_vertical;
+
+	const Vector3 horizontal = pending_launch_horizontal_override ? launch_horizontal : current_horizontal + launch_horizontal;
+	const Vector3 vertical = pending_launch_vertical_override ? launch_vertical : current_vertical + launch_vertical;
+	state->set_velocity(horizontal + vertical);
+
+	pending_launch_velocity = Vector3();
+	pending_launch_horizontal_override = false;
+	pending_launch_vertical_override = false;
+
+	// Into the air at once, not queued: a walking tick in between would flatten
+	// the upward part. The switch drops the floor, so the base lets go at the end
+	// of this tick and hands over its own speed once (impart_base_velocity).
+	if (find_mode(StringName(MODE_FALLING)).is_valid())
+	{
+		set_movement_mode(StringName(MODE_FALLING));
+	}
+}
+
+void CharacterMovementComponent::simulate_internal(double delta, const Ref<MovementInput>& given_input)
+{
+	if (delta <= 0.0 || updated_body == nullptr)
+	{
+		return;
+	}
+
+	adopt_external_move();
 
 	// After the teleport check, so a platform's motion is not mistaken for one,
 	// and before the modes run, so they start from where the platform has already
@@ -272,6 +336,10 @@ void CharacterMovementComponent::simulate_internal(double delta, const Ref<Movem
 	// Before the modes run, so a mode that is about to move sees the size the
 	// character will be moving at.
 	update_crouch_state();
+
+	// After the custom flags, so a launch a game asks for there lands on this
+	// tick; before the modes, so the falling mode is the one that moves it.
+	apply_pending_launch();
 
 	// A frame longer than max_simulation_time_step is split, so a hitch cannot
 	// walk a character through a wall. Running out of iterations drops the rest
@@ -604,7 +672,24 @@ void CharacterMovementComponent::resolve_queued_mode()
 	}
 
 	state->set_movement_mode(queued_mode);
-	emit_signal("movement_mode_changed", previous_mode, queued_mode);
+	on_movement_mode_changed(previous_mode, queued_mode);
+}
+
+void CharacterMovementComponent::on_movement_mode_changed(const StringName& previous_mode, const StringName& new_mode)
+{
+	// The cached floor only means something while walking: walking refreshes it
+	// every tick, and no other mode does - falling looks for one only on the way
+	// down. Kept past the change, it goes on naming whatever the character stood
+	// on last, and save_base_location goes on treating that as the base - a lift
+	// or another character's head carries the character through the air instead
+	// of handing over its motion once. Cleared here, the next save_base_location
+	// sees no floor, lets go of the base and passes on its velocity if falling.
+	if (new_mode != StringName(MODE_WALKING))
+	{
+		current_floor->clear();
+	}
+
+	emit_signal("movement_mode_changed", previous_mode, new_mode);
 }
 
 void CharacterMovementComponent::gather_input(int64_t frame, double tick_delta)
@@ -945,7 +1030,7 @@ void CharacterMovementComponent::set_movement_mode(const StringName& mode_name)
 	state->set_movement_mode(mode_name);
 	has_queued_mode = false;
 
-	emit_signal("movement_mode_changed", previous_mode, mode_name);
+	on_movement_mode_changed(previous_mode, mode_name);
 }
 
 Ref<MovementMode> CharacterMovementComponent::find_mode(const StringName& mode_name) const
@@ -1204,6 +1289,8 @@ void CharacterMovementComponent::setup_replication()
 
 	PackedStringArray properties;
 	properties.push_back("replicated_movement_mode");
+	properties.push_back("replicated_base");
+	properties.push_back("replicated_base_offset");
 
 	Replication::attach(this, this, Replication::validate_properties(this, properties), World::SERVER_PEER_ID, "MovementReplication");
 }
@@ -1216,6 +1303,62 @@ void CharacterMovementComponent::set_replicated_movement_mode(const StringName& 
 	}
 
 	set_movement_mode(mode_name);
+}
+
+NodePath CharacterMovementComponent::get_replicated_base() const
+{
+	// Only a base that carries the character: one it stands on without following
+	// (move_with_base off) is no reason to place it there elsewhere.
+	const Node3D* base = move_with_base ? resolve_base() : nullptr;
+	return base != nullptr && base->is_inside_tree() ? base->get_path() : NodePath();
+}
+
+void CharacterMovementComponent::set_replicated_base(const NodePath& path)
+{
+	proxy_base_path = path;
+}
+
+Transform3D CharacterMovementComponent::get_replicated_base_offset() const
+{
+	const Node3D* base = move_with_base ? resolve_base() : nullptr;
+	if (base == nullptr || updated_body == nullptr || !base->is_inside_tree())
+	{
+		return Transform3D();
+	}
+	return base->get_global_transform().affine_inverse() * updated_body->get_global_transform();
+}
+
+void CharacterMovementComponent::set_replicated_base_offset(const Transform3D& offset)
+{
+	proxy_base_offset = offset;
+}
+
+void CharacterMovementComponent::follow_proxy_base()
+{
+	Node3D* base = nullptr;
+	if (!proxy_base_path.is_empty() && updated_body != nullptr && is_inside_tree())
+	{
+		base = Object::cast_to<Node3D>(get_node_or_null(proxy_base_path));
+	}
+
+	if (pawn != nullptr)
+	{
+		pawn->set_transform_follows_base(base != nullptr);
+	}
+
+	if (base == nullptr)
+	{
+		return;
+	}
+
+	// After the base has moved this tick, so the character stands on where the
+	// base is now rather than where it was a tick ago.
+	if (get_physics_process_priority() < PROXY_PHYSICS_PRIORITY)
+	{
+		set_physics_process_priority(PROXY_PHYSICS_PRIORITY);
+	}
+
+	updated_body->set_global_transform(base->get_global_transform() * proxy_base_offset);
 }
 
 void CharacterMovementComponent::configure_rpcs()
@@ -1333,6 +1476,13 @@ void CharacterMovementComponent::_bind_methods()
 	ClassDB::bind_method(D_METHOD("get_replicated_movement_mode"), &CharacterMovementComponent::get_replicated_movement_mode);
 	ClassDB::bind_method(D_METHOD("set_replicated_movement_mode", "mode_name"), &CharacterMovementComponent::set_replicated_movement_mode);
 	ADD_PROPERTY(PropertyInfo(Variant::STRING_NAME, "replicated_movement_mode", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NONE), "set_replicated_movement_mode", "get_replicated_movement_mode");
+	ClassDB::bind_method(D_METHOD("launch", "launch_velocity", "horizontal_override", "vertical_override"), &CharacterMovementComponent::launch, DEFVAL(false), DEFVAL(false));
+	ClassDB::bind_method(D_METHOD("get_replicated_base"), &CharacterMovementComponent::get_replicated_base);
+	ClassDB::bind_method(D_METHOD("set_replicated_base", "path"), &CharacterMovementComponent::set_replicated_base);
+	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "replicated_base", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NONE), "set_replicated_base", "get_replicated_base");
+	ClassDB::bind_method(D_METHOD("get_replicated_base_offset"), &CharacterMovementComponent::get_replicated_base_offset);
+	ClassDB::bind_method(D_METHOD("set_replicated_base_offset", "offset"), &CharacterMovementComponent::set_replicated_base_offset);
+	ADD_PROPERTY(PropertyInfo(Variant::TRANSFORM3D, "replicated_base_offset", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NONE), "set_replicated_base_offset", "get_replicated_base_offset");
 
 	ClassDB::bind_method(D_METHOD("queue_next_mode", "mode_name"), &CharacterMovementComponent::queue_next_mode);
 	ClassDB::bind_method(D_METHOD("find_mode", "mode_name"), &CharacterMovementComponent::find_mode);

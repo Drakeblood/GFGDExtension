@@ -55,6 +55,10 @@ public:
 	static constexpr const char* MODE_SWIMMING = "Swimming";
 	static constexpr const char* MODE_NULL = "Null";
 
+	// A watching peer places the character on its base after everything at the
+	// default priority - the vehicle carrying it above all - has moved this tick.
+	static constexpr int PROXY_PHYSICS_PRIORITY = 100;
+
 private:
 	NodePath updated_body_path;
 	Dictionary modes;
@@ -100,6 +104,17 @@ private:
 	// has moved on since.
 	Transform3D base_last_transform;
 	bool has_base_last_transform;
+
+	// On a peer that only watches this character: the base the server says it
+	// stands on, and where on it (the body's transform in the base's frame).
+	NodePath proxy_base_path;
+	Transform3D proxy_base_offset;
+
+	// launch(): applied at the start of the next simulated tick.
+	Vector3 pending_launch_velocity;
+	bool pending_launch_horizontal_override = false;
+	bool pending_launch_vertical_override = false;
+	bool has_pending_launch = false;
 
 	// The base's velocity where the character stands, measured from what the
 	// base actually did over the last tick. Handed over on leaving it.
@@ -241,6 +256,20 @@ public:
 	// from the pawn or the latches.
 	void simulate_with_input(const Ref<MovementInput>& given_input, double delta);
 
+	// Moves the character with its base for one tick and nothing else. The server
+	// calls it on the ticks a remote client's move has not arrived yet, so a
+	// character standing on a moving vehicle stays where it stands instead of
+	// being left behind and catching up when the next move comes.
+	void follow_base(double delta);
+
+	// Throws the character into the air: at the start of the next simulated tick
+	// launch_velocity is added to its velocity (or replaces the horizontal or the
+	// vertical part, with the overrides) and it starts falling. Leaving a moving
+	// base this way hands over the base's speed once, so a launch from a truck is
+	// given relative to the truck. For knock-backs, bounces and jump pads - a
+	// velocity set directly would be flattened by the walking mode.
+	void launch(const Vector3& launch_velocity, bool horizontal_override = false, bool vertical_override = false);
+
 	// Makes new_state the present: the state, the body's transform, the capsule
 	// size and the cached floor all move together. What a prediction backend
 	// calls before replaying from a correction.
@@ -269,6 +298,16 @@ public:
 	// own mode, and the server's would arrive a round trip late.
 	StringName get_replicated_movement_mode() const { return get_movement_mode(); }
 	void set_replicated_movement_mode(const StringName& mode_name);
+
+	// What the base replication reads and writes: the base's path (empty when the
+	// character stands on nothing that moves it) and the body's transform in the
+	// base's frame. A watching peer puts the character on its own copy of the base
+	// from these, so it rides there at whatever delay that copy is shown at - the
+	// world position alone would put it a little ahead of or behind the vehicle.
+	NodePath get_replicated_base() const;
+	void set_replicated_base(const NodePath& path);
+	Transform3D get_replicated_base_offset() const;
+	void set_replicated_base_offset(const Transform3D& offset);
 
 	// --- Modes --------------------------------------------------------------
 
@@ -591,6 +630,11 @@ private:
 	// Moves the character by however much its base moved, by rebuilding the world
 	// transform from the base's current one and the stored relative offset.
 	void update_based_movement(double delta);
+	void adopt_external_move();
+
+	// A watching peer: the character placed on its copy of the base, if it has one.
+	void follow_proxy_base();
+	void apply_pending_launch();
 	bool can_be_base(Object* collider) const;
 
 	// The node behind MovementState::base_id, or null once it is gone.
@@ -619,6 +663,11 @@ private:
 	// Drops moves whose time is up, applying their finish velocity to the state.
 	void retire_finished_layered_moves();
 	void resolve_queued_mode();
+
+	// Every mode change ends here, queued or set directly, so what a change has
+	// to undo is undone the same way whichever path made it.
+	void on_movement_mode_changed(const StringName& previous_mode, const StringName& new_mode);
+
 	void apply_state_to_body();
 	void apply_rotation(double delta);
 };

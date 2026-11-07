@@ -58,6 +58,13 @@ private:
 	// replicates, which would otherwise fight it.
 	bool movement_predicted;
 
+	// Set by a movement component on a peer that only watches this pawn, while the
+	// pawn stands on a moving base: the component then places it on its copy of
+	// the base from the base-relative transform the server sends, and the world
+	// transform arriving here would put it back where it was on the server's base
+	// - ahead of or behind this peer's copy, which is shown at a different delay.
+	bool transform_follows_base;
+
 	// Set by an AbilitySystemComponent that replicates. Its owning client then
 	// runs the pawn's input bindings, because ability input reaches the server
 	// through the component's own requests and not through the action state.
@@ -106,6 +113,9 @@ public:
 
 	bool get_movement_predicted() const { return movement_predicted; }
 	void set_movement_predicted(bool value) { movement_predicted = value; }
+
+	bool get_transform_follows_base() const { return transform_follows_base; }
+	void set_transform_follows_base(bool value) { transform_follows_base = value; }
 
 	bool get_abilities_replicated() const { return abilities_replicated; }
 	void set_abilities_replicated(bool value) { abilities_replicated = value; }

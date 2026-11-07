@@ -93,12 +93,8 @@ void WalkingMode::simulation_tick(const Ref<MovementTickParams>& params)
 	{
 		velocity += up * component->get_jump_velocity();
 
-		// The character is off the ground now. Left in place, the floor would
-		// keep the base for the whole jump (the falling mode only looks for a
-		// floor on the way down), so the platform would go on carrying the
-		// character through the air instead of handing over its motion once.
-		floor->clear();
-
+		// The floor is dropped by the switch to falling itself, before the base
+		// is next looked at, the same as for any other way of leaving the ground.
 		out_state->set_position(transform.origin);
 		out_state->set_rotation(transform.basis);
 		out_state->set_velocity(velocity);

@@ -21,6 +21,7 @@ Pawn::Pawn()
 	auto_possess_player = AUTO_POSSESS_DISABLED;
 	replicate_transform = true;
 	movement_predicted = false;
+	transform_follows_base = false;
 	abilities_replicated = false;
 	player_id = 0;
 }
@@ -202,7 +203,7 @@ Variant Pawn::get_replicated_position() const
 void Pawn::set_replicated_position(const Variant& value)
 {
 	Node* root = get_pawn_root();
-	if (root == nullptr || is_locally_predicted()) { return; }
+	if (root == nullptr || is_locally_predicted() || transform_follows_base) { return; }
 
 	root->set("position", value);
 }
@@ -216,7 +217,7 @@ Variant Pawn::get_replicated_rotation() const
 void Pawn::set_replicated_rotation(const Variant& value)
 {
 	Node* root = get_pawn_root();
-	if (root == nullptr || is_locally_predicted()) { return; }
+	if (root == nullptr || is_locally_predicted() || transform_follows_base) { return; }
 
 	root->set("rotation", value);
 }

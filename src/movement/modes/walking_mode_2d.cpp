@@ -91,10 +91,7 @@ void WalkingMode2D::simulation_tick(const Ref<MovementTickParams>& params)
 	{
 		velocity += up * component->get_jump_velocity();
 
-		// Off the ground now: without this the floor keeps the base for the whole
-		// jump and the platform carries the character through the air.
-		floor->clear();
-
+		// The switch to falling drops the floor before the base is next looked at.
 		out_state->set_position(MovementUtils2D::to_3d(transform.get_origin()));
 		out_state->set_velocity(MovementUtils2D::to_3d(velocity));
 

@@ -195,13 +195,8 @@ void CharacterMovementComponent2D::simulate_with_input(const Ref<MovementInput>&
 	simulate_internal(delta, given_input);
 }
 
-void CharacterMovementComponent2D::simulate_internal(double delta, const Ref<MovementInput>& given_input)
+void CharacterMovementComponent2D::adopt_external_move()
 {
-	if (delta <= 0.0 || updated_body == nullptr)
-	{
-		return;
-	}
-
 	const Vector2 body_position = updated_body->get_global_position();
 	const Vector2 state_position = MovementUtils2D::to_2d(state->get_position());
 
@@ -216,6 +211,30 @@ void CharacterMovementComponent2D::simulate_internal(double delta, const Ref<Mov
 		state->clear_base();
 		has_base_last_transform = false;
 	}
+}
+
+void CharacterMovementComponent2D::follow_base(double delta)
+{
+	if (delta <= 0.0 || updated_body == nullptr)
+	{
+		return;
+	}
+
+	// Only what the base did this tick - see CharacterMovementComponent::follow_base.
+	adopt_external_move();
+	update_based_movement(delta);
+	save_base_location();
+	apply_state_to_body();
+}
+
+void CharacterMovementComponent2D::simulate_internal(double delta, const Ref<MovementInput>& given_input)
+{
+	if (delta <= 0.0 || updated_body == nullptr)
+	{
+		return;
+	}
+
+	adopt_external_move();
 
 	// After the teleport check, so a platform's motion is not mistaken for one,
 	// and before the modes run, so they start from where the platform has already
@@ -593,7 +612,20 @@ void CharacterMovementComponent2D::resolve_queued_mode()
 	}
 
 	state->set_movement_mode(queued_mode);
-	emit_signal("movement_mode_changed", previous_mode, queued_mode);
+	on_movement_mode_changed(previous_mode, queued_mode);
+}
+
+void CharacterMovementComponent2D::on_movement_mode_changed(const StringName& previous_mode, const StringName& new_mode)
+{
+	// Only walking refreshes the cached floor every tick. Kept past the change, it
+	// would go on naming the last thing stood on, and save_base_location would
+	// keep that as the base through the air.
+	if (new_mode != StringName(MODE_WALKING))
+	{
+		current_floor->clear();
+	}
+
+	emit_signal("movement_mode_changed", previous_mode, new_mode);
 }
 
 void CharacterMovementComponent2D::gather_input(int64_t frame, double tick_delta)
@@ -846,7 +878,7 @@ void CharacterMovementComponent2D::set_movement_mode(const StringName& mode_name
 	state->set_movement_mode(mode_name);
 	has_queued_mode = false;
 
-	emit_signal("movement_mode_changed", previous_mode, mode_name);
+	on_movement_mode_changed(previous_mode, mode_name);
 }
 
 Ref<MovementMode> CharacterMovementComponent2D::find_mode(const StringName& mode_name) const

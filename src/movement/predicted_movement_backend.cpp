@@ -423,6 +423,11 @@ void PredictedMovementBackend::tick_server(TComponent* component, double delta)
 
 		if (starved_seconds < FORCED_UPDATE_SECONDS)
 		{
+			// The client's move for this tick is not here yet, but a vehicle under
+			// the character moves on regardless. Carried along now, the character
+			// stays where it stands on it; left until the move arrives, it slides
+			// back along the bed and jumps forward again on every late packet.
+			component->follow_base(delta);
 			return;
 		}
 
